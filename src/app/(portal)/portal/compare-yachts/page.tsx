@@ -42,6 +42,8 @@ interface YachtListing {
   rangeNum: number;
   location: string;
   engine: string;
+  engineHours: string;
+  engineHoursNum: number;
   url: string;
   gradient: string;
 }
@@ -73,6 +75,8 @@ const SEED_YACHTS: YachtListing[] = [
     rangeNum: 3200,
     location: "Monaco",
     engine: "2× MTU 12V 2000 M72",
+    engineHours: "620 hrs",
+    engineHoursNum: 620,
     url: "https://www.yachtworld.com/yacht/2022-benetti-oasis-40m-8267590",
     gradient: "from-slate-700 via-slate-600 to-blue-900",
   },
@@ -98,6 +102,8 @@ const SEED_YACHTS: YachtListing[] = [
     rangeNum: 99999,
     location: "Palma de Mallorca",
     engine: "1× Yanmar 4JH80",
+    engineHours: "1,450 hrs",
+    engineHoursNum: 1450,
     url: "https://www.boattrader.com/boat/2021-oyster-745-8150322",
     gradient: "from-blue-900 via-indigo-800 to-slate-700",
   },
@@ -123,6 +129,8 @@ const SEED_YACHTS: YachtListing[] = [
     rangeNum: 1800,
     location: "Athens",
     engine: "2× Volvo D4-300",
+    engineHours: "2,100 hrs",
+    engineHoursNum: 2100,
     url: "https://www.yachtworld.com/yacht/2020-lagoon-seventy-7-8194001",
     gradient: "from-slate-800 via-teal-900 to-slate-700",
   },
@@ -148,6 +156,8 @@ const SEED_YACHTS: YachtListing[] = [
     rangeNum: 4500,
     location: "Seattle, WA",
     engine: "2× John Deere 6135",
+    engineHours: "3,800 hrs",
+    engineHoursNum: 3800,
     url: "https://www.denisonyachtsales.com/yacht/nordhavn-120",
     gradient: "from-slate-800 via-emerald-900 to-slate-700",
   },
@@ -173,6 +183,8 @@ const SEED_YACHTS: YachtListing[] = [
     rangeNum: 600,
     location: "Fort Lauderdale, FL",
     engine: "2× MTU 16V 2000 M96L",
+    engineHours: "280 hrs",
+    engineHoursNum: 280,
     url: "https://www.boats.com/power-boats/2023-viking-80-8301234",
     gradient: "from-indigo-900 via-purple-900 to-slate-800",
   },
@@ -264,6 +276,8 @@ function generateYachtFromUrl(url: string): YachtListing {
     rangeNum: rangeN,
     location: "Pacific Northwest",
     engine: `2× ${builder} Marine V8`,
+    engineHours: `${200 + (Math.abs(hash >> 15) % 4000)} hrs`,
+    engineHoursNum: 200 + (Math.abs(hash >> 15) % 4000),
     url,
     gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
   };
@@ -295,8 +309,9 @@ const SPEC_FIELDS: SpecField[] = [
   { label: "Max Speed", key: "maxSpeed", numKey: "maxSpeedNum" },
   { label: "Cabins", key: "cabins", numKey: "cabinsNum" },
   { label: "Range", key: "range", numKey: "rangeNum" },
-  { label: "Location", key: "location", numKey: "location", isLocation: true },
   { label: "Engine", key: "engine", numKey: "engine" },
+  { label: "Engine Hours", key: "engineHours", numKey: "engineHoursNum", lowerIsBetter: true },
+  { label: "Location", key: "location", numKey: "location", isLocation: true },
 ];
 
 /* ------------------------------------------------------------------ */
