@@ -612,6 +612,10 @@ export default function CompareYachtsPage() {
   const [dragOverSlot, setDragOverSlot] = useState<"a" | "b" | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [urlLeft, setUrlLeft] = useState("");
+  const [urlRight, setUrlRight] = useState("");
+  const [loadingLeft, setLoadingLeft] = useState(false);
+  const [loadingRight, setLoadingRight] = useState(false);
 
   // Persist catalog
   useEffect(() => {
@@ -622,6 +626,37 @@ export default function CompareYachtsPage() {
   const rightYacht = catalog.find((y) => y.id === rightId) ?? catalog[1];
 
   const seedIds = new Set(SEED_YACHTS.map((y) => y.id));
+
+  // Load a URL into a specific comparison slot and add to catalog
+  const loadUrlToSlot = useCallback(
+    (
+      url: string,
+      slot: "a" | "b",
+      setLoadingFn: (v: boolean) => void,
+      setUrlFn: (v: string) => void
+    ) => {
+      const trimmed = url.trim();
+      if (!trimmed) return;
+      setLoadingFn(true);
+      setTimeout(() => {
+        const existing = catalog.find(
+          (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (existing) {
+          if (slot === "a") setLeftId(existing.id);
+          else setRightId(existing.id);
+        } else {
+          const yacht = generateYachtFromUrl(trimmed);
+          setCatalog((prev) => [...prev, yacht]);
+          if (slot === "a") setLeftId(yacht.id);
+          else setRightId(yacht.id);
+        }
+        setLoadingFn(false);
+        setUrlFn("");
+      }, 600);
+    },
+    [catalog]
+  );
 
   // Add yacht from URL
   const handleAddUrl = useCallback(() => {
@@ -725,6 +760,111 @@ export default function CompareYachtsPage() {
             Compare any two yachts side-by-side. Paste listing URLs to add
             yachts to your catalog, then drag them into the comparison slots.
           </p>
+        </div>
+
+        {/* ── Quick Compare via URLs ── */}
+        <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
+          <h2 className="mb-1 text-sm font-semibold text-text-primary">
+            Compare by URL
+          </h2>
+          <p className="mb-4 text-xs text-text-secondary">
+            Paste two yacht listing links below and hit Compare to view them
+            side-by-side instantly.
+          </p>
+
+          <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-end">
+            {/* Left URL */}
+            <div className="flex-1">
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+                Yacht 1
+              </label>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
+                <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
+                <input
+                  type="url"
+                  value={urlLeft}
+                  onChange={(e) => setUrlLeft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && urlLeft.trim())
+                      loadUrlToSlot(urlLeft, "a", setLoadingLeft, setUrlLeft);
+                  }}
+                  placeholder="Paste first listing URL..."
+                  className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
+                />
+                {loadingLeft && (
+                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                )}
+              </div>
+            </div>
+
+            {/* VS label */}
+            <div className="flex items-end justify-center pb-2.5 lg:px-2">
+              <span className="text-xs font-bold tracking-widest text-text-secondary">
+                VS
+              </span>
+            </div>
+
+            {/* Right URL */}
+            <div className="flex-1">
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+                Yacht 2
+              </label>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
+                <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
+                <input
+                  type="url"
+                  value={urlRight}
+                  onChange={(e) => setUrlRight(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && urlRight.trim())
+                      loadUrlToSlot(urlRight, "b", setLoadingRight, setUrlRight);
+                  }}
+                  placeholder="Paste second listing URL..."
+                  className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
+                />
+                {loadingRight && (
+                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                )}
+              </div>
+            </div>
+
+            {/* Compare button */}
+            <button
+              onClick={() => {
+                if (urlLeft.trim())
+                  loadUrlToSlot(urlLeft, "a", setLoadingLeft, setUrlLeft);
+                if (urlRight.trim())
+                  loadUrlToSlot(urlRight, "b", setLoadingRight, setUrlRight);
+              }}
+              disabled={
+                (!urlLeft.trim() && !urlRight.trim()) ||
+                loadingLeft ||
+                loadingRight
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-bg-primary transition-colors hover:bg-gold-hover disabled:opacity-40 disabled:cursor-not-allowed lg:self-end"
+            >
+              {loadingLeft || loadingRight ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Compare
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] text-text-secondary">Works with:</span>
+            {["YachtWorld", "BoatTrader", "boats.com", "Denison", "Any URL"].map(
+              (site) => (
+                <span
+                  key={site}
+                  className="rounded-full border border-border/50 bg-bg-primary px-2 py-0.5 text-[10px] text-text-secondary"
+                >
+                  {site}
+                </span>
+              )
+            )}
+          </div>
         </div>
 
         {/* ── Status bar ── */}
