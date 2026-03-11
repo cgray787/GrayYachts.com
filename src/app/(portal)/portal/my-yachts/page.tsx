@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Ship, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 const DEMO_YACHTS = [
   {

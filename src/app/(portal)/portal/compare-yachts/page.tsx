@@ -9,7 +9,6 @@ import {
   Ship,
   Link2,
   Plus,
-  X,
   GripVertical,
   Loader2,
   Trash2,

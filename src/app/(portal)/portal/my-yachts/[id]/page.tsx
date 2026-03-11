@@ -130,13 +130,8 @@ type Tab = (typeof TABS)[number];
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function YachtDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function YachtDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Services");
-  const yachtId = params.id;
 
   return (
     <div className="min-h-screen bg-bg-primary">
