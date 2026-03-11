@@ -65,7 +65,7 @@ export default function Navbar() {
           href="/"
           className="font-[family-name:var(--font-cormorant)] text-lg tracking-[0.35em] text-text-primary"
         >
-          GRAYACHTS
+          GRAY YACHTS
         </Link>
       </nav>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Search,
   Bell,
@@ -141,9 +142,12 @@ export default function DashboardClient({
             <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
               Your Fleet
             </h2>
-            <button className="text-sm text-gold transition-colors hover:text-gold-hover">
+            <Link
+              href="/portal/my-yachts"
+              className="text-sm text-gold transition-colors hover:text-gold-hover"
+            >
               View All
-            </button>
+            </Link>
           </div>
           <div className="space-y-4">
             {yachts.map((yacht) => (

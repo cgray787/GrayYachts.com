@@ -24,12 +24,12 @@ const navItems = [
   },
   {
     label: "My Yachts",
-    href: "/portal/yachts",
+    href: "/portal/my-yachts",
     icon: Ship,
   },
   {
     label: "Compare Yachts",
-    href: "/portal/compare",
+    href: "/portal/compare-yachts",
     icon: Columns2,
   },
   {
@@ -100,6 +100,7 @@ export function Sidebar({ profile }: SidebarProps) {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||
+              pathname.startsWith(item.href + "/") ||
               (item.subItems &&
                 item.subItems.some((sub) => pathname === sub.href));
             const hasSubItems = !!item.subItems;

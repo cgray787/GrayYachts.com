@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 const services = [
   "Sell-Side Brokerage",
   "Buy-Side Advisory",
@@ -24,7 +22,7 @@ export default function Footer() {
           {/* Brand column */}
           <div>
             <h3 className="font-[family-name:var(--font-cormorant)] text-xl tracking-[0.35em] text-text-primary">
-              GRAYACHTS
+              GRAY YACHTS
             </h3>
             <p className="mt-4 text-[11px] tracking-[0.15em] text-text-secondary">
               Cinematic Yacht Brokerage / Pacific Northwest
@@ -39,12 +37,12 @@ export default function Footer() {
             <ul className="space-y-3">
               {services.map((service) => (
                 <li key={service}>
-                  <Link
+                  <a
                     href="#services"
                     className="text-sm text-text-secondary transition-colors duration-300 hover:text-text-primary"
                   >
                     {service}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -58,12 +56,15 @@ export default function Footer() {
             <ul className="space-y-3">
               {connect.map((item) => (
                 <li key={item.label}>
-                  <Link
+                  <a
                     href={item.href}
+                    {...(item.href.startsWith("http")
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className="text-sm text-text-secondary transition-colors duration-300 hover:text-text-primary"
                   >
                     {item.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

@@ -87,11 +87,11 @@ export default function InsurancePage() {
             </h1>
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-400">
               <CheckCircle className="h-3.5 w-3.5" />
-              JBY Preferred Partner
+              GY Preferred Partner
             </span>
           </div>
           <p className="mt-2 text-sm text-text-secondary">
-            Trusted marine insurance partners recommended by Jeff Brown Yachts
+            Trusted marine insurance partners recommended by Gray Yachts
           </p>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function InsurancePage() {
       {/* Preferred Partners Banner */}
       <div className="mb-6 rounded-xl border border-gold/30 bg-gold/5 px-5 py-3">
         <p className="text-sm font-medium text-gold">
-          Preferred Partner — Referral from Jeff Brown Yachts
+          Preferred Partner — Referral from Gray Yachts
         </p>
       </div>
 

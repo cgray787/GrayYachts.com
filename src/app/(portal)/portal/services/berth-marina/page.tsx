@@ -68,7 +68,7 @@ export default function BerthMarinaPage() {
           Berth & Marina
         </h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Premium moorage options in the Seattle area. Jeff Brown Yachts
+          Premium moorage options in the Seattle area. Gray Yachts
           customers receive priority access and preferred rates at our
           designated marina locations.
         </p>
@@ -78,7 +78,7 @@ export default function BerthMarinaPage() {
       <div className="mb-6 flex items-center gap-3 rounded-xl border border-gold/30 bg-gold/5 px-5 py-3">
         <Star className="h-4 w-4 text-gold" />
         <p className="text-sm font-medium text-gold">
-          JBY Customer Preference — Priority placement at designated marina
+          GY Customer Preference — Priority placement at designated marina
           locations
         </p>
       </div>

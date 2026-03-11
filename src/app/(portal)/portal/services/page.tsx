@@ -13,7 +13,7 @@ const serviceCategories = [
     href: "/portal/services/insurance",
     icon: Shield,
     description:
-      "Trusted marine insurance partners recommended by Jeff Brown Yachts. Hull coverage, P&I liability, crew protection, and more.",
+      "Trusted marine insurance partners recommended by Gray Yachts. Hull coverage, P&I liability, crew protection, and more.",
     badge: "3 Preferred Partners",
     badgeColor: "bg-emerald-400/15 text-emerald-400",
   },
@@ -56,7 +56,7 @@ export default function ServicesPage() {
           Services
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Comprehensive yacht services curated by Jeff Brown Yachts for our
+          Comprehensive yacht services curated by Gray Yachts for our
           valued clients.
         </p>
       </div>

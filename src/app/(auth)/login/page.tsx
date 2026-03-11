@@ -18,7 +18,6 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,23 +154,17 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Remember / Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-text-secondary">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-bg-secondary accent-gold"
-                />
-                Remember me
-              </label>
-              <a
-                href="#"
+            {/* Forgot password */}
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("Please contact your Gray Yachts advisor to reset your password.");
+                }}
                 className="text-sm text-gold hover:text-gold-hover transition-colors"
               >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             {/* Submit */}
@@ -199,12 +192,12 @@ function LoginForm() {
           </div>
 
           {/* Request Access */}
-          <button
-            type="button"
+          <a
+            href="mailto:portal@grayyachts.com?subject=Portal%20Access%20Request"
             className="flex w-full items-center justify-center rounded-md border border-border py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-gold/50 hover:text-gold"
           >
             Request Portal Access
-          </button>
+          </a>
         </div>
       </div>
     </div>
