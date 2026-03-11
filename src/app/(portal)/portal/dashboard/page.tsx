@@ -130,100 +130,104 @@ function timeAgo(dateStr: string): string {
 /* ───── Page ───── */
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
+  let firstName = "James";
+  let yachts: DashboardYacht[] = DEMO_YACHTS;
+  let activities: DashboardActivity[] = DEMO_ACTIVITIES;
+  let stats: DashboardStats = DEMO_STATS;
 
-  /* ── Auth check ── */
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  /* ── Profile (first name for greeting) ── */
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user.id)
-    .single();
-
-  const fullName = profile?.full_name ?? "";
-  const firstName = fullName.split(" ")[0] || "there";
-
-  /* ── Yachts ── */
-  const yachtsResult = await supabase
-    .from("yachts")
-    .select("id, name, length_m, type, status")
-    .eq("owner_id", user.id)
-    .order("name");
-
-  const yachts: DashboardYacht[] = yachtsResult.data?.length
-    ? yachtsResult.data.map((y, i) => ({
-        name: y.name,
-        spec: `${y.length_m ? `${y.length_m}m · ` : ""}${y.type ?? "Yacht"}`,
-        ...yachtBadge(y.status),
-        gradient: GRADIENTS[i % GRADIENTS.length],
-      }))
-    : DEMO_YACHTS;
-
-  /* ── Activity log ── */
-  const activityResult = await supabase
-    .from("activity_log")
-    .select("id, title, yacht_name, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const activities: DashboardActivity[] = activityResult.data?.length
-    ? activityResult.data.map((a, i) => ({
-        title: a.title,
-        detail: `${a.yacht_name ?? ""}${a.yacht_name ? " · " : ""}${timeAgo(a.created_at)}`,
-        dotColor: DOT_COLORS[i % DOT_COLORS.length],
-      }))
-    : DEMO_ACTIVITIES;
-
-  /* ── Document count ── */
-  const docResult = await supabase
-    .from("documents")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id);
-
-  const documentCount = docResult.count ?? 0;
-
-  /* ── Next upcoming maintenance ── */
-  const maintResult = await supabase
-    .from("maintenance_records")
-    .select("scheduled_date")
-    .eq("owner_id", user.id)
-    .gte("scheduled_date", new Date().toISOString())
-    .order("scheduled_date", { ascending: true })
-    .limit(1);
-
-  const nextAppointment = maintResult.data?.[0]?.scheduled_date
-    ? shortDate(maintResult.data[0].scheduled_date)
-    : null;
-
-  /* ── Pending services (maintenance records in the future) ── */
-  const pendingResult = await supabase
-    .from("maintenance_records")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", user.id)
-    .gte("scheduled_date", new Date().toISOString());
-
-  const pendingServices = pendingResult.count ?? 0;
-
-  /* ── Assemble stats (fall back to demo if no yachts found) ── */
-  const hasRealData = !!yachtsResult.data?.length;
-
-  const stats: DashboardStats = hasRealData
-    ? {
-        yachtCount: yachtsResult.data!.length,
-        pendingServices,
-        documentCount,
-        nextAppointment,
+      if (!user) {
+        redirect("/login");
       }
-    : DEMO_STATS;
+
+      /* ── Profile (first name for greeting) ── */
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      const fullName = profile?.full_name ?? "";
+      firstName = fullName.split(" ")[0] || "James";
+
+      /* ── Yachts ── */
+      const yachtsResult = await supabase
+        .from("yachts")
+        .select("id, name, length_m, type, status")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (yachtsResult.data?.length) {
+        yachts = yachtsResult.data.map((y, i) => ({
+          name: y.name,
+          spec: `${y.length_m ? `${y.length_m}m · ` : ""}${y.type ?? "Yacht"}`,
+          ...yachtBadge(y.status),
+          gradient: GRADIENTS[i % GRADIENTS.length],
+        }));
+      }
+
+      /* ── Activity log ── */
+      const activityResult = await supabase
+        .from("activity_log")
+        .select("id, action, description, created_at, yachts(name)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (activityResult.data?.length) {
+        activities = activityResult.data.map((a, i) => {
+          const yachtRaw = a.yachts as unknown;
+          const yachtData = Array.isArray(yachtRaw) ? (yachtRaw[0] as { name: string } | undefined) ?? null : (yachtRaw as { name: string } | null);
+          return {
+            title: a.action,
+            detail: `${yachtData?.name ?? ""}${yachtData?.name ? " · " : ""}${timeAgo(a.created_at)}`,
+            dotColor: DOT_COLORS[i % DOT_COLORS.length],
+          };
+        });
+      }
+
+      /* ── Document count ── */
+      const docResult = await supabase
+        .from("documents")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      /* ── Next upcoming maintenance ── */
+      const maintResult = await supabase
+        .from("maintenance_records")
+        .select("service_date")
+        .eq("user_id", user.id)
+        .gte("service_date", new Date().toISOString())
+        .order("service_date", { ascending: true })
+        .limit(1);
+
+      /* ── Pending services ── */
+      const pendingResult = await supabase
+        .from("maintenance_records")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("service_date", new Date().toISOString());
+
+      if (yachtsResult.data?.length) {
+        stats = {
+          yachtCount: yachtsResult.data.length,
+          pendingServices: pendingResult.count ?? 0,
+          documentCount: docResult.count ?? 0,
+          nextAppointment: maintResult.data?.[0]?.service_date
+            ? shortDate(maintResult.data[0].service_date)
+            : null,
+        };
+      }
+    } catch {
+      // Supabase not configured — use demo data
+    }
+  }
 
   return (
     <DashboardClient

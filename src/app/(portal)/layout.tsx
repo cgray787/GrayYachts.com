@@ -6,25 +6,30 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   let profile: {
     full_name: string | null;
     email: string | null;
     avatar_url: string | null;
   } | null = null;
 
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, email, avatar_url")
-      .eq("id", user.id)
-      .single();
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    profile = data;
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, email, avatar_url")
+          .eq("id", user.id)
+          .single();
+        profile = data;
+      }
+    } catch {
+      // Supabase not configured yet — use demo data
+    }
   }
 
   return (
