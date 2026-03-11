@@ -1,3 +1,0 @@
-module.exports=[40590,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(50944);function e(){let a=(0,d.useRouter)();return(0,c.useEffect)(()=>{a.replace("/portal/my-yachts/serenity-ii")},[a]),(0,b.jsx)("div",{className:"flex min-h-screen items-center justify-center bg-bg-primary",children:(0,b.jsx)("p",{className:"text-text-secondary text-sm",children:"Redirecting..."})})}a.s(["default",()=>e])}];
-
-//# sourceMappingURL=src_app_%28portal%29_portal_my-yachts_page_tsx_74959ef3._.js.map
