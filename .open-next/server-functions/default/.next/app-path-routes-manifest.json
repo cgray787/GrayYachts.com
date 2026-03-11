@@ -1,0 +1,18 @@
+{
+  "/(auth)/login/page": "/login",
+  "/(marketing)/page": "/",
+  "/(portal)/portal/compare-yachts/page": "/portal/compare-yachts",
+  "/(portal)/portal/dashboard/page": "/portal/dashboard",
+  "/(portal)/portal/documents/page": "/portal/documents",
+  "/(portal)/portal/maintenance/page": "/portal/maintenance",
+  "/(portal)/portal/my-yachts/[id]/page": "/portal/my-yachts/[id]",
+  "/(portal)/portal/my-yachts/page": "/portal/my-yachts",
+  "/(portal)/portal/services/berth-marina/page": "/portal/services/berth-marina",
+  "/(portal)/portal/services/captain-crew/page": "/portal/services/captain-crew",
+  "/(portal)/portal/services/engine-boat/page": "/portal/services/engine-boat",
+  "/(portal)/portal/services/insurance/page": "/portal/services/insurance",
+  "/(portal)/portal/services/page": "/portal/services",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico"
+}

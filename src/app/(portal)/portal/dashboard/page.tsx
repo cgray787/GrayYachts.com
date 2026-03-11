@@ -1,44 +1,11 @@
-import {
-  Search,
-  Bell,
-  Ship,
-  Wrench,
-  FileText,
-  Calendar,
-} from "lucide-react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import DashboardClient from "./dashboard-client";
+import type { DashboardYacht, DashboardActivity, DashboardStats } from "./dashboard-client";
 
-const stats = [
-  {
-    icon: Ship,
-    value: "3",
-    label: "Active Vessels",
-    iconColor: "text-emerald-400",
-    iconBg: "bg-emerald-400/10",
-  },
-  {
-    icon: Wrench,
-    value: "2",
-    label: "Pending Services",
-    iconColor: "text-gold",
-    iconBg: "bg-gold-muted",
-  },
-  {
-    icon: FileText,
-    value: "12",
-    label: "Documents",
-    iconColor: "text-blue-400",
-    iconBg: "bg-blue-400/10",
-  },
-  {
-    icon: Calendar,
-    value: "Mar 18",
-    label: "Next Appointment",
-    iconColor: "text-purple-400",
-    iconBg: "bg-purple-400/10",
-  },
-];
+/* ───── Demo / fallback data ───── */
 
-const yachts = [
+const DEMO_YACHTS: DashboardYacht[] = [
   {
     name: "Serenity II",
     spec: "42m · Motor Yacht",
@@ -62,7 +29,7 @@ const yachts = [
   },
 ];
 
-const activities = [
+const DEMO_ACTIVITIES: DashboardActivity[] = [
   {
     title: "Hull inspection completed",
     detail: "Serenity II · 2 hours ago",
@@ -90,132 +57,180 @@ const activities = [
   },
 ];
 
-export default function DashboardPage() {
+const DEMO_STATS: DashboardStats = {
+  yachtCount: 3,
+  pendingServices: 2,
+  documentCount: 12,
+  nextAppointment: "Mar 18",
+};
+
+/* ───── Helpers ───── */
+
+/** Map a yacht status to display badge + color */
+function yachtBadge(status: string | null): {
+  badge: string;
+  badgeColor: string;
+} {
+  switch (status) {
+    case "in_marina":
+      return { badge: "In Marina", badgeColor: "bg-blue-400/15 text-blue-400" };
+    case "maintenance":
+      return {
+        badge: "Maintenance",
+        badgeColor: "bg-amber-400/15 text-amber-400",
+      };
+    case "active":
+    default:
+      return { badge: "Active", badgeColor: "bg-emerald-400/15 text-emerald-400" };
+  }
+}
+
+/** Pick a gradient based on yacht index for visual variety */
+const GRADIENTS = [
+  "from-slate-700 via-slate-600 to-blue-900",
+  "from-blue-900 via-indigo-800 to-slate-700",
+  "from-slate-800 via-teal-900 to-slate-700",
+];
+
+/** Pick a dot color for activity items */
+const DOT_COLORS = [
+  "bg-emerald-400",
+  "bg-gold",
+  "bg-blue-400",
+  "bg-red-400",
+  "bg-emerald-400",
+];
+
+/** Format a date as short month + day (e.g. "Mar 18") */
+function shortDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** Human-friendly relative time */
+function timeAgo(dateStr: string): string {
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diffMs = now.getTime() - then.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin} minutes ago`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 30) return `${diffDays} days ago`;
+
+  return shortDate(dateStr);
+}
+
+/* ───── Page ───── */
+
+export default async function DashboardPage() {
+  const supabase = await createClient();
+
+  /* ── Auth check ── */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  /* ── Profile (first name for greeting) ── */
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
+
+  const fullName = profile?.full_name ?? "";
+  const firstName = fullName.split(" ")[0] || "there";
+
+  /* ── Yachts ── */
+  const yachtsResult = await supabase
+    .from("yachts")
+    .select("id, name, length_m, type, status")
+    .eq("owner_id", user.id)
+    .order("name");
+
+  const yachts: DashboardYacht[] = yachtsResult.data?.length
+    ? yachtsResult.data.map((y, i) => ({
+        name: y.name,
+        spec: `${y.length_m ? `${y.length_m}m · ` : ""}${y.type ?? "Yacht"}`,
+        ...yachtBadge(y.status),
+        gradient: GRADIENTS[i % GRADIENTS.length],
+      }))
+    : DEMO_YACHTS;
+
+  /* ── Activity log ── */
+  const activityResult = await supabase
+    .from("activity_log")
+    .select("id, title, yacht_name, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const activities: DashboardActivity[] = activityResult.data?.length
+    ? activityResult.data.map((a, i) => ({
+        title: a.title,
+        detail: `${a.yacht_name ?? ""}${a.yacht_name ? " · " : ""}${timeAgo(a.created_at)}`,
+        dotColor: DOT_COLORS[i % DOT_COLORS.length],
+      }))
+    : DEMO_ACTIVITIES;
+
+  /* ── Document count ── */
+  const docResult = await supabase
+    .from("documents")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id);
+
+  const documentCount = docResult.count ?? 0;
+
+  /* ── Next upcoming maintenance ── */
+  const maintResult = await supabase
+    .from("maintenance_records")
+    .select("scheduled_date")
+    .eq("owner_id", user.id)
+    .gte("scheduled_date", new Date().toISOString())
+    .order("scheduled_date", { ascending: true })
+    .limit(1);
+
+  const nextAppointment = maintResult.data?.[0]?.scheduled_date
+    ? shortDate(maintResult.data[0].scheduled_date)
+    : null;
+
+  /* ── Pending services (maintenance records in the future) ── */
+  const pendingResult = await supabase
+    .from("maintenance_records")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id)
+    .gte("scheduled_date", new Date().toISOString());
+
+  const pendingServices = pendingResult.count ?? 0;
+
+  /* ── Assemble stats (fall back to demo if no yachts found) ── */
+  const hasRealData = !!yachtsResult.data?.length;
+
+  const stats: DashboardStats = hasRealData
+    ? {
+        yachtCount: yachtsResult.data!.length,
+        pendingServices,
+        documentCount,
+        nextAppointment,
+      }
+    : DEMO_STATS;
+
   return (
-    <div className="mx-auto max-w-7xl">
-      {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-text-primary">
-            Welcome back, James
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Here&apos;s an overview of your fleet and services
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="h-10 w-56 rounded-lg border border-border bg-bg-card pl-10 pr-4 text-sm text-text-primary placeholder:text-text-secondary focus:border-gold focus:outline-none"
-            />
-          </div>
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-card transition-colors hover:bg-bg-card-hover">
-            <Bell className="h-[18px] w-[18px] text-text-secondary" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-bg-primary">
-              3
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-4 gap-5">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-bg-card p-5"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.iconBg}`}
-                >
-                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
-                </div>
-              </div>
-              <p className="text-2xl font-semibold text-text-primary">
-                {stat.value}
-              </p>
-              <p className="mt-0.5 text-sm text-text-secondary">{stat.label}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Fleet & Activity Grid */}
-      <div className="grid grid-cols-5 gap-6">
-        {/* Your Fleet - 3/5 width */}
-        <div className="col-span-3">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
-              Your Fleet
-            </h2>
-            <button className="text-sm text-gold transition-colors hover:text-gold-hover">
-              View All
-            </button>
-          </div>
-          <div className="space-y-4">
-            {yachts.map((yacht) => (
-              <div
-                key={yacht.name}
-                className="overflow-hidden rounded-xl border border-border bg-bg-card"
-              >
-                {/* Image placeholder */}
-                <div
-                  className={`h-36 bg-gradient-to-br ${yacht.gradient}`}
-                />
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-text-primary">
-                        {yacht.name}
-                      </h3>
-                      <p className="mt-0.5 text-sm text-text-secondary">
-                        {yacht.spec}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${yacht.badgeColor}`}
-                    >
-                      {yacht.badge}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activity - 2/5 width */}
-        <div className="col-span-2">
-          <h2 className="mb-4 font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
-            Recent Activity
-          </h2>
-          <div className="rounded-xl border border-border bg-bg-card p-5">
-            <ul className="space-y-5">
-              {activities.map((activity, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span
-                    className={`mt-1.5 block h-2.5 w-2.5 flex-shrink-0 rounded-full ${activity.dotColor}`}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      {activity.title}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      {activity.detail}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
+    <DashboardClient
+      firstName={firstName}
+      yachts={yachts}
+      activities={activities}
+      stats={stats}
+    />
   );
 }

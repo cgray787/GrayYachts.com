@@ -1,9 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Anchor, Mail, Lock, LogIn } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -16,9 +28,30 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Placeholder: simulate network request
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // TODO: replace with actual auth logic
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      // Validate redirect param is a safe relative path
+      const redirectParam = searchParams.get("redirect");
+      let redirectTo = "/portal/dashboard";
+      if (
+        redirectParam &&
+        redirectParam.startsWith("/") &&
+        !redirectParam.startsWith("//")
+      ) {
+        redirectTo = redirectParam;
+      }
+
+      router.push(redirectTo);
+      router.refresh();
     } catch {
       setError("Unable to sign in. Please check your credentials and try again.");
     } finally {

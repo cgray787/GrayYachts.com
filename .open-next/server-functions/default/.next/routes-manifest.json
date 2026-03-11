@@ -1,0 +1,143 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/portal/my-yachts/[id]",
+      "regex": "^/portal/my\\-yachts/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/portal/my\\-yachts/(?<nxtPid>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/portal/compare-yachts",
+      "regex": "^/portal/compare\\-yachts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/compare\\-yachts(?:/)?$"
+    },
+    {
+      "page": "/portal/dashboard",
+      "regex": "^/portal/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/dashboard(?:/)?$"
+    },
+    {
+      "page": "/portal/documents",
+      "regex": "^/portal/documents(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/documents(?:/)?$"
+    },
+    {
+      "page": "/portal/maintenance",
+      "regex": "^/portal/maintenance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/maintenance(?:/)?$"
+    },
+    {
+      "page": "/portal/my-yachts",
+      "regex": "^/portal/my\\-yachts(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/my\\-yachts(?:/)?$"
+    },
+    {
+      "page": "/portal/services",
+      "regex": "^/portal/services(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/services(?:/)?$"
+    },
+    {
+      "page": "/portal/services/berth-marina",
+      "regex": "^/portal/services/berth\\-marina(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/services/berth\\-marina(?:/)?$"
+    },
+    {
+      "page": "/portal/services/captain-crew",
+      "regex": "^/portal/services/captain\\-crew(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/services/captain\\-crew(?:/)?$"
+    },
+    {
+      "page": "/portal/services/engine-boat",
+      "regex": "^/portal/services/engine\\-boat(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/services/engine\\-boat(?:/)?$"
+    },
+    {
+      "page": "/portal/services/insurance",
+      "regex": "^/portal/services/insurance(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/portal/services/insurance(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

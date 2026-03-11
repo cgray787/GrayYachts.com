@@ -1,0 +1,18 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(marketing)/page": "app/(marketing)/page.js",
+  "/(portal)/portal/compare-yachts/page": "app/(portal)/portal/compare-yachts/page.js",
+  "/(portal)/portal/dashboard/page": "app/(portal)/portal/dashboard/page.js",
+  "/(portal)/portal/documents/page": "app/(portal)/portal/documents/page.js",
+  "/(portal)/portal/maintenance/page": "app/(portal)/portal/maintenance/page.js",
+  "/(portal)/portal/my-yachts/[id]/page": "app/(portal)/portal/my-yachts/[id]/page.js",
+  "/(portal)/portal/my-yachts/page": "app/(portal)/portal/my-yachts/page.js",
+  "/(portal)/portal/services/berth-marina/page": "app/(portal)/portal/services/berth-marina/page.js",
+  "/(portal)/portal/services/captain-crew/page": "app/(portal)/portal/services/captain-crew/page.js",
+  "/(portal)/portal/services/engine-boat/page": "app/(portal)/portal/services/engine-boat/page.js",
+  "/(portal)/portal/services/insurance/page": "app/(portal)/portal/services/insurance/page.js",
+  "/(portal)/portal/services/page": "app/(portal)/portal/services/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
+}

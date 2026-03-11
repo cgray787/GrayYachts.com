@@ -55,7 +55,25 @@ const navItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  profile?: {
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname();
   const [servicesOpen, setServicesOpen] = useState(
     pathname.startsWith("/portal/services")
@@ -164,14 +182,14 @@ export function Sidebar() {
       <div className="border-t border-border px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-muted text-sm font-semibold text-gold">
-            JD
+            {getInitials(profile?.full_name ?? "James Donovan")}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-text-primary">
-              James Donovan
+              {profile?.full_name ?? "James Donovan"}
             </p>
             <p className="truncate text-xs text-text-secondary">
-              james@donovan.com
+              {profile?.email ?? "james@donovan.com"}
             </p>
           </div>
         </div>
