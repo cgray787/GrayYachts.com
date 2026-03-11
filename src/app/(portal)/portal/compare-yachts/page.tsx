@@ -653,55 +653,57 @@ export default function CompareYachtsPage() {
       const trimmed = url.trim();
       if (!trimmed) return;
       setLoadingFn(true);
+
+      // Pre-generate outside setTimeout so the yacht object is stable
+      const newYacht = generateYachtFromUrl(trimmed);
+
       setTimeout(() => {
-        const existing = catalog.find(
-          (y) => y.url.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (existing) {
-          if (slot === "a") setLeftId(existing.id);
-          else setRightId(existing.id);
-        } else {
-          const yacht = generateYachtFromUrl(trimmed);
-          setCatalog((prev) => [...prev, yacht]);
-          if (slot === "a") setLeftId(yacht.id);
-          else setRightId(yacht.id);
-        }
+        // Use functional setCatalog to always have the latest catalog
+        setCatalog((prev) => {
+          const existing = prev.find(
+            (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+          );
+          if (existing) {
+            if (slot === "a") setLeftId(existing.id);
+            else setRightId(existing.id);
+            return prev; // no change
+          }
+          // Add new yacht
+          if (slot === "a") setLeftId(newYacht.id);
+          else setRightId(newYacht.id);
+          return [...prev, newYacht];
+        });
         setLoadingFn(false);
         setUrlFn("");
       }, 600);
     },
-    [catalog]
+    []
   );
 
-  // Add yacht from URL
+  // Add yacht from URL (catalog section)
   const handleAddUrl = useCallback(() => {
     const trimmed = urlInput.trim();
     if (!trimmed) return;
 
     setLoading(true);
+    const newYacht = generateYachtFromUrl(trimmed);
 
-    // Simulate a short fetch delay
     setTimeout(() => {
-      const yacht = generateYachtFromUrl(trimmed);
-
-      // Check for duplicate URL
-      const existing = catalog.find(
-        (y) => y.url.toLowerCase() === trimmed.toLowerCase()
-      );
-      if (existing) {
-        // Just assign it to compare
-        setRightId(existing.id);
-        setLoading(false);
-        setUrlInput("");
-        return;
-      }
-
-      setCatalog((prev) => [...prev, yacht]);
-      setRightId(yacht.id);
+      setCatalog((prev) => {
+        const existing = prev.find(
+          (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (existing) {
+          setRightId(existing.id);
+          return prev;
+        }
+        setRightId(newYacht.id);
+        return [...prev, newYacht];
+      });
       setLoading(false);
       setUrlInput("");
     }, 600);
-  }, [urlInput, catalog]);
+  }, [urlInput]);
 
   // Drag & drop handlers for comparison slots
   const handleDragOver = (slot: "a" | "b") => (e: DragEvent) => {
