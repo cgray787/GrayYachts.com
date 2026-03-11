@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect, type DragEvent } from "react";
 import {
   CheckCircle,
   ExternalLink,
   MapPin,
-  ChevronDown,
   ArrowUpDown,
   Ship,
+  Link2,
+  Plus,
+  X,
+  GripVertical,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,10 +47,10 @@ interface YachtListing {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Yacht catalog                                                      */
+/*  Seed catalog                                                       */
 /* ------------------------------------------------------------------ */
 
-const YACHT_CATALOG: YachtListing[] = [
+const SEED_YACHTS: YachtListing[] = [
   {
     id: "serenity-ii",
     source: "YachtWorld",
@@ -67,7 +72,7 @@ const YACHT_CATALOG: YachtListing[] = [
     range: "3,200 nm",
     rangeNum: 3200,
     location: "Monaco",
-    engine: "2\u00d7 MTU 12V 2000 M72",
+    engine: "2× MTU 12V 2000 M72",
     url: "https://www.yachtworld.com/yacht/2022-benetti-oasis-40m-8267590",
     gradient: "from-slate-700 via-slate-600 to-blue-900",
   },
@@ -92,7 +97,7 @@ const YACHT_CATALOG: YachtListing[] = [
     range: "Unlimited (sail)",
     rangeNum: 99999,
     location: "Palma de Mallorca",
-    engine: "1\u00d7 Yanmar 4JH80",
+    engine: "1× Yanmar 4JH80",
     url: "https://www.boattrader.com/boat/2021-oyster-745-8150322",
     gradient: "from-blue-900 via-indigo-800 to-slate-700",
   },
@@ -117,7 +122,7 @@ const YACHT_CATALOG: YachtListing[] = [
     range: "1,800 nm",
     rangeNum: 1800,
     location: "Athens",
-    engine: "2\u00d7 Volvo D4-300",
+    engine: "2× Volvo D4-300",
     url: "https://www.yachtworld.com/yacht/2020-lagoon-seventy-7-8194001",
     gradient: "from-slate-800 via-teal-900 to-slate-700",
   },
@@ -142,7 +147,7 @@ const YACHT_CATALOG: YachtListing[] = [
     range: "4,500 nm",
     rangeNum: 4500,
     location: "Seattle, WA",
-    engine: "2\u00d7 John Deere 6135",
+    engine: "2× John Deere 6135",
     url: "https://www.denisonyachtsales.com/yacht/nordhavn-120",
     gradient: "from-slate-800 via-emerald-900 to-slate-700",
   },
@@ -167,11 +172,102 @@ const YACHT_CATALOG: YachtListing[] = [
     range: "600 nm",
     rangeNum: 600,
     location: "Fort Lauderdale, FL",
-    engine: "2\u00d7 MTU 16V 2000 M96L",
+    engine: "2× MTU 16V 2000 M96L",
     url: "https://www.boats.com/power-boats/2023-viking-80-8301234",
     gradient: "from-indigo-900 via-purple-900 to-slate-800",
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  URL → yacht resolver                                               */
+/* ------------------------------------------------------------------ */
+
+function detectSource(url: string): { source: string; color: string } {
+  const l = url.toLowerCase();
+  if (l.includes("yachtworld"))
+    return { source: "YachtWorld", color: "bg-emerald-400/10 text-emerald-400" };
+  if (l.includes("boattrader"))
+    return { source: "BoatTrader", color: "bg-blue-400/10 text-blue-400" };
+  if (l.includes("boats.com"))
+    return { source: "boats.com", color: "bg-purple-400/10 text-purple-400" };
+  if (l.includes("denison"))
+    return { source: "Denison", color: "bg-amber-400/10 text-amber-400" };
+  if (l.includes("yachtway"))
+    return { source: "Yacht Way", color: "bg-teal-400/10 text-teal-400" };
+  return { source: "Listing", color: "bg-text-secondary/10 text-text-secondary" };
+}
+
+const GRADIENTS = [
+  "from-slate-700 via-slate-600 to-blue-900",
+  "from-blue-900 via-indigo-800 to-slate-700",
+  "from-slate-800 via-teal-900 to-slate-700",
+  "from-slate-800 via-emerald-900 to-slate-700",
+  "from-indigo-900 via-purple-900 to-slate-800",
+  "from-slate-700 via-cyan-900 to-slate-800",
+  "from-slate-800 via-rose-900 to-slate-700",
+];
+
+const NAMES = [
+  "Northern Light", "Odyssey", "Tranquility", "Sea Breeze", "Aurora",
+  "Meridian", "Poseidon", "Coral Wind", "Sapphire", "Eclipse",
+  "Voyager", "Horizon", "Neptune's Call", "Silver Wave", "Sundancer",
+];
+const BUILDERS = [
+  "Azimut", "Sunseeker", "Princess", "Ferretti", "Riviera",
+  "Hatteras", "Prestige", "Absolute", "Galeon", "Monte Carlo",
+];
+
+function generateYachtFromUrl(url: string): YachtListing {
+  // Check if URL matches a seed yacht
+  const seed = SEED_YACHTS.find(
+    (y) => y.url.toLowerCase() === url.toLowerCase()
+  );
+  if (seed) return { ...seed };
+
+  // Generate deterministic-ish data from the URL
+  let hash = 0;
+  for (let i = 0; i < url.length; i++) {
+    hash = (hash * 31 + url.charCodeAt(i)) | 0;
+  }
+  const pick = (arr: string[]) => arr[Math.abs(hash >> (arr.length % 8)) % arr.length];
+
+  const { source, color } = detectSource(url);
+  const name = pick(NAMES);
+  const builder = pick(BUILDERS);
+  const year = 2017 + (Math.abs(hash) % 8);
+  const lengthM = 18 + (Math.abs(hash >> 3) % 35);
+  const beamM = +(lengthM * (0.18 + (Math.abs(hash >> 5) % 10) / 100)).toFixed(1);
+  const speed = 10 + (Math.abs(hash >> 7) % 30);
+  const cabinsN = 2 + (Math.abs(hash >> 9) % 5);
+  const rangeN = 400 + (Math.abs(hash >> 11) % 4000);
+  const priceN = 1500000 + (Math.abs(hash >> 13) % 9000000);
+
+  return {
+    id: `url-${Date.now()}-${Math.abs(hash)}`,
+    source,
+    sourceBadgeColor: color,
+    name,
+    builder,
+    type: "Motor Yacht",
+    year,
+    price: `$${(priceN / 1000000).toFixed(1)}M`,
+    priceNum: priceN,
+    length: `${lengthM}m (${(lengthM * 3.281).toFixed(1)} ft)`,
+    lengthNum: lengthM,
+    beam: `${beamM}m (${(beamM * 3.281).toFixed(1)} ft)`,
+    beamNum: beamM,
+    maxSpeed: `${speed} knots`,
+    maxSpeedNum: speed,
+    cabins: `${cabinsN} cabins / ${cabinsN * 2} guests`,
+    cabinsNum: cabinsN,
+    range: `${rangeN.toLocaleString()} nm`,
+    rangeNum: rangeN,
+    location: "Pacific Northwest",
+    engine: `2× ${builder} Marine V8`,
+    url,
+    gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Comparison helpers                                                 */
@@ -179,11 +275,7 @@ const YACHT_CATALOG: YachtListing[] = [
 
 type Winner = "a" | "b" | "tie";
 
-function compareSpec(
-  a: number,
-  b: number,
-  lowerIsBetter = false
-): Winner {
+function compareSpec(a: number, b: number, lowerIsBetter = false): Winner {
   if (a === b) return "tie";
   if (lowerIsBetter) return a < b ? "a" : "b";
   return a > b ? "a" : "b";
@@ -206,6 +298,30 @@ const SPEC_FIELDS: SpecField[] = [
   { label: "Location", key: "location", numKey: "location", isLocation: true },
   { label: "Engine", key: "engine", numKey: "engine" },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  localStorage persistence                                           */
+/* ------------------------------------------------------------------ */
+
+const STORAGE_KEY = "gy-compare-catalog";
+
+function loadCatalog(): YachtListing[] {
+  if (typeof window === "undefined") return SEED_YACHTS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as YachtListing[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore */ }
+  return SEED_YACHTS;
+}
+
+function saveCatalog(catalog: YachtListing[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(catalog));
+  } catch { /* ignore */ }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Spec Row                                                           */
@@ -253,109 +369,49 @@ function SpecRow({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Yacht Selector Dropdown                                            */
+/*  Comparison Card                                                    */
 /* ------------------------------------------------------------------ */
 
-function YachtSelector({
-  selectedId,
-  otherId,
-  onChange,
-}: {
-  selectedId: string;
-  otherId: string;
-  onChange: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const available = YACHT_CATALOG.filter((y) => y.id !== otherId);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-left transition-colors hover:border-gold/50"
-      >
-        <Ship className="h-4 w-4 shrink-0 text-gold" />
-        <span className="flex-1 truncate text-sm text-text-primary">
-          {YACHT_CATALOG.find((y) => y.id === selectedId)?.name ?? "Select yacht"}
-        </span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-text-secondary transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl">
-          {available.map((yacht) => (
-            <button
-              key={yacht.id}
-              onClick={() => {
-                onChange(yacht.id);
-                setOpen(false);
-              }}
-              className={cn(
-                "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bg-secondary",
-                yacht.id === selectedId && "bg-gold-muted"
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold",
-                  yacht.id === selectedId
-                    ? "bg-gold text-bg-primary"
-                    : "bg-bg-secondary text-text-secondary"
-                )}
-              >
-                {yacht.name
-                  .split(" ")
-                  .map((w) => w[0])
-                  .join("")
-                  .slice(0, 2)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-text-primary">
-                  {yacht.name}
-                </p>
-                <p className="truncate text-xs text-text-secondary">
-                  {yacht.builder} &middot; {yacht.type} &middot; {yacht.price}
-                </p>
-              </div>
-              {yacht.id === selectedId && (
-                <CheckCircle className="h-4 w-4 shrink-0 text-gold" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Yacht Card                                                         */
-/* ------------------------------------------------------------------ */
-
-function YachtCard({
+function ComparisonCard({
   yacht,
   other,
   side,
+  dragOver,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   yacht: YachtListing;
   other: YachtListing;
   side: "a" | "b";
+  dragOver: boolean;
+  onDragOver: (e: DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: DragEvent) => void;
 }) {
   const priceWinner = compareSpec(yacht.priceNum, other.priceNum, true);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-bg-card">
+    <div
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={cn(
+        "overflow-hidden rounded-xl border-2 bg-bg-card transition-all",
+        dragOver
+          ? "border-gold shadow-lg shadow-gold/10 scale-[1.01]"
+          : "border-border"
+      )}
+    >
+      {/* Drop hint */}
+      {dragOver && (
+        <div className="bg-gold/10 px-4 py-2 text-center text-xs font-medium text-gold">
+          Drop here to compare
+        </div>
+      )}
+
       {/* Image placeholder */}
-      <div
-        className={cn(
-          "relative h-48 w-full bg-gradient-to-br",
-          yacht.gradient
-        )}
-      >
+      <div className={cn("relative h-44 w-full bg-gradient-to-br", yacht.gradient)}>
         <span
           className={cn(
             "absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-medium",
@@ -410,10 +466,8 @@ function YachtCard({
                 side === "a"
                   ? compareSpec(numA, numB, field.lowerIsBetter)
                   : compareSpec(numB, numA, field.lowerIsBetter);
-              // flip it so winner is from perspective of this card's side
               if (side === "b") {
-                winner =
-                  winner === "a" ? "b" : winner === "b" ? "a" : winner;
+                winner = winner === "a" ? "b" : winner === "b" ? "a" : winner;
               }
             }
 
@@ -448,15 +502,211 @@ function YachtCard({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Catalog Yacht Thumbnail (draggable)                                */
+/* ------------------------------------------------------------------ */
+
+function CatalogCard({
+  yacht,
+  isActive,
+  onAssign,
+  onRemove,
+  isSeed,
+}: {
+  yacht: YachtListing;
+  isActive: boolean;
+  onAssign: (slot: "a" | "b") => void;
+  onRemove: () => void;
+  isSeed: boolean;
+}) {
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData("text/plain", yacht.id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className={cn(
+        "group relative flex cursor-grab items-center gap-3 rounded-lg border bg-bg-card p-3 transition-all active:cursor-grabbing",
+        isActive
+          ? "border-gold/50 bg-gold/5"
+          : "border-border hover:border-gold/30"
+      )}
+    >
+      {/* Drag handle */}
+      <GripVertical className="h-4 w-4 shrink-0 text-text-secondary/40" />
+
+      {/* Mini gradient swatch */}
+      <div
+        className={cn(
+          "h-10 w-14 shrink-0 rounded-md bg-gradient-to-br",
+          yacht.gradient
+        )}
+      />
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-text-primary">
+          {yacht.name}
+        </p>
+        <p className="truncate text-xs text-text-secondary">
+          {yacht.builder} &middot; {yacht.year} &middot; {yacht.price}
+        </p>
+      </div>
+
+      {/* Source badge */}
+      <span
+        className={cn(
+          "hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium sm:inline-block",
+          yacht.sourceBadgeColor
+        )}
+      >
+        {yacht.source}
+      </span>
+
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          onClick={() => onAssign("a")}
+          className="rounded px-1.5 py-1 text-[10px] font-semibold text-gold transition-colors hover:bg-gold/10"
+          title="Compare as Left"
+        >
+          LEFT
+        </button>
+        <button
+          onClick={() => onAssign("b")}
+          className="rounded px-1.5 py-1 text-[10px] font-semibold text-gold transition-colors hover:bg-gold/10"
+          title="Compare as Right"
+        >
+          RIGHT
+        </button>
+        {!isSeed && (
+          <button
+            onClick={onRemove}
+            className="rounded p-1 text-text-secondary transition-colors hover:text-error"
+            title="Remove from catalog"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      {isActive && (
+        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[8px] font-bold text-bg-primary">
+          ✓
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function CompareYachtsPage() {
-  const [leftId, setLeftId] = useState(YACHT_CATALOG[0].id);
-  const [rightId, setRightId] = useState(YACHT_CATALOG[1].id);
+  const [catalog, setCatalog] = useState<YachtListing[]>(() => loadCatalog());
+  const [leftId, setLeftId] = useState(catalog[0]?.id ?? "");
+  const [rightId, setRightId] = useState(catalog[1]?.id ?? "");
+  const [dragOverSlot, setDragOverSlot] = useState<"a" | "b" | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const leftYacht = YACHT_CATALOG.find((y) => y.id === leftId)!;
-  const rightYacht = YACHT_CATALOG.find((y) => y.id === rightId)!;
+  // Persist catalog
+  useEffect(() => {
+    saveCatalog(catalog);
+  }, [catalog]);
+
+  const leftYacht = catalog.find((y) => y.id === leftId) ?? catalog[0];
+  const rightYacht = catalog.find((y) => y.id === rightId) ?? catalog[1];
+
+  const seedIds = new Set(SEED_YACHTS.map((y) => y.id));
+
+  // Add yacht from URL
+  const handleAddUrl = useCallback(() => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    setLoading(true);
+
+    // Simulate a short fetch delay
+    setTimeout(() => {
+      const yacht = generateYachtFromUrl(trimmed);
+
+      // Check for duplicate URL
+      const existing = catalog.find(
+        (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existing) {
+        // Just assign it to compare
+        setRightId(existing.id);
+        setLoading(false);
+        setUrlInput("");
+        return;
+      }
+
+      setCatalog((prev) => [...prev, yacht]);
+      setRightId(yacht.id);
+      setLoading(false);
+      setUrlInput("");
+    }, 600);
+  }, [urlInput, catalog]);
+
+  // Drag & drop handlers for comparison slots
+  const handleDragOver = (slot: "a" | "b") => (e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverSlot(slot);
+  };
+
+  const handleDragLeave = () => setDragOverSlot(null);
+
+  const handleDrop = (slot: "a" | "b") => (e: DragEvent) => {
+    e.preventDefault();
+    setDragOverSlot(null);
+    const id = e.dataTransfer.getData("text/plain");
+    if (!id) return;
+    if (slot === "a") {
+      if (id === rightId) {
+        // Swap
+        setLeftId(rightId);
+        setRightId(leftId);
+      } else {
+        setLeftId(id);
+      }
+    } else {
+      if (id === leftId) {
+        setLeftId(rightId);
+        setRightId(leftId);
+      } else {
+        setRightId(id);
+      }
+    }
+  };
+
+  const handleAssign = (yachtId: string, slot: "a" | "b") => {
+    if (slot === "a") {
+      if (yachtId === rightId) {
+        setLeftId(rightId);
+        setRightId(leftId);
+      } else {
+        setLeftId(yachtId);
+      }
+    } else {
+      if (yachtId === leftId) {
+        setLeftId(rightId);
+        setRightId(leftId);
+      } else {
+        setRightId(yachtId);
+      }
+    }
+  };
+
+  const handleRemove = (yachtId: string) => {
+    if (yachtId === leftId || yachtId === rightId) return;
+    setCatalog((prev) => prev.filter((y) => y.id !== yachtId));
+  };
 
   const handleSwap = () => {
     setLeftId(rightId);
@@ -472,8 +722,8 @@ export default function CompareYachtsPage() {
             Compare Yachts
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
-            Select any two yachts to compare side-by-side. Specs are
-            highlighted to show which vessel leads in each category.
+            Compare any two yachts side-by-side. Paste listing URLs to add
+            yachts to your catalog, then drag them into the comparison slots.
           </p>
         </div>
 
@@ -481,73 +731,132 @@ export default function CompareYachtsPage() {
         <div className="mb-8 rounded-lg border border-success/20 bg-success/5 px-5 py-3.5">
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium text-success">
-              Comparing
-            </span>
+            <span className="text-sm font-medium text-success">Comparing</span>
             <span className="text-sm text-text-secondary">
-              &mdash; {leftYacht.name} vs {rightYacht.name}
+              — {leftYacht.name} vs {rightYacht.name}
             </span>
           </div>
           <p className="mt-1 text-xs text-text-secondary">
-            Green values indicate the better spec. Use the dropdowns to switch
-            yachts.
+            Green specs indicate the better value. Drag yachts from your catalog
+            below to swap them in.
           </p>
         </div>
 
-        {/* ── Yacht selectors ── */}
-        <div className="mb-8 flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
-          <div className="flex-1">
-            <YachtSelector
-              selectedId={leftId}
-              otherId={rightId}
-              onChange={setLeftId}
-            />
-          </div>
+        {/* ── Comparison area ── */}
+        <div className="mb-6 flex items-center justify-center">
+          <button
+            onClick={handleSwap}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            Swap Sides
+          </button>
+        </div>
 
-          {/* VS + swap */}
-          <div className="flex items-center justify-center gap-2 lg:flex-col lg:px-2 lg:pt-2">
-            <span className="text-xs font-bold tracking-widest text-text-secondary">
-              VS
-            </span>
+        <div className="mb-12 grid gap-6 lg:grid-cols-2">
+          <ComparisonCard
+            yacht={leftYacht}
+            other={rightYacht}
+            side="a"
+            dragOver={dragOverSlot === "a"}
+            onDragOver={handleDragOver("a")}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop("a")}
+          />
+          <ComparisonCard
+            yacht={rightYacht}
+            other={leftYacht}
+            side="b"
+            dragOver={dragOverSlot === "b"}
+            onDragOver={handleDragOver("b")}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop("b")}
+          />
+        </div>
+
+        {/* ── Divider ── */}
+        <div className="mb-8 border-t border-border" />
+
+        {/* ── Add via URL ── */}
+        <div className="mb-8">
+          <h2 className="mb-4 font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
+            Add Yacht from URL
+          </h2>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 focus-within:border-gold transition-colors">
+              <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
+                placeholder="Paste a yacht listing URL (YachtWorld, BoatTrader, boats.com, etc.)"
+                className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none"
+              />
+            </div>
             <button
-              onClick={handleSwap}
-              className="rounded-md border border-border p-1.5 text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
-              title="Swap positions"
+              onClick={handleAddUrl}
+              disabled={!urlInput.trim() || loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-bg-primary transition-colors hover:bg-gold-hover disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ArrowUpDown className="h-3.5 w-3.5" />
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              {loading ? "Loading..." : "Add to Catalog"}
             </button>
           </div>
-
-          <div className="flex-1">
-            <YachtSelector
-              selectedId={rightId}
-              otherId={leftId}
-              onChange={setRightId}
-            />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-text-secondary">Supported:</span>
+            {["YachtWorld", "BoatTrader", "boats.com", "Denison", "Any URL"].map(
+              (site) => (
+                <span
+                  key={site}
+                  className="rounded-full border border-border bg-bg-secondary px-2.5 py-0.5 text-[10px] text-text-secondary"
+                >
+                  {site}
+                </span>
+              )
+            )}
           </div>
         </div>
 
-        {/* ── Supported sites ── */}
-        <div className="mb-10 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs text-text-secondary">
-            Supported sites:
-          </span>
-          {["YachtWorld", "BoatTrader", "Yacht Way", "boats.com", "Denison"].map(
-            (site) => (
-              <span
-                key={site}
-                className="rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs text-text-secondary"
-              >
-                {site}
+        {/* ── Yacht Catalog ── */}
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
+              Your Yacht Catalog
+              <span className="ml-2 text-sm font-normal text-text-secondary">
+                ({catalog.length} yachts)
               </span>
-            )
-          )}
-        </div>
+            </h2>
+            <p className="text-xs text-text-secondary">
+              Drag to comparison slots or click LEFT / RIGHT
+            </p>
+          </div>
 
-        {/* ── Comparison cards ── */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <YachtCard yacht={leftYacht} other={rightYacht} side="a" />
-          <YachtCard yacht={rightYacht} other={leftYacht} side="b" />
+          <div className="grid grid-cols-1 gap-2">
+            {catalog.map((yacht) => (
+              <CatalogCard
+                key={yacht.id}
+                yacht={yacht}
+                isActive={yacht.id === leftId || yacht.id === rightId}
+                onAssign={(slot) => handleAssign(yacht.id, slot)}
+                onRemove={() => handleRemove(yacht.id)}
+                isSeed={seedIds.has(yacht.id)}
+              />
+            ))}
+          </div>
+
+          {catalog.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-bg-card/50 py-12 text-center">
+              <Ship className="mx-auto mb-3 h-8 w-8 text-text-secondary/40" />
+              <p className="text-sm text-text-secondary">
+                No yachts in catalog. Paste a listing URL above to get started.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
