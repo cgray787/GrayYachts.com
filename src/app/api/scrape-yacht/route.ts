@@ -414,7 +414,107 @@ function extractNameAndBuilder(
 /*  Main scraper                                                       */
 /* ------------------------------------------------------------------ */
 
-async function fetchWithFallbacks(url: string): Promise<string> {
+/* ------------------------------------------------------------------ */
+/*  URL slug parser — always works, no network needed                  */
+/* ------------------------------------------------------------------ */
+
+/** Known yacht builders for matching in URL slugs */
+const KNOWN_BUILDERS = [
+  "absolute", "azimut", "bayliner", "benetti", "bertram", "beneteau",
+  "boston-whaler", "boston whaler", "cabo", "carver", "catalina",
+  "chris-craft", "chris craft", "cruisers", "dufour", "fairline",
+  "ferretti", "formula", "fountain", "galeon", "grady-white", "grady white",
+  "hatteras", "hinckley", "hunter", "hylas", "island-packet", "island packet",
+  "jeanneau", "lagoon", "lazzara", "leopard", "lurssen", "malibu",
+  "meridian", "monte-carlo", "monte carlo", "nordhavn", "ocean-alexander",
+  "ocean alexander", "oyster", "pacific-mariner", "pacific mariner",
+  "pershing", "prestige", "princess", "ranger", "regal", "regulator",
+  "riva", "riviera", "robalo", "sailfish", "sabre", "san-lorenzo",
+  "san lorenzo", "sea-ray", "sea ray", "searay", "sunseeker", "tiara",
+  "viking", "wellcraft", "yellowfin",
+];
+
+function parseUrlSlug(url: string): Partial<ScrapedYacht> {
+  const source = detectSource(url);
+  const result: Partial<ScrapedYacht> = { source, url };
+
+  try {
+    const parsed = new URL(url);
+    // Combine path + any slug
+    const slug = decodeURIComponent(parsed.pathname)
+      .toLowerCase()
+      .replace(/[_/]/g, "-")
+      .replace(/[^a-z0-9\-.\s]/g, " ");
+
+    // Extract year: 4-digit number between 1970–2030
+    const yearMatch = slug.match(/\b(19[7-9]\d|20[0-3]\d)\b/);
+    if (yearMatch) result.year = parseInt(yearMatch[1]);
+
+    // Extract builder
+    for (const b of KNOWN_BUILDERS) {
+      const pattern = b.replace(/[- ]/g, "[- ]?");
+      if (new RegExp(`\\b${pattern}\\b`, "i").test(slug)) {
+        result.builder = b.split(/[- ]/).map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+        break;
+      }
+    }
+
+    // Extract model — anything after builder or year in the slug
+    const parts = slug.split("-").filter(Boolean);
+    const nonNumericParts = parts.filter(p => !/^\d+$/.test(p));
+
+    // Try to build a name: "year builder model" from slug
+    if (result.builder && result.year) {
+      // Find model text after builder in slug
+      const builderIdx = slug.indexOf(result.builder.toLowerCase().replace(/ /g, "-"));
+      if (builderIdx >= 0) {
+        const afterBuilder = slug.slice(builderIdx + result.builder.length)
+          .replace(/^[-\s]+/, "")
+          .split(/[-\s]+/)
+          .filter(p => !/^\d{7,}$/.test(p)) // remove listing IDs
+          .slice(0, 4)
+          .join(" ");
+        if (afterBuilder.length > 1) {
+          result.model = afterBuilder.split(" ").map(w => w[0]?.toUpperCase() + w.slice(1)).join(" ");
+        }
+      }
+      result.name = `${result.year} ${result.builder}${result.model ? " " + result.model : ""}`;
+    } else if (nonNumericParts.length > 0) {
+      result.name = nonNumericParts
+        .slice(0, 5)
+        .filter(p => !/^\d{6,}$/.test(p))
+        .map(w => w[0]?.toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+
+    // Try to extract length from slug (e.g. "80ft" or "40m")
+    const ftMatch = slug.match(/(\d{2,3})\s*(?:ft|foot|feet)/);
+    if (ftMatch) {
+      const ft = parseInt(ftMatch[1]);
+      if (ft > 10 && ft < 500) {
+        result.lengthFt = ft;
+        result.lengthM = Math.round(ft * 0.3048 * 10) / 10;
+      }
+    }
+    const mMatch = slug.match(/(\d{2,3})\s*m\b/);
+    if (mMatch && !ftMatch) {
+      const m = parseInt(mMatch[1]);
+      if (m > 3 && m < 150) {
+        result.lengthM = m;
+        result.lengthFt = Math.round(m * 3.281 * 10) / 10;
+      }
+    }
+
+  } catch { /* invalid URL, return what we have */ }
+
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
+/*  HTML fetch — try direct then proxy, but never fail the request     */
+/* ------------------------------------------------------------------ */
+
+async function tryFetchHtml(url: string): Promise<string | null> {
   const headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -430,7 +530,7 @@ async function fetchWithFallbacks(url: string): Promise<string> {
     }
   } catch { /* try next */ }
 
-  // Strategy 2: allorigins.win proxy (CORS proxy with different IP)
+  // Strategy 2: allorigins.win proxy
   try {
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     const res = await fetch(proxyUrl);
@@ -440,69 +540,100 @@ async function fetchWithFallbacks(url: string): Promise<string> {
     }
   } catch { /* try next */ }
 
-  // Strategy 3: Google Webcache
-  try {
-    const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`;
-    const res = await fetch(cacheUrl, { headers });
-    if (res.ok) {
-      const html = await res.text();
-      if (html.length > 500) return html;
-    }
-  } catch { /* try next */ }
-
-  // Strategy 4: archive.org Wayback Machine (latest snapshot)
-  try {
-    const wbUrl = `https://web.archive.org/web/2024/${url}`;
-    const res = await fetch(wbUrl, { headers });
-    if (res.ok) {
-      const html = await res.text();
-      if (html.length > 500) return html;
-    }
-  } catch { /* try next */ }
-
-  throw new Error("All fetch strategies failed — site may be blocking automated access");
+  return null; // All strategies failed, but that's OK — we have URL-parsed data
 }
+
+/* ------------------------------------------------------------------ */
+/*  Main scraper — URL parsing + optional HTML scraping                */
+/* ------------------------------------------------------------------ */
 
 async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const source = detectSource(url);
 
-  const html = await fetchWithFallbacks(url);
+  // ALWAYS parse the URL slug first — this never fails
+  const urlData = parseUrlSlug(url);
 
-  // Extract structured data sources
-  const jsonLd = extractJsonLd(html);
-  const og = extractOg(html);
-  const title = extractTitle(html);
+  // Try to fetch HTML for richer data (but don't fail if blocked)
+  const html = await tryFetchHtml(url);
 
-  // Extract all fields
-  const { name, builder, model } = extractNameAndBuilder(html, og, jsonLd, title);
-  const { price, priceNum } = extractPrice(html, jsonLd);
-  const length = extractLength(html, jsonLd);
-  const beam = extractBeam(html);
-  const year = extractYear(html, jsonLd);
+  let htmlName: string | null = null;
+  let htmlBuilder: string | null = null;
+  let htmlModel: string | null = null;
+  let htmlPrice: string | null = null;
+  let htmlPriceNum: number | null = null;
+  let htmlYear: number | null = null;
+  let htmlLengthFt: number | null = null;
+  let htmlLengthM: number | null = null;
+  let htmlBeamFt: number | null = null;
+  let htmlBeamM: number | null = null;
+  let htmlSpeed: number | null = null;
+  let htmlCabins: number | null = null;
+  let htmlGuests: number | null = null;
+  let htmlRange: number | null = null;
+  let htmlEngine: string | null = null;
+  let htmlEngineHours: number | null = null;
+  let htmlLocation: string | null = null;
+  let htmlImageUrl: string | null = null;
+  let htmlType: string | null = null;
 
-  return {
-    name,
-    builder,
-    model,
-    type: firstMatch(html,
+  if (html) {
+    const jsonLd = extractJsonLd(html);
+    const og = extractOg(html);
+    const title = extractTitle(html);
+
+    const nameData = extractNameAndBuilder(html, og, jsonLd, title);
+    htmlName = nameData.name;
+    htmlBuilder = nameData.builder;
+    htmlModel = nameData.model;
+
+    const priceData = extractPrice(html, jsonLd);
+    htmlPrice = priceData.price;
+    htmlPriceNum = priceData.priceNum;
+
+    const length = extractLength(html, jsonLd);
+    htmlLengthFt = length.ft;
+    htmlLengthM = length.m;
+
+    const beam = extractBeam(html);
+    htmlBeamFt = beam.ft;
+    htmlBeamM = beam.m;
+
+    htmlYear = extractYear(html, jsonLd);
+    htmlSpeed = extractSpeed(html);
+    htmlCabins = extractCabins(html);
+    htmlGuests = extractGuests(html);
+    htmlRange = extractRange(html);
+    htmlEngine = extractEngine(html);
+    htmlEngineHours = extractEngineHours(html);
+    htmlLocation = extractLocation(html, jsonLd);
+    htmlImageUrl = extractImage(html, og, jsonLd);
+    htmlType = firstMatch(html,
       /(?:boat|vessel|hull)\s*type[^>]*?[:\-]\s*([^<,]{3,30})/i,
       /(?:motor\s*yacht|sailing\s*yacht|catamaran|sportfish|trawler|center\s*console|flybridge|express)/i,
-    ),
-    year,
-    price,
-    priceNum,
-    lengthFt: length.ft,
-    lengthM: length.m,
-    beamFt: beam.ft,
-    beamM: beam.m,
-    maxSpeed: extractSpeed(html),
-    cabins: extractCabins(html),
-    guests: extractGuests(html),
-    range: extractRange(html),
-    engine: extractEngine(html),
-    engineHours: extractEngineHours(html),
-    location: extractLocation(html, jsonLd),
-    imageUrl: extractImage(html, og, jsonLd),
+    );
+  }
+
+  // Merge: HTML data takes priority, URL-parsed data as fallback
+  return {
+    name: htmlName && htmlName !== "Unknown Yacht" ? htmlName : urlData.name || "Unknown Yacht",
+    builder: htmlBuilder || urlData.builder || null,
+    model: htmlModel || urlData.model || null,
+    type: htmlType || null,
+    year: htmlYear || urlData.year || null,
+    price: htmlPrice,
+    priceNum: htmlPriceNum,
+    lengthFt: htmlLengthFt || urlData.lengthFt || null,
+    lengthM: htmlLengthM || urlData.lengthM || null,
+    beamFt: htmlBeamFt || null,
+    beamM: htmlBeamM || null,
+    maxSpeed: htmlSpeed,
+    cabins: htmlCabins,
+    guests: htmlGuests,
+    range: htmlRange,
+    engine: htmlEngine,
+    engineHours: htmlEngineHours,
+    location: htmlLocation,
+    imageUrl: htmlImageUrl,
     source,
     url,
   };
