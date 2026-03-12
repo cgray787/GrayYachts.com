@@ -414,23 +414,59 @@ function extractNameAndBuilder(
 /*  Main scraper                                                       */
 /* ------------------------------------------------------------------ */
 
+async function fetchWithFallbacks(url: string): Promise<string> {
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
+  // Strategy 1: Direct fetch
+  try {
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 500) return html;
+    }
+  } catch { /* try next */ }
+
+  // Strategy 2: allorigins.win proxy (CORS proxy with different IP)
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 500) return html;
+    }
+  } catch { /* try next */ }
+
+  // Strategy 3: Google Webcache
+  try {
+    const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`;
+    const res = await fetch(cacheUrl, { headers });
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 500) return html;
+    }
+  } catch { /* try next */ }
+
+  // Strategy 4: archive.org Wayback Machine (latest snapshot)
+  try {
+    const wbUrl = `https://web.archive.org/web/2024/${url}`;
+    const res = await fetch(wbUrl, { headers });
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 500) return html;
+    }
+  } catch { /* try next */ }
+
+  throw new Error("All fetch strategies failed — site may be blocking automated access");
+}
+
 async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const source = detectSource(url);
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
-  }
-
-  const html = await res.text();
+  const html = await fetchWithFallbacks(url);
 
   // Extract structured data sources
   const jsonLd = extractJsonLd(html);
