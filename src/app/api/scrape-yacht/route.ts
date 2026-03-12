@@ -511,19 +511,19 @@ function parseUrlSlug(url: string): Partial<ScrapedYacht> {
 }
 
 /* ------------------------------------------------------------------ */
-/*  HTML fetch — try direct then proxy, but never fail the request     */
+/*  HTML fetch helpers                                                 */
 /* ------------------------------------------------------------------ */
 
-async function tryFetchHtml(url: string): Promise<string | null> {
-  const headers = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-  };
+const FETCH_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
 
+async function tryFetchHtml(url: string): Promise<string | null> {
   // Strategy 1: Direct fetch
   try {
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers: FETCH_HEADERS });
     if (res.ok) {
       const html = await res.text();
       if (html.length > 500) return html;
@@ -540,7 +540,115 @@ async function tryFetchHtml(url: string): Promise<string | null> {
     }
   } catch { /* try next */ }
 
-  return null; // All strategies failed, but that's OK — we have URL-parsed data
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Spec database lookup — superyachts.com, manufacturer sites         */
+/* ------------------------------------------------------------------ */
+
+async function lookupSpecsFromDatabase(
+  builder: string | null,
+  model: string | null
+): Promise<Partial<ScrapedYacht>> {
+  if (!builder) return {};
+
+  const searchTerm = `${builder}${model ? " " + model : ""}`.toLowerCase().replace(/\s+/g, "-");
+
+  // Try superyachts.com — they allow server-side access
+  const specUrls = [
+    `https://www.superyachts.com/new-build/models/${searchTerm}-specification/specs/`,
+    `https://www.superyachts.com/new-build/models/${searchTerm}/specs/`,
+  ];
+
+  for (const specUrl of specUrls) {
+    try {
+      const res = await fetch(specUrl, { headers: FETCH_HEADERS });
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (html.length < 500) continue;
+
+      // Found a spec page! Extract data
+      const result: Partial<ScrapedYacht> = {};
+
+      // Length
+      const lengthMatch = html.match(/(?:length|loa)[^>]*?(\d+(?:\.\d+)?)\s*m/i);
+      if (lengthMatch) {
+        const m = parseFloat(lengthMatch[1]);
+        if (m > 5 && m < 200) {
+          result.lengthM = m;
+          result.lengthFt = Math.round(m * 3.281 * 10) / 10;
+        }
+      }
+
+      // Beam
+      const beamMatch = html.match(/beam[^>]*?(\d+(?:\.\d+)?)\s*m/i);
+      if (beamMatch) {
+        const m = parseFloat(beamMatch[1]);
+        if (m > 2 && m < 30) {
+          result.beamM = m;
+          result.beamFt = Math.round(m * 3.281 * 10) / 10;
+        }
+      }
+
+      // Speed
+      const speedMatch = html.match(/(?:max|top)\s*speed[^>]*?(\d+(?:\.\d+)?)\s*(?:kn|knots)/i)
+        || html.match(/(\d+(?:\.\d+)?)\s*(?:kn|knots)/i);
+      if (speedMatch) {
+        const s = parseFloat(speedMatch[1]);
+        if (s > 3 && s < 80) result.maxSpeed = s;
+      }
+
+      // Cabins
+      const cabinMatch = html.match(/(\d+)\s*(?:cabin|stateroom)/i)
+        || html.match(/cabin[s]?\s*[:\-]?\s*(\d+)/i);
+      if (cabinMatch) {
+        const c = parseInt(cabinMatch[1]);
+        if (c >= 1 && c <= 20) result.cabins = c;
+      }
+
+      // Guests
+      const guestMatch = html.match(/(\d+)\s*(?:guest|passenger)/i)
+        || html.match(/(?:guest|passenger)[s]?\s*[:\-]?\s*(\d+)/i);
+      if (guestMatch) {
+        const g = parseInt(guestMatch[1] || guestMatch[2] || "0");
+        if (g >= 1 && g <= 50) result.guests = g;
+      }
+
+      // Engine
+      const enginePatterns = [
+        /(?:engine|power|propulsion)[^<]{0,10}[:\-]\s*([^<]{5,80})/i,
+        /(?:MTU|Caterpillar|Rolls[\s-]Royce|CAT|MAN|Volvo\s*Penta|Cummins|Yanmar)[^<]{0,60}/i,
+      ];
+      for (const p of enginePatterns) {
+        const m = html.match(p);
+        if (m) {
+          const val = (m[1] || m[0]).trim().replace(/<[^>]*>/g, "").replace(/\s+/g, " ");
+          if (val.length > 4 && val.length < 100 && !/[{}<>=]/.test(val)) {
+            result.engine = val;
+            break;
+          }
+        }
+      }
+
+      // Range
+      const rangeMatch = html.match(/range[^>]*?(\d[\d,]*)\s*(?:nm|nmi|nautical)/i);
+      if (rangeMatch) {
+        const r = parseFloat(rangeMatch[1].replace(/,/g, ""));
+        if (r > 50 && r < 20000) result.range = r;
+      }
+
+      // Hull material
+      const hullMatch = html.match(/(?:hull|material)[^>]*?(aluminum|aluminium|steel|fiberglass|composite|carbon\s*fiber|grp)/i);
+      if (hullMatch) {
+        result.type = hullMatch[1].charAt(0).toUpperCase() + hullMatch[1].slice(1) + " Yacht";
+      }
+
+      return result;
+    } catch { /* try next URL */ }
+  }
+
+  return {};
 }
 
 /* ------------------------------------------------------------------ */
@@ -555,6 +663,9 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   // Try to fetch HTML for richer data (but don't fail if blocked)
   const html = await tryFetchHtml(url);
+
+  // If listing page blocked, try spec database sites
+  const specData = (!html) ? await lookupSpecsFromDatabase(urlData.builder ?? null, urlData.model ?? null) : {};
 
   let htmlName: string | null = null;
   let htmlBuilder: string | null = null;
@@ -621,24 +732,24 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     return true;
   }
 
-  // Merge: URL-parsed data as base, clean HTML data as enhancement
+  // Merge priority: HTML scraped > spec database > URL-parsed > defaults
   return {
     name: (htmlName && htmlName !== "Unknown Yacht" && isClean(htmlName) && !htmlName.toLowerCase().includes("yacht sales") && !htmlName.toLowerCase().includes("boats for sale")) ? htmlName : urlData.name || "Unknown Yacht",
     builder: (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
     model: (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
-    type: isClean(htmlType) ? htmlType : null,
+    type: isClean(htmlType) ? htmlType : (specData.type || null),
     year: htmlYear || urlData.year || null,
     price: htmlPrice,
     priceNum: htmlPriceNum,
-    lengthFt: htmlLengthFt || urlData.lengthFt || null,
-    lengthM: htmlLengthM || urlData.lengthM || null,
-    beamFt: htmlBeamFt || null,
-    beamM: htmlBeamM || null,
-    maxSpeed: htmlSpeed,
-    cabins: htmlCabins,
-    guests: htmlGuests,
-    range: htmlRange,
-    engine: isClean(htmlEngine) ? htmlEngine : null,
+    lengthFt: htmlLengthFt || specData.lengthFt || urlData.lengthFt || null,
+    lengthM: htmlLengthM || specData.lengthM || urlData.lengthM || null,
+    beamFt: htmlBeamFt || specData.beamFt || null,
+    beamM: htmlBeamM || specData.beamM || null,
+    maxSpeed: htmlSpeed || specData.maxSpeed || null,
+    cabins: htmlCabins || specData.cabins || null,
+    guests: htmlGuests || specData.guests || null,
+    range: htmlRange || specData.range || null,
+    engine: (isClean(htmlEngine) ? htmlEngine : null) || specData.engine || null,
     engineHours: htmlEngineHours,
     location: isClean(htmlLocation) ? htmlLocation : null,
     imageUrl: htmlImageUrl,
