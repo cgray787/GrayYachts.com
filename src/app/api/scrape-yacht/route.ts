@@ -617,13 +617,13 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   function isClean(val: string | null): boolean {
     if (!val) return false;
     if (val.length > 80) return false;
-    if (/[{}<>]|function|class=|style=|\.js|\.css|\.jpg|\.png|width|height|padding|margin|display|position/i.test(val)) return false;
+    if (/[{}<>="\/\\]|function|class=|style=|data-|\.js|\.css|\.jpg|\.png|\.com\/|width|height|padding|margin|display|position|action=|label=|href|src=|react-|select\s/i.test(val)) return false;
     return true;
   }
 
   // Merge: URL-parsed data as base, clean HTML data as enhancement
   return {
-    name: (htmlName && htmlName !== "Unknown Yacht" && isClean(htmlName)) ? htmlName : urlData.name || "Unknown Yacht",
+    name: (htmlName && htmlName !== "Unknown Yacht" && isClean(htmlName) && !htmlName.toLowerCase().includes("yacht sales") && !htmlName.toLowerCase().includes("boats for sale")) ? htmlName : urlData.name || "Unknown Yacht",
     builder: (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
     model: (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
     type: isClean(htmlType) ? htmlType : null,
