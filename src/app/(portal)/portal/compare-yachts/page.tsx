@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, type DragEvent } from "react";
 import {
+  AlertTriangle,
   CheckCircle,
   ExternalLink,
   MapPin,
@@ -190,23 +191,17 @@ const SEED_YACHTS: YachtListing[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  URL → yacht resolver                                               */
+/*  URL → yacht resolver (real scraper)                                */
 /* ------------------------------------------------------------------ */
 
-function detectSource(url: string): { source: string; color: string } {
-  const l = url.toLowerCase();
-  if (l.includes("yachtworld"))
-    return { source: "YachtWorld", color: "bg-emerald-400/10 text-emerald-400" };
-  if (l.includes("boattrader"))
-    return { source: "BoatTrader", color: "bg-blue-400/10 text-blue-400" };
-  if (l.includes("boats.com"))
-    return { source: "boats.com", color: "bg-purple-400/10 text-purple-400" };
-  if (l.includes("denison"))
-    return { source: "Denison", color: "bg-amber-400/10 text-amber-400" };
-  if (l.includes("yachtway"))
-    return { source: "Yacht Way", color: "bg-teal-400/10 text-teal-400" };
-  return { source: "Listing", color: "bg-text-secondary/10 text-text-secondary" };
-}
+const SOURCE_COLORS: Record<string, string> = {
+  YachtWorld: "bg-emerald-400/10 text-emerald-400",
+  BoatTrader: "bg-blue-400/10 text-blue-400",
+  "boats.com": "bg-purple-400/10 text-purple-400",
+  Denison: "bg-amber-400/10 text-amber-400",
+  "Yacht Way": "bg-teal-400/10 text-teal-400",
+  Listing: "bg-text-secondary/10 text-text-secondary",
+};
 
 const GRADIENTS = [
   "from-slate-700 via-slate-600 to-blue-900",
@@ -218,65 +213,83 @@ const GRADIENTS = [
   "from-slate-800 via-rose-900 to-slate-700",
 ];
 
-const NAMES = [
-  "Northern Light", "Odyssey", "Tranquility", "Sea Breeze", "Aurora",
-  "Meridian", "Poseidon", "Coral Wind", "Sapphire", "Eclipse",
-  "Voyager", "Horizon", "Neptune's Call", "Silver Wave", "Sundancer",
-];
-const BUILDERS = [
-  "Azimut", "Sunseeker", "Princess", "Ferretti", "Riviera",
-  "Hatteras", "Prestige", "Absolute", "Galeon", "Monte Carlo",
-];
+interface ScrapeResult {
+  name: string | null;
+  builder: string | null;
+  model: string | null;
+  type: string | null;
+  year: number | null;
+  price: string | null;
+  priceNum: number | null;
+  lengthFt: number | null;
+  lengthM: number | null;
+  beamFt: number | null;
+  beamM: number | null;
+  maxSpeed: number | null;
+  cabins: number | null;
+  guests: number | null;
+  range: number | null;
+  engine: string | null;
+  engineHours: number | null;
+  location: string | null;
+  source: string;
+  url: string;
+  error?: string;
+}
 
-function generateYachtFromUrl(url: string): YachtListing {
+async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   // Check if URL matches a seed yacht
   const seed = SEED_YACHTS.find(
     (y) => y.url.toLowerCase() === url.toLowerCase()
   );
   if (seed) return { ...seed };
 
-  // Generate deterministic-ish data from the URL
+  // Call our server-side scraper API
+  const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}`);
+  const data: ScrapeResult = await res.json();
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error || "Failed to scrape listing");
+  }
+
+  // Hash for gradient selection
   let hash = 0;
   for (let i = 0; i < url.length; i++) {
     hash = (hash * 31 + url.charCodeAt(i)) | 0;
   }
-  const pick = (arr: string[]) => arr[Math.abs(hash >> (arr.length % 8)) % arr.length];
 
-  const { source, color } = detectSource(url);
-  const name = pick(NAMES);
-  const builder = pick(BUILDERS);
-  const year = 2017 + (Math.abs(hash) % 8);
-  const lengthM = 18 + (Math.abs(hash >> 3) % 35);
-  const beamM = +(lengthM * (0.18 + (Math.abs(hash >> 5) % 10) / 100)).toFixed(1);
-  const speed = 10 + (Math.abs(hash >> 7) % 30);
-  const cabinsN = 2 + (Math.abs(hash >> 9) % 5);
-  const rangeN = 400 + (Math.abs(hash >> 11) % 4000);
-  const priceN = 1500000 + (Math.abs(hash >> 13) % 9000000);
+  const source = data.source || "Listing";
+  const lengthM = data.lengthM ?? (data.lengthFt ? Math.round(data.lengthFt * 0.3048 * 10) / 10 : null);
+  const beamM = data.beamM ?? (data.beamFt ? Math.round(data.beamFt * 0.3048 * 10) / 10 : null);
+  const lengthFt = data.lengthFt ?? (data.lengthM ? Math.round(data.lengthM * 3.281 * 10) / 10 : null);
+  const beamFt = data.beamFt ?? (data.beamM ? Math.round(data.beamM * 3.281 * 10) / 10 : null);
+  const cabinsN = data.cabins ?? 0;
+  const guestsN = data.guests ?? cabinsN * 2;
 
   return {
-    id: `url-${Date.now()}-${Math.abs(hash)}`,
+    id: `scraped-${Date.now()}-${Math.abs(hash)}`,
     source,
-    sourceBadgeColor: color,
-    name,
-    builder,
-    type: "Motor Yacht",
-    year,
-    price: `$${(priceN / 1000000).toFixed(1)}M`,
-    priceNum: priceN,
-    length: `${lengthM}m (${(lengthM * 3.281).toFixed(1)} ft)`,
-    lengthNum: lengthM,
-    beam: `${beamM}m (${(beamM * 3.281).toFixed(1)} ft)`,
-    beamNum: beamM,
-    maxSpeed: `${speed} knots`,
-    maxSpeedNum: speed,
-    cabins: `${cabinsN} cabins / ${cabinsN * 2} guests`,
+    sourceBadgeColor: SOURCE_COLORS[source] ?? SOURCE_COLORS.Listing,
+    name: data.name || "Unknown Yacht",
+    builder: data.builder || data.model || "Unknown",
+    type: data.type || "Yacht",
+    year: data.year || 0,
+    price: data.price || "Price on Request",
+    priceNum: data.priceNum || 0,
+    length: lengthM && lengthFt ? `${lengthM}m (${lengthFt} ft)` : lengthFt ? `${lengthFt} ft` : lengthM ? `${lengthM}m` : "N/A",
+    lengthNum: lengthM || 0,
+    beam: beamM && beamFt ? `${beamM}m (${beamFt} ft)` : beamFt ? `${beamFt} ft` : beamM ? `${beamM}m` : "N/A",
+    beamNum: beamM || 0,
+    maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
+    maxSpeedNum: data.maxSpeed || 0,
+    cabins: cabinsN ? `${cabinsN} cabins / ${guestsN} guests` : "N/A",
     cabinsNum: cabinsN,
-    range: `${rangeN.toLocaleString()} nm`,
-    rangeNum: rangeN,
-    location: "Pacific Northwest",
-    engine: `2× ${builder} Marine V8`,
-    engineHours: `${200 + (Math.abs(hash >> 15) % 4000)} hrs`,
-    engineHoursNum: 200 + (Math.abs(hash >> 15) % 4000),
+    range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",
+    rangeNum: data.range || 0,
+    location: data.location || "Unknown",
+    engine: data.engine || "N/A",
+    engineHours: data.engineHours ? `${data.engineHours.toLocaleString()} hrs` : "N/A",
+    engineHoursNum: data.engineHours || 0,
     url,
     gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
   };
@@ -630,6 +643,7 @@ export default function CompareYachtsPage() {
   const [urlRight, setUrlRight] = useState("");
   const [loadingLeft, setLoadingLeft] = useState(false);
   const [loadingRight, setLoadingRight] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   // Persist catalog
   useEffect(() => {
@@ -643,7 +657,7 @@ export default function CompareYachtsPage() {
 
   // Load a URL into a specific comparison slot and add to catalog
   const loadUrlToSlot = useCallback(
-    (
+    async (
       url: string,
       slot: "a" | "b",
       setLoadingFn: (v: boolean) => void,
@@ -652,42 +666,71 @@ export default function CompareYachtsPage() {
       const trimmed = url.trim();
       if (!trimmed) return;
       setLoadingFn(true);
+      setScrapeError(null);
 
-      // Pre-generate outside setTimeout so the yacht object is stable
-      const newYacht = generateYachtFromUrl(trimmed);
+      try {
+        // Check if already in catalog
+        const existingMatch = catalog.find(
+          (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (existingMatch) {
+          if (slot === "a") setLeftId(existingMatch.id);
+          else setRightId(existingMatch.id);
+          setLoadingFn(false);
+          setUrlFn("");
+          return;
+        }
 
-      setTimeout(() => {
-        // Use functional setCatalog to always have the latest catalog
+        // Scrape real data from the URL
+        const newYacht = await scrapeYachtFromUrl(trimmed);
+
         setCatalog((prev) => {
+          // Double-check (in case of race condition)
           const existing = prev.find(
             (y) => y.url.toLowerCase() === trimmed.toLowerCase()
           );
           if (existing) {
             if (slot === "a") setLeftId(existing.id);
             else setRightId(existing.id);
-            return prev; // no change
+            return prev;
           }
-          // Add new yacht
           if (slot === "a") setLeftId(newYacht.id);
           else setRightId(newYacht.id);
           return [...prev, newYacht];
         });
-        setLoadingFn(false);
         setUrlFn("");
-      }, 600);
+      } catch (err) {
+        setScrapeError(
+          err instanceof Error ? err.message : "Failed to load listing"
+        );
+      } finally {
+        setLoadingFn(false);
+      }
     },
-    []
+    [catalog]
   );
 
   // Add yacht from URL (catalog section)
-  const handleAddUrl = useCallback(() => {
+  const handleAddUrl = useCallback(async () => {
     const trimmed = urlInput.trim();
     if (!trimmed) return;
 
     setLoading(true);
-    const newYacht = generateYachtFromUrl(trimmed);
+    setScrapeError(null);
 
-    setTimeout(() => {
+    try {
+      const existingMatch = catalog.find(
+        (y) => y.url.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existingMatch) {
+        setRightId(existingMatch.id);
+        setLoading(false);
+        setUrlInput("");
+        return;
+      }
+
+      const newYacht = await scrapeYachtFromUrl(trimmed);
+
       setCatalog((prev) => {
         const existing = prev.find(
           (y) => y.url.toLowerCase() === trimmed.toLowerCase()
@@ -699,10 +742,15 @@ export default function CompareYachtsPage() {
         setRightId(newYacht.id);
         return [...prev, newYacht];
       });
-      setLoading(false);
       setUrlInput("");
-    }, 600);
-  }, [urlInput]);
+    } catch (err) {
+      setScrapeError(
+        err instanceof Error ? err.message : "Failed to load listing"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [urlInput, catalog]);
 
   // Drag & drop handlers for comparison slots
   const handleDragOver = (slot: "a" | "b") => (e: DragEvent) => {
@@ -882,6 +930,20 @@ export default function CompareYachtsPage() {
             )}
           </div>
         </div>
+
+        {/* ── Error banner ── */}
+        {scrapeError && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-error/30 bg-error/5 px-5 py-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-error" />
+            <span className="text-sm text-error">{scrapeError}</span>
+            <button
+              onClick={() => setScrapeError(null)}
+              className="ml-auto text-xs text-text-secondary hover:text-text-primary"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* ── Status bar ── */}
         <div className="mb-8 rounded-lg border border-success/20 bg-success/5 px-5 py-3.5">
