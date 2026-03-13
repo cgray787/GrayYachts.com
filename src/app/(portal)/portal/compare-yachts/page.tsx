@@ -46,6 +46,7 @@ interface YachtListing {
   engineHoursNum: number;
   url: string;
   gradient: string;
+  imageUrl: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +80,7 @@ const SEED_YACHTS: YachtListing[] = [
     engineHoursNum: 620,
     url: "https://www.yachtworld.com/yacht/2022-benetti-oasis-40m-8267590",
     gradient: "from-slate-700 via-slate-600 to-blue-900",
+    imageUrl: null,
   },
   {
     id: "windchaser",
@@ -106,6 +108,7 @@ const SEED_YACHTS: YachtListing[] = [
     engineHoursNum: 1450,
     url: "https://www.boattrader.com/boat/2021-oyster-745-8150322",
     gradient: "from-blue-900 via-indigo-800 to-slate-700",
+    imageUrl: null,
   },
   {
     id: "aegean-star",
@@ -133,6 +136,7 @@ const SEED_YACHTS: YachtListing[] = [
     engineHoursNum: 2100,
     url: "https://www.yachtworld.com/yacht/2020-lagoon-seventy-7-8194001",
     gradient: "from-slate-800 via-teal-900 to-slate-700",
+    imageUrl: null,
   },
   {
     id: "pacific-horizon",
@@ -160,6 +164,7 @@ const SEED_YACHTS: YachtListing[] = [
     engineHoursNum: 3800,
     url: "https://www.denisonyachtsales.com/yacht/nordhavn-120",
     gradient: "from-slate-800 via-emerald-900 to-slate-700",
+    imageUrl: null,
   },
   {
     id: "blue-marlin",
@@ -187,6 +192,7 @@ const SEED_YACHTS: YachtListing[] = [
     engineHoursNum: 280,
     url: "https://www.boats.com/power-boats/2023-viking-80-8301234",
     gradient: "from-indigo-900 via-purple-900 to-slate-800",
+    imageUrl: null,
   },
 ];
 
@@ -232,6 +238,7 @@ interface ScrapeResult {
   engine: string | null;
   engineHours: number | null;
   location: string | null;
+  imageUrl: string | null;
   source: string;
   url: string;
   error?: string;
@@ -292,6 +299,7 @@ async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     engineHoursNum: data.engineHours ?? 0,
     url,
     gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
+    imageUrl: data.imageUrl ?? null,
   };
 }
 
@@ -330,7 +338,7 @@ const SPEC_FIELDS: SpecField[] = [
 /*  localStorage persistence                                           */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = "gy-compare-catalog-v2"; // v2: invalidate old cached scrape data
+const STORAGE_KEY = "gy-compare-catalog-v3"; // v3: added imageUrl field
 
 function loadCatalog(): YachtListing[] {
   if (typeof window === "undefined") return SEED_YACHTS;
@@ -437,11 +445,19 @@ function ComparisonCard({
         </div>
       )}
 
-      {/* Image placeholder */}
+      {/* Yacht image / gradient fallback */}
       <div className={cn("relative h-44 w-full bg-gradient-to-br", yacht.gradient)}>
+        {yacht.imageUrl && (
+          <img
+            src={yacht.imageUrl}
+            alt={yacht.name}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
         <span
           className={cn(
-            "absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-medium",
+            "absolute left-4 top-4 z-10 rounded-full px-3 py-1 text-xs font-medium backdrop-blur-sm",
             yacht.sourceBadgeColor
           )}
         >
@@ -561,13 +577,22 @@ function CatalogCard({
       {/* Drag handle */}
       <GripVertical className="h-4 w-4 shrink-0 text-text-secondary/40" />
 
-      {/* Mini gradient swatch */}
+      {/* Mini thumbnail / gradient swatch */}
       <div
         className={cn(
-          "h-10 w-14 shrink-0 rounded-md bg-gradient-to-br",
+          "relative h-10 w-14 shrink-0 overflow-hidden rounded-md bg-gradient-to-br",
           yacht.gradient
         )}
-      />
+      >
+        {yacht.imageUrl && (
+          <img
+            src={yacht.imageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+      </div>
 
       {/* Info */}
       <div className="min-w-0 flex-1">
