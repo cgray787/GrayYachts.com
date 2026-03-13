@@ -474,11 +474,12 @@ function parseUrlSlug(url: string): Partial<ScrapedYacht> {
           .filter(p => !/^\d{7,}$/.test(p)) // remove listing IDs
           .slice(0, 4)
           .join(" ");
-        if (afterBuilder.length > 1) {
-          result.model = afterBuilder.split(" ").map(w => w[0]?.toUpperCase() + w.slice(1)).join(" ");
+        if (afterBuilder.trim().length > 0) {
+          const modelStr = afterBuilder.trim().split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+          if (modelStr) result.model = modelStr;
         }
       }
-      result.name = `${result.year} ${result.builder}${result.model ? " " + result.model : ""}`;
+      result.name = [result.year, result.builder, result.model].filter(Boolean).join(" ");
     } else if (nonNumericParts.length > 0) {
       result.name = nonNumericParts
         .slice(0, 5)
@@ -547,108 +548,233 @@ async function tryFetchHtml(url: string): Promise<string | null> {
 /*  Spec database lookup — superyachts.com, manufacturer sites         */
 /* ------------------------------------------------------------------ */
 
+/** Cache the sitemap in memory for the lifetime of the worker */
+let sitemapCache: string | null = null;
+
+async function discoverSpecUrl(builder: string, model: string | null): Promise<string | null> {
+  // Fetch and cache the superyachts.com yacht-models sitemap
+  // Contains all model URLs with their unpredictable numeric suffixes
+  if (!sitemapCache) {
+    try {
+      const res = await fetch(
+        "https://www.superyachts.com/sitemap-yacht-models.xml.gz",
+        { headers: FETCH_HEADERS }
+      );
+      if (!res.ok) return null;
+      // .gz file needs explicit decompression
+      const ds = new DecompressionStream("gzip");
+      const decompressed = res.body!.pipeThrough(ds);
+      sitemapCache = await new Response(decompressed).text();
+    } catch { return null; }
+  }
+
+  if (!sitemapCache) return null;
+
+  // Search for matching model URL in sitemap
+  const searchTerm = `${builder}${model ? "-" + model : ""}`.toLowerCase().replace(/\s+/g, "-");
+  const pattern = new RegExp(
+    `https://www\\.superyachts\\.com/new-build/models/${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^<]*?/specs`,
+    "i"
+  );
+  const match = sitemapCache.match(pattern);
+  if (match) return match[0];
+
+  // Also try without model number (just builder name)
+  if (model) {
+    const builderOnly = builder.toLowerCase().replace(/\s+/g, "-");
+    const loosePattern = new RegExp(
+      `https://www\\.superyachts\\.com/new-build/models/${builderOnly}-[^<]*?/specs`,
+      "gi"
+    );
+    const allMatches = [...sitemapCache.matchAll(loosePattern)].map(m => m[0]);
+    // Find the best match by checking if the model number appears in the URL
+    if (model) {
+      const modelLower = model.toLowerCase().replace(/\s+/g, "-");
+      const best = allMatches.find(u => u.includes(modelLower));
+      if (best) return best;
+    }
+    // Return first match as fallback
+    if (allMatches.length > 0) return allMatches[0];
+  }
+
+  return null;
+}
+
 async function lookupSpecsFromDatabase(
   builder: string | null,
   model: string | null
 ): Promise<Partial<ScrapedYacht>> {
   if (!builder) return {};
 
-  const searchTerm = `${builder}${model ? " " + model : ""}`.toLowerCase().replace(/\s+/g, "-");
+  // Step 1: Discover the correct superyachts.com URL via their sitemap
+  const discoveredUrl = await discoverSpecUrl(builder, model);
+  if (!discoveredUrl) return {};
 
-  // Try superyachts.com — they allow server-side access
-  const specUrls = [
-    `https://www.superyachts.com/new-build/models/${searchTerm}-specification/specs/`,
-    `https://www.superyachts.com/new-build/models/${searchTerm}/specs/`,
-  ];
+  try {
+    const res = await fetch(discoveredUrl, { headers: FETCH_HEADERS });
+    if (!res.ok) return {};
+    const html = await res.text();
+    if (html.length < 500) return {};
 
-  for (const specUrl of specUrls) {
-    try {
-      const res = await fetch(specUrl, { headers: FETCH_HEADERS });
-      if (!res.ok) continue;
-      const html = await res.text();
-      if (html.length < 500) continue;
+    const result: Partial<ScrapedYacht> = {};
 
-      // Found a spec page! Extract data
-      const result: Partial<ScrapedYacht> = {};
+    // superyachts.com is a Nuxt SSR app — data in window.__NUXT__ IIFE
+    // Parse the function params and args to resolve variable values
+    const nuxtIdx = html.indexOf("window.__NUXT__=(function(");
+    if (nuxtIdx >= 0) {
+      try {
+        const nuxtEnd = html.indexOf("</script>", nuxtIdx);
+        const nuxtBlock = html.slice(nuxtIdx, nuxtEnd);
 
-      // Length
-      const lengthMatch = html.match(/(?:length|loa)[^>]*?(\d+(?:\.\d+)?)\s*m/i);
-      if (lengthMatch) {
-        const m = parseFloat(lengthMatch[1]);
-        if (m > 5 && m < 200) {
-          result.lengthM = m;
-          result.lengthFt = Math.round(m * 3.281 * 10) / 10;
+        // 1. Extract param names
+        const pStart = nuxtBlock.indexOf("(") + 1;
+        const pEnd = nuxtBlock.indexOf(")");
+        const params = nuxtBlock.slice(pStart, pEnd).split(",").map(s => s.trim());
+
+        // 2. Find the return object to identify which vars hold which fields
+        const retIdx = nuxtBlock.indexOf("return ");
+        const retBody = nuxtBlock.slice(retIdx, retIdx + 200000);
+
+        // 3. For each spec field, find what variable name is used
+        const fieldVars: Record<string, string> = {};
+        for (const field of ["length_m", "length_ft", "beam", "max_speed", "cabins", "guests"]) {
+          const m = retBody.match(new RegExp(`\\b${field}:(\\w+)`));
+          if (m) fieldVars[field] = m[1];
         }
-      }
 
-      // Beam
-      const beamMatch = html.match(/beam[^>]*?(\d+(?:\.\d+)?)\s*m/i);
-      if (beamMatch) {
-        const m = parseFloat(beamMatch[1]);
-        if (m > 2 && m < 30) {
-          result.beamM = m;
-          result.beamFt = Math.round(m * 3.281 * 10) / 10;
-        }
-      }
-
-      // Speed
-      const speedMatch = html.match(/(?:max|top)\s*speed[^>]*?(\d+(?:\.\d+)?)\s*(?:kn|knots)/i)
-        || html.match(/(\d+(?:\.\d+)?)\s*(?:kn|knots)/i);
-      if (speedMatch) {
-        const s = parseFloat(speedMatch[1]);
-        if (s > 3 && s < 80) result.maxSpeed = s;
-      }
-
-      // Cabins
-      const cabinMatch = html.match(/(\d+)\s*(?:cabin|stateroom)/i)
-        || html.match(/cabin[s]?\s*[:\-]?\s*(\d+)/i);
-      if (cabinMatch) {
-        const c = parseInt(cabinMatch[1]);
-        if (c >= 1 && c <= 20) result.cabins = c;
-      }
-
-      // Guests
-      const guestMatch = html.match(/(\d+)\s*(?:guest|passenger)/i)
-        || html.match(/(?:guest|passenger)[s]?\s*[:\-]?\s*(\d+)/i);
-      if (guestMatch) {
-        const g = parseInt(guestMatch[1] || guestMatch[2] || "0");
-        if (g >= 1 && g <= 50) result.guests = g;
-      }
-
-      // Engine
-      const enginePatterns = [
-        /(?:engine|power|propulsion)[^<]{0,10}[:\-]\s*([^<]{5,80})/i,
-        /(?:MTU|Caterpillar|Rolls[\s-]Royce|CAT|MAN|Volvo\s*Penta|Cummins|Yanmar)[^<]{0,60}/i,
-      ];
-      for (const p of enginePatterns) {
-        const m = html.match(p);
-        if (m) {
-          const val = (m[1] || m[0]).trim().replace(/<[^>]*>/g, "").replace(/\s+/g, " ");
-          if (val.length > 4 && val.length < 100 && !/[{}<>=]/.test(val)) {
-            result.engine = val;
-            break;
+        // 4. Find which param indices we need (only need the highest index)
+        const neededIndices = new Map<number, string>(); // paramIndex -> fieldName
+        let maxNeeded = 0;
+        for (const [field, varName] of Object.entries(fieldVars)) {
+          const idx = params.indexOf(varName);
+          if (idx >= 0) {
+            neededIndices.set(idx, field);
+            if (idx > maxNeeded) maxNeeded = idx;
+          } else {
+            // It might be a literal number, not a variable
+            const num = parseFloat(varName);
+            if (!isNaN(num)) {
+              fieldVars[field] = String(num); // store as literal
+            }
           }
         }
-      }
 
-      // Range
-      const rangeMatch = html.match(/range[^>]*?(\d[\d,]*)\s*(?:nm|nmi|nautical)/i);
-      if (rangeMatch) {
-        const r = parseFloat(rangeMatch[1].replace(/,/g, ""));
-        if (r > 50 && r < 20000) result.range = r;
-      }
+        // 5. Parse args list — only up to maxNeeded + buffer
+        // Args start after the function body closing }(
+        // Find the function body end by searching for }( after the return object
+        const funcBodyEnd = nuxtBlock.lastIndexOf("}(");
+        const argsStartIdx = funcBodyEnd + 2;
+        const argsEndIdx = nuxtBlock.lastIndexOf("))");
+        const argsStr = nuxtBlock.slice(argsStartIdx, argsEndIdx);
 
-      // Hull material
-      const hullMatch = html.match(/(?:hull|material)[^>]*?(aluminum|aluminium|steel|fiberglass|composite|carbon\s*fiber|grp)/i);
-      if (hullMatch) {
-        result.type = hullMatch[1].charAt(0).toUpperCase() + hullMatch[1].slice(1) + " Yacht";
-      }
+        // Parse args one at a time up to maxNeeded
+        const argValues: string[] = [];
+        let ai = 0;
+        let argCount = 0;
+        while (ai < argsStr.length && argCount <= maxNeeded + 5) {
+          const c = argsStr[ai];
+          if (c === " " || c === "\n" || c === "\r" || c === "\t") { ai++; continue; }
+          if (c === ",") { ai++; continue; }
+          if (c === '"' || c === "'") {
+            let end = ai + 1;
+            while (end < argsStr.length) {
+              if (argsStr[end] === "\\") { end += 2; continue; }
+              if (argsStr[end] === c) break;
+              end++;
+            }
+            argValues.push(argsStr.slice(ai + 1, end));
+            ai = end + 1;
+            argCount++;
+          } else {
+            let end = ai;
+            let depth = 0;
+            while (end < argsStr.length) {
+              if (argsStr[end] === "(" || argsStr[end] === "[" || argsStr[end] === "{") depth++;
+              if (argsStr[end] === ")" || argsStr[end] === "]" || argsStr[end] === "}") depth--;
+              if (argsStr[end] === "," && depth === 0) break;
+              end++;
+            }
+            argValues.push(argsStr.slice(ai, end).trim());
+            ai = end;
+            argCount++;
+          }
+        }
 
-      return result;
-    } catch { /* try next URL */ }
-  }
+        // 6. Build resolved values
+        const resolved: Record<string, number | null> = {};
+        for (const [field, varName] of Object.entries(fieldVars)) {
+          // Check if it's already a literal number
+          const directNum = parseFloat(varName);
+          if (!isNaN(directNum)) {
+            resolved[field] = directNum;
+            continue;
+          }
+          // Resolve from args
+          const idx = params.indexOf(varName);
+          if (idx >= 0 && idx < argValues.length) {
+            const val = argValues[idx];
+            if (val === "null" || val === "void 0" || val === "") {
+              resolved[field] = null;
+            } else {
+              const n = parseFloat(val);
+              resolved[field] = isNaN(n) ? null : n;
+            }
+          }
+        }
 
-  return {};
+        // 7. Apply resolved values
+        const lm = resolved["length_m"];
+        const lf = resolved["length_ft"];
+        if (lm && lm > 5 && lm < 200) {
+          result.lengthM = Math.round(lm * 10) / 10;
+          result.lengthFt = Math.round(lm * 3.281 * 10) / 10;
+        } else if (lf && lf > 15 && lf < 600) {
+          result.lengthFt = Math.round(lf * 10) / 10;
+          result.lengthM = Math.round(lf * 0.3048 * 10) / 10;
+        }
+
+        const beamVal = resolved["beam"];
+        if (beamVal && beamVal > 1 && beamVal < 30) {
+          result.beamM = beamVal;
+          result.beamFt = Math.round(beamVal * 3.281 * 10) / 10;
+        }
+
+        const speedVal = resolved["max_speed"];
+        if (speedVal && speedVal > 3 && speedVal < 80) {
+          result.maxSpeed = speedVal;
+        }
+
+        const cabinsVal = resolved["cabins"];
+        if (cabinsVal && cabinsVal >= 1 && cabinsVal <= 30) {
+          result.cabins = cabinsVal;
+        }
+
+        const guestsVal = resolved["guests"];
+        if (guestsVal && guestsVal >= 1 && guestsVal <= 50) {
+          result.guests = guestsVal;
+        }
+
+        // 8. Engine — from description text embedded in the args
+        // Look for engine manufacturer names followed by model numbers (not just the word alone)
+        const engineMatch = nuxtBlock.match(
+          /(?:(?:two|three|four|twin|triple|quad)\s+)?(?:MTU\s+\d|Caterpillar\s+\w|Rolls[\s-]?Royce|Volvo\s*Penta|Cummins\s+\w|Yanmar\s+\w)[^."\\]*(?:HP|hp|kW|bhp|ps)/i
+        );
+        if (engineMatch) {
+          result.engine = engineMatch[0].replace(/\\u002F/g, "/").replace(/\\r\\n/g, " ").trim();
+        } else {
+          // Fallback: just grab the manufacturer + model
+          const engineFallback = nuxtBlock.match(
+            /(?:(?:two|three|four|twin|triple|quad)\s+)?(?:MTU\s+\d[\w\s-]{5,40}|Caterpillar\s+[\w\s-]{5,30}|Rolls[\s-]?Royce[\w\s-]{5,30}|Volvo\s*Penta[\w\s-]{5,30}|Cummins\s+[\w\s-]{5,30}|Yanmar\s+[\w\s-]{5,30})/i
+          );
+          if (engineFallback) {
+            result.engine = engineFallback[0].replace(/\\u002F/g, "/").trim();
+          }
+        }
+      } catch { /* NUXT parse failed */ }
+    }
+
+    return result;
+  } catch { return {}; }
 }
 
 /* ------------------------------------------------------------------ */
@@ -664,8 +790,8 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   // Try to fetch HTML for richer data (but don't fail if blocked)
   const html = await tryFetchHtml(url);
 
-  // If listing page blocked, try spec database sites
-  const specData = (!html) ? await lookupSpecsFromDatabase(urlData.builder ?? null, urlData.model ?? null) : {};
+  // Always try spec database as fallback for missing fields
+  const specData = await lookupSpecsFromDatabase(urlData.builder ?? null, urlData.model ?? null);
 
   let htmlName: string | null = null;
   let htmlBuilder: string | null = null;
@@ -734,7 +860,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   // Merge priority: HTML scraped > spec database > URL-parsed > defaults
   return {
-    name: (htmlName && htmlName !== "Unknown Yacht" && isClean(htmlName) && !htmlName.toLowerCase().includes("yacht sales") && !htmlName.toLowerCase().includes("boats for sale")) ? htmlName : urlData.name || "Unknown Yacht",
+    name: (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 && isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) ? htmlName : urlData.name || "Unknown Yacht",
     builder: (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
     model: (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
     type: isClean(htmlType) ? htmlType : (specData.type || null),
@@ -779,7 +905,7 @@ export async function GET(request: NextRequest) {
   try {
     const data = await scrapeYacht(url);
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, max-age=3600" },
+      headers: { "Cache-Control": "no-cache" },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to scrape";

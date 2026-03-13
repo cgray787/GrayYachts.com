@@ -330,7 +330,7 @@ const SPEC_FIELDS: SpecField[] = [
 /*  localStorage persistence                                           */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = "gy-compare-catalog";
+const STORAGE_KEY = "gy-compare-catalog-v2"; // v2: invalidate old cached scrape data
 
 function loadCatalog(): YachtListing[] {
   if (typeof window === "undefined") return SEED_YACHTS;
