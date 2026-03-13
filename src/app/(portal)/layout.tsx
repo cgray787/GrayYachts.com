@@ -35,7 +35,7 @@ export default async function PortalLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar profile={profile} />
-      <main className="ml-60 flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8 lg:ml-60">{children}</main>
     </div>
   );
 }

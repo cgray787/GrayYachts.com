@@ -70,7 +70,7 @@ Supabase PostgreSQL with RLS. See `supabase/migrations/` for full schema.
 
 ## API Routes
 
-### `POST /api/scrape-yacht`
+### `GET /api/scrape-yacht?url=<encoded-url>`
 Scrapes yacht specifications from listing URLs. Multi-strategy approach:
 1. Parse URL slug for year/builder/model (always works)
 2. Fetch HTML and extract specs from meta tags, JSON-LD, and page content

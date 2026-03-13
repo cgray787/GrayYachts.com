@@ -264,32 +264,32 @@ async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   const lengthFt = data.lengthFt ?? (data.lengthM ? Math.round(data.lengthM * 3.281 * 10) / 10 : null);
   const beamFt = data.beamFt ?? (data.beamM ? Math.round(data.beamM * 3.281 * 10) / 10 : null);
   const cabinsN = data.cabins ?? 0;
-  const guestsN = data.guests ?? cabinsN * 2;
+  const guestsN = data.guests ?? (cabinsN ? cabinsN * 2 : 0);
 
   return {
     id: `scraped-${Date.now()}-${Math.abs(hash)}`,
     source,
     sourceBadgeColor: SOURCE_COLORS[source] ?? SOURCE_COLORS.Listing,
-    name: data.name || "Unknown Yacht",
-    builder: data.builder || data.model || "Unknown",
-    type: data.type || "Yacht",
-    year: data.year || 0,
-    price: data.price || "Price on Request",
-    priceNum: data.priceNum || 0,
+    name: data.name ?? "Unknown Yacht",
+    builder: data.builder ?? data.model ?? "Unknown",
+    type: data.type ?? "Yacht",
+    year: data.year ?? 0,
+    price: data.price ?? "Price on Request",
+    priceNum: data.priceNum ?? 0,
     length: lengthM && lengthFt ? `${lengthM}m (${lengthFt} ft)` : lengthFt ? `${lengthFt} ft` : lengthM ? `${lengthM}m` : "N/A",
-    lengthNum: lengthM || 0,
+    lengthNum: lengthM ?? 0,
     beam: beamM && beamFt ? `${beamM}m (${beamFt} ft)` : beamFt ? `${beamFt} ft` : beamM ? `${beamM}m` : "N/A",
-    beamNum: beamM || 0,
+    beamNum: beamM ?? 0,
     maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
-    maxSpeedNum: data.maxSpeed || 0,
+    maxSpeedNum: data.maxSpeed ?? 0,
     cabins: cabinsN ? `${cabinsN} cabins / ${guestsN} guests` : "N/A",
     cabinsNum: cabinsN,
     range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",
-    rangeNum: data.range || 0,
-    location: data.location || "Unknown",
-    engine: data.engine || "N/A",
+    rangeNum: data.range ?? 0,
+    location: data.location ?? "Unknown",
+    engine: data.engine ?? "N/A",
     engineHours: data.engineHours ? `${data.engineHours.toLocaleString()} hrs` : "N/A",
-    engineHoursNum: data.engineHours || 0,
+    engineHoursNum: data.engineHours ?? 0,
     url,
     gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
   };
@@ -484,18 +484,15 @@ function ComparisonCard({
         <div className="space-y-0">
           {SPEC_FIELDS.map((field) => {
             const val = String(yacht[field.key]);
-            const numA = typeof yacht[field.numKey] === "number" ? (yacht[field.numKey] as number) : 0;
-            const numB = typeof other[field.numKey] === "number" ? (other[field.numKey] as number) : 0;
+            const myNum = typeof yacht[field.numKey] === "number" ? (yacht[field.numKey] as number) : 0;
+            const otherNum = typeof other[field.numKey] === "number" ? (other[field.numKey] as number) : 0;
 
             let winner: Winner | undefined;
             if (!field.isLocation && typeof yacht[field.numKey] === "number") {
-              winner =
-                side === "a"
-                  ? compareSpec(numA, numB, field.lowerIsBetter)
-                  : compareSpec(numB, numA, field.lowerIsBetter);
-              if (side === "b") {
-                winner = winner === "a" ? "b" : winner === "b" ? "a" : winner;
-              }
+              // Compare this card's value vs the other card's value
+              // Result "a" means first arg wins => this card wins => side wins
+              const raw = compareSpec(myNum, otherNum, field.lowerIsBetter);
+              winner = raw === "a" ? side : raw === "b" ? (side === "a" ? "b" : "a") : "tie";
             }
 
             return (

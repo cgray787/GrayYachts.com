@@ -309,7 +309,7 @@ function extractYear(html: string, jsonLd: Record<string, unknown> | null): numb
       const val = jsonLd[key];
       if (val) {
         const n = parseNumber(String(val).slice(0, 4));
-        if (n && n >= 1950 && n <= 2030) return n;
+        if (n && n >= 1950 && n <= new Date().getFullYear() + 2) return n;
       }
     }
   }
@@ -319,7 +319,7 @@ function extractYear(html: string, jsonLd: Record<string, unknown> | null): numb
     /(?:built|launched)\s*(?:in)?\s*(\d{4})/i,
   );
   const n = parseNumber(s);
-  return (n && n >= 1950 && n <= 2030) ? n : null;
+  return (n && n >= 1950 && n <= new Date().getFullYear() + 2) ? n : null;
 }
 
 function extractLocation(html: string, jsonLd: Record<string, unknown> | null): string | null {
@@ -446,8 +446,8 @@ function parseUrlSlug(url: string): Partial<ScrapedYacht> {
       .replace(/[_/]/g, "-")
       .replace(/[^a-z0-9\-.\s]/g, " ");
 
-    // Extract year: 4-digit number between 1970–2030
-    const yearMatch = slug.match(/\b(19[7-9]\d|20[0-3]\d)\b/);
+    // Extract year: 4-digit number between 1970–current+2
+    const yearMatch = slug.match(/\b(19[7-9]\d|20[0-4]\d)\b/);
     if (yearMatch) result.year = parseInt(yearMatch[1]);
 
     // Extract builder
@@ -573,7 +573,7 @@ async function discoverSpecUrl(builder: string, model: string | null): Promise<s
   // Search for matching model URL in sitemap
   const searchTerm = `${builder}${model ? "-" + model : ""}`.toLowerCase().replace(/\s+/g, "-");
   const pattern = new RegExp(
-    `https://www\\.superyachts\\.com/new-build/models/${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^<]*?/specs`,
+    `https://www\\.superyachts\\.com/new-build/models/${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^<\\s]*/specs`,
     "i"
   );
   const match = sitemapCache.match(pattern);
@@ -583,7 +583,7 @@ async function discoverSpecUrl(builder: string, model: string | null): Promise<s
   if (model) {
     const builderOnly = builder.toLowerCase().replace(/\s+/g, "-");
     const loosePattern = new RegExp(
-      `https://www\\.superyachts\\.com/new-build/models/${builderOnly}-[^<]*?/specs`,
+      `https://www\\.superyachts\\.com/new-build/models/${builderOnly}-[^<\\s]*/specs`,
       "gi"
     );
     const allMatches = [...sitemapCache.matchAll(loosePattern)].map(m => m[0]);
@@ -867,16 +867,16 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     year: htmlYear || urlData.year || null,
     price: htmlPrice,
     priceNum: htmlPriceNum,
-    lengthFt: htmlLengthFt || specData.lengthFt || urlData.lengthFt || null,
-    lengthM: htmlLengthM || specData.lengthM || urlData.lengthM || null,
-    beamFt: htmlBeamFt || specData.beamFt || null,
-    beamM: htmlBeamM || specData.beamM || null,
-    maxSpeed: htmlSpeed || specData.maxSpeed || null,
-    cabins: htmlCabins || specData.cabins || null,
-    guests: htmlGuests || specData.guests || null,
-    range: htmlRange || specData.range || null,
-    engine: (isClean(htmlEngine) ? htmlEngine : null) || specData.engine || null,
-    engineHours: htmlEngineHours,
+    lengthFt: htmlLengthFt ?? specData.lengthFt ?? urlData.lengthFt ?? null,
+    lengthM: htmlLengthM ?? specData.lengthM ?? urlData.lengthM ?? null,
+    beamFt: htmlBeamFt ?? specData.beamFt ?? null,
+    beamM: htmlBeamM ?? specData.beamM ?? null,
+    maxSpeed: htmlSpeed ?? specData.maxSpeed ?? null,
+    cabins: htmlCabins ?? specData.cabins ?? null,
+    guests: htmlGuests ?? specData.guests ?? null,
+    range: htmlRange ?? specData.range ?? null,
+    engine: (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? null,
+    engineHours: htmlEngineHours ?? null,
     location: isClean(htmlLocation) ? htmlLocation : null,
     imageUrl: htmlImageUrl,
     source,

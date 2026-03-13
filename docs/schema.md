@@ -126,12 +126,23 @@ Audit trail of user actions.
 
 ## RLS Policies
 
-- Users can view/manage their own data (profiles, yachts, documents, maintenance, activity)
-- Admins can manage all records across all tables
-- Service providers are viewable by anyone (public directory)
+**User-level (all tables except service_providers):**
+- `profiles`: Users can view/update/insert own profile
+- `yachts`, `documents`, `maintenance_records`, `activity_log`: Users have full CRUD on own records (`for all` with `using/with check` on `user_id`)
+
+**Admin-level:**
+- Admins (role = 'admin') have `select` on all tables (via migration 002)
+- Admins have full `for all` CRUD on profiles, yachts, documents, maintenance_records, activity_log (via migration 003)
+- Admins can manage service_providers (via migration 002)
+
+**Public:**
+- `service_providers`: Anyone can view (`for select using (true)`)
+
+**Trigger:**
+- `on_auth_user_created` → `handle_new_user()`: Auto-creates profile row on signup
 
 ## Migrations
 
-- `001_initial_schema.sql` — All tables, indexes, RLS policies, signup trigger
-- `002_fix_rls_policies.sql` — RLS fixes
-- `003_add_engine_hours_and_policy_fixes.sql` — engine_hours column, admin policies
+- `001_initial_schema.sql` — All tables, indexes, base RLS policies, signup trigger
+- `002_fix_rls_policies.sql` — Consolidated duplicate select/all policies, added admin select and service provider management
+- `003_add_engine_hours_and_policy_fixes.sql` — `engine_hours` column on yachts, admin `for all` CRUD on every table, user insert policy on profiles

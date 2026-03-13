@@ -80,7 +80,7 @@ export function Sidebar({ profile }: SidebarProps) {
   );
 
   return (
-    <aside className="fixed top-0 left-0 z-40 flex h-screen w-60 flex-col border-r border-border bg-bg-secondary">
+    <aside className="fixed top-0 left-0 z-40 hidden h-screen w-60 flex-col border-r border-border bg-bg-secondary lg:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6">
         <Anchor className="h-6 w-6 text-gold" />

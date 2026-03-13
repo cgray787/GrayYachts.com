@@ -110,7 +110,7 @@ export default function DashboardClient({
       </div>
 
       {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-4 gap-5">
+      <div className="mb-8 grid grid-cols-2 gap-5 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -135,9 +135,9 @@ export default function DashboardClient({
       </div>
 
       {/* Fleet & Activity Grid */}
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Your Fleet - 3/5 width */}
-        <div className="col-span-3">
+        <div className="lg:col-span-3">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
               Your Fleet
@@ -182,7 +182,7 @@ export default function DashboardClient({
         </div>
 
         {/* Recent Activity - 2/5 width */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <h2 className="mb-4 font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
             Recent Activity
           </h2>
