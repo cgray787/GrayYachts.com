@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn } from "lucide-react";
 
 const navLinks = [
   { label: "FLEET", href: "#fleet" },
   { label: "SERVICES", href: "#services" },
-  { label: "PORTAL", href: "/portal/dashboard", gold: true },
   { label: "CONTACT", href: "#contact" },
 ];
 
@@ -40,11 +39,7 @@ export default function Navbar() {
             <Link
               key={link.label}
               href={link.href}
-              className={`text-[11px] font-medium tracking-[0.2em] transition-colors duration-300 ${
-                link.gold
-                  ? "text-gold hover:text-gold-hover"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
+              className="text-[11px] font-medium tracking-[0.2em] text-text-secondary transition-colors duration-300 hover:text-text-primary"
             >
               {link.label}
             </Link>
@@ -60,13 +55,22 @@ export default function Navbar() {
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
-        {/* Right: Logo */}
-        <Link
-          href="/"
-          className="font-[family-name:var(--font-cormorant)] text-lg tracking-[0.35em] text-text-primary"
-        >
-          GRAY YACHTS
-        </Link>
+        {/* Right: Logo + Sign In */}
+        <div className="flex items-center gap-6">
+          <Link
+            href="/login"
+            className="hidden items-center gap-2 rounded-md border border-gold/40 px-4 py-1.5 text-[11px] font-medium tracking-[0.15em] text-gold transition-all duration-300 hover:border-gold hover:bg-gold/10 md:flex"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            SIGN IN
+          </Link>
+          <Link
+            href="/"
+            className="font-[family-name:var(--font-cormorant)] text-lg tracking-[0.35em] text-text-primary"
+          >
+            GRAY YACHTS
+          </Link>
+        </div>
       </nav>
 
       {/* Mobile menu */}
@@ -83,15 +87,19 @@ export default function Navbar() {
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className={`text-[11px] font-medium tracking-[0.2em] ${
-                  link.gold
-                    ? "text-gold hover:text-gold-hover"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
+                className="text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary"
               >
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-gold hover:text-gold-hover"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              SIGN IN
+            </Link>
           </div>
         </motion.div>
       )}

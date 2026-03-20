@@ -2,7 +2,8 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Anchor, Mail, Lock, LogIn } from "lucide-react";
+import Link from "next/link";
+import { Anchor, Mail, Lock, LogIn, Eye, EyeOff, CheckSquare, Square } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -18,16 +19,28 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [notABot, setNotABot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!notABot) {
+      setError("Please confirm you are not a bot.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Authentication service is not configured. Please contact your administrator.");
+        return;
+      }
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -62,10 +75,7 @@ function LoginForm() {
     <div className="flex min-h-screen">
       {/* ── Left half: hero image / gradient ── */}
       <div className="relative hidden w-1/2 lg:block">
-        {/* Placeholder gradient standing in for a yacht photograph */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a1628] to-[#060a12]" />
-
-        {/* Subtle vignette overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#060a12]/80 via-transparent to-transparent" />
 
         {/* Bottom-left brand text */}
@@ -80,7 +90,18 @@ function LoginForm() {
       </div>
 
       {/* ── Right half: login form ── */}
-      <div className="flex w-full items-center justify-center bg-bg-primary px-6 py-12 lg:w-1/2">
+      <div className="relative flex w-full items-center justify-center bg-bg-primary px-6 py-12 lg:w-1/2">
+        {/* Top-left logo link */}
+        <Link
+          href="/"
+          className="absolute top-6 left-6 flex items-center gap-2 transition-opacity hover:opacity-80"
+        >
+          <Anchor className="h-5 w-5 text-gold" strokeWidth={1.5} />
+          <span className="font-[family-name:var(--font-cormorant)] text-sm tracking-[0.25em] text-gold">
+            GRAY YACHTS
+          </span>
+        </Link>
+
         <div className="w-full max-w-md space-y-8">
           {/* Anchor icon */}
           <div className="flex justify-center">
@@ -143,19 +164,44 @@ function LoginForm() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-md border border-border bg-bg-secondary py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold"
+                  className="w-full rounded-md border border-border bg-bg-secondary py-2.5 pl-10 pr-10 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary transition-colors hover:text-text-primary"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Forgot password */}
-            <div className="flex items-center justify-end">
+            {/* Not a bot checkbox */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setNotABot(!notABot)}
+                className="flex items-center gap-2.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
+              >
+                {notABot ? (
+                  <CheckSquare className="h-5 w-5 text-gold" />
+                ) : (
+                  <Square className="h-5 w-5 text-text-secondary" />
+                )}
+                I&apos;m not a bot
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -170,7 +216,7 @@ function LoginForm() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !notABot}
               className="flex w-full items-center justify-center gap-2 rounded-md bg-gold py-2.5 text-sm font-semibold text-bg-primary transition-colors hover:bg-gold-hover disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -193,7 +239,7 @@ function LoginForm() {
 
           {/* Request Access */}
           <a
-            href="mailto:portal@grayyachts.com?subject=Portal%20Access%20Request"
+            href="mailto:connor@grayyachts.com?subject=Portal%20Access%20Request"
             className="flex w-full items-center justify-center rounded-md border border-border py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-gold/50 hover:text-gold"
           >
             Request Portal Access

@@ -184,14 +184,14 @@ export function Sidebar({ profile }: SidebarProps) {
       <div className="border-t border-border px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-muted text-sm font-semibold text-gold">
-            {getInitials(profile?.full_name ?? "James Donovan")}
+            {getInitials(profile?.full_name ?? "Portal User")}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-text-primary">
-              {profile?.full_name ?? "James Donovan"}
+              {profile?.full_name ?? "Portal User"}
             </p>
             <p className="truncate text-xs text-text-secondary">
-              {profile?.email ?? "james@donovan.com"}
+              {profile?.email ?? ""}
             </p>
           </div>
           <button
@@ -199,7 +199,7 @@ export function Sidebar({ profile }: SidebarProps) {
               try {
                 const { createClient } = await import("@/lib/supabase/client");
                 const supabase = createClient();
-                await supabase.auth.signOut();
+                if (supabase) await supabase.auth.signOut();
               } catch {
                 // Supabase not configured — just redirect
               }
