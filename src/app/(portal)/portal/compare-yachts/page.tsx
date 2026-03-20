@@ -448,6 +448,7 @@ function ComparisonCard({
       {/* Yacht image / gradient fallback */}
       <div className={cn("relative h-44 w-full bg-gradient-to-br", yacht.gradient)}>
         {yacht.imageUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={yacht.imageUrl}
             alt={yacht.name}
@@ -585,6 +586,7 @@ function CatalogCard({
         )}
       >
         {yacht.imageUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={yacht.imageUrl}
             alt=""

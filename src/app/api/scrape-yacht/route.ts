@@ -524,20 +524,48 @@ const FETCH_HEADERS = {
 async function tryFetchHtml(url: string): Promise<string | null> {
   // Strategy 1: Direct fetch
   try {
-    const res = await fetch(url, { headers: FETCH_HEADERS });
+    const res = await fetch(url, {
+      headers: FETCH_HEADERS,
+      signal: AbortSignal.timeout(8000),
+    });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500) return html;
+      // Check for Cloudflare challenge pages
+      if (html.length > 500 && !html.includes("Just a moment...") && !html.includes("cf-challenge")) {
+        return html;
+      }
     }
   } catch { /* try next */ }
 
-  // Strategy 2: allorigins.win proxy
+  // Strategy 2: Jina AI Reader — renders JS, bypasses some bot protection
   try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxyUrl);
+    const jinaUrl = `https://r.jina.ai/${url}`;
+    const res = await fetch(jinaUrl, {
+      headers: {
+        "Accept": "text/html",
+        "X-Return-Format": "html",
+      },
+      signal: AbortSignal.timeout(15000),
+    });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500) return html;
+      if (html.length > 500 && !html.includes("Target URL returned error")) {
+        return html;
+      }
+    }
+  } catch { /* try next */ }
+
+  // Strategy 3: allorigins.win proxy
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 500 && !html.includes("Just a moment...")) {
+        return html;
+      }
     }
   } catch { /* try next */ }
 
@@ -778,6 +806,337 @@ async function lookupSpecsFromDatabase(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Builder spec profiles — estimate specs from builder + length       */
+/* ------------------------------------------------------------------ */
+
+interface BuilderProfile {
+  type: string;
+  /** beam as fraction of length */
+  beamRatio: number;
+  /** typical max speed range [min, max] in knots */
+  speedRange: [number, number];
+  /** cabins per 10ft of length above 30ft (motor) or 25ft (sail) */
+  cabinsPerUnit: number;
+  /** cabin base length threshold */
+  cabinBaseFt: number;
+  /** engine template by length bucket */
+  engines: Record<string, string>;
+  /** default guests per cabin */
+  guestsPerCabin: number;
+  /** typical range in nm by length bucket */
+  rangeByLength: Record<string, number>;
+}
+
+const BUILDER_PROFILES: Record<string, BuilderProfile> = {
+  // Performance motor yachts
+  pershing: {
+    type: "Motor Yacht", beamRatio: 0.20, speedRange: [32, 45],
+    cabinsPerUnit: 0.6, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× MAN V8", "60": "2× MAN V12", "80": "2× MTU 16V 2000", "100": "4× MTU 16V 2000 M96L" },
+    rangeByLength: { "40": 300, "60": 400, "80": 500, "100": 600 },
+  },
+  sunseeker: {
+    type: "Motor Yacht", beamRatio: 0.22, speedRange: [28, 38],
+    cabinsPerUnit: 0.55, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "50": "2× Volvo Penta IPS", "70": "2× MAN V12", "90": "2× MTU 16V 2000", "100": "2× MTU 16V 2000 M96" },
+    rangeByLength: { "50": 300, "70": 400, "90": 500, "100": 600 },
+  },
+  princess: {
+    type: "Motor Yacht", beamRatio: 0.23, speedRange: [25, 35],
+    cabinsPerUnit: 0.55, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× Volvo Penta IPS500", "60": "2× MAN V8", "75": "2× MAN V12", "90": "2× MTU 12V 2000" },
+    rangeByLength: { "40": 300, "60": 350, "75": 400, "90": 500 },
+  },
+  azimut: {
+    type: "Motor Yacht", beamRatio: 0.23, speedRange: [26, 34],
+    cabinsPerUnit: 0.55, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "40": "2× Volvo Penta IPS", "55": "2× MAN V8", "70": "2× MAN V12", "80": "2× MTU 12V 2000" },
+    rangeByLength: { "40": 300, "55": 350, "70": 400, "80": 500 },
+  },
+  ferretti: {
+    type: "Motor Yacht", beamRatio: 0.23, speedRange: [28, 36],
+    cabinsPerUnit: 0.55, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "50": "2× MAN V8", "70": "2× MAN V12", "85": "2× MTU 12V 2000", "100": "2× MTU 16V 2000" },
+    rangeByLength: { "50": 350, "70": 400, "85": 500, "100": 600 },
+  },
+  riva: {
+    type: "Motor Yacht", beamRatio: 0.22, speedRange: [30, 40],
+    cabinsPerUnit: 0.5, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× Volvo Penta IPS", "56": "2× MAN V8", "76": "2× MAN V12", "100": "2× MTU 16V 2000" },
+    rangeByLength: { "40": 250, "56": 300, "76": 400, "100": 500 },
+  },
+  benetti: {
+    type: "Motor Yacht", beamRatio: 0.21, speedRange: [14, 20],
+    cabinsPerUnit: 0.5, cabinBaseFt: 40, guestsPerCabin: 2,
+    engines: { "80": "2× MAN V12", "100": "2× MTU 12V 4000", "130": "2× MTU 16V 4000", "160": "2× MTU 20V 4000" },
+    rangeByLength: { "80": 2500, "100": 3000, "130": 3500, "160": 4000 },
+  },
+  viking: {
+    type: "Sportfisher", beamRatio: 0.24, speedRange: [32, 42],
+    cabinsPerUnit: 0.45, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× Cummins QSB6.7", "54": "2× MAN V8", "72": "2× MAN V12", "80": "2× MTU 16V 2000 M96L" },
+    rangeByLength: { "40": 400, "54": 450, "72": 500, "80": 600 },
+  },
+  hatteras: {
+    type: "Motor Yacht", beamRatio: 0.25, speedRange: [25, 35],
+    cabinsPerUnit: 0.45, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× Cummins QSB6.7", "54": "2× Caterpillar C12", "60": "2× CAT C18", "75": "2× CAT C32" },
+    rangeByLength: { "40": 400, "54": 500, "60": 600, "75": 700 },
+  },
+  "sea ray": {
+    type: "Motor Yacht", beamRatio: 0.26, speedRange: [28, 38],
+    cabinsPerUnit: 0.4, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "25": "1× MerCruiser 350", "32": "2× MerCruiser 350", "40": "2× Cummins QSB6.7", "50": "2× Cummins QSC8.3" },
+    rangeByLength: { "25": 200, "32": 250, "40": 300, "50": 350 },
+  },
+  "boston whaler": {
+    type: "Center Console", beamRatio: 0.30, speedRange: [35, 50],
+    cabinsPerUnit: 0.2, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "17": "1× Mercury 150", "23": "2× Mercury 300", "28": "2× Mercury 400", "38": "3× Mercury 400V" },
+    rangeByLength: { "17": 150, "23": 250, "28": 350, "38": 400 },
+  },
+  "grady white": {
+    type: "Center Console", beamRatio: 0.30, speedRange: [35, 48],
+    cabinsPerUnit: 0.2, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "18": "1× Yamaha F200", "23": "2× Yamaha F250", "28": "2× Yamaha F300", "37": "3× Yamaha F350" },
+    rangeByLength: { "18": 200, "23": 300, "28": 350, "37": 400 },
+  },
+  lagoon: {
+    type: "Catamaran", beamRatio: 0.50, speedRange: [8, 12],
+    cabinsPerUnit: 0.5, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "40": "2× Yanmar 4JH57", "46": "2× Yanmar 4JH80", "55": "2× Yanmar 4LHA-STP", "65": "2× Volvo D3-150" },
+    rangeByLength: { "40": 1500, "46": 1800, "55": 2000, "65": 2500 },
+  },
+  beneteau: {
+    type: "Sailing Yacht", beamRatio: 0.32, speedRange: [7, 10],
+    cabinsPerUnit: 0.45, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "30": "1× Yanmar 3YM20", "38": "1× Yanmar 3JH40", "45": "1× Yanmar 4JH57", "55": "1× Yanmar 4JH80" },
+    rangeByLength: { "30": 99999, "38": 99999, "45": 99999, "55": 99999 },
+  },
+  jeanneau: {
+    type: "Sailing Yacht", beamRatio: 0.32, speedRange: [7, 10],
+    cabinsPerUnit: 0.45, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "30": "1× Yanmar 3YM20", "38": "1× Yanmar 3JH40", "45": "1× Yanmar 4JH57", "55": "1× Yanmar 4JH80" },
+    rangeByLength: { "30": 99999, "38": 99999, "45": 99999, "55": 99999 },
+  },
+  oyster: {
+    type: "Sailing Yacht", beamRatio: 0.28, speedRange: [8, 11],
+    cabinsPerUnit: 0.4, cabinBaseFt: 35, guestsPerCabin: 2,
+    engines: { "50": "1× Yanmar 4JH80", "62": "1× Yanmar 4LHA-STP", "75": "1× Yanmar 6LPA-STP2", "88": "1× Scania DI13" },
+    rangeByLength: { "50": 99999, "62": 99999, "75": 99999, "88": 99999 },
+  },
+  nordhavn: {
+    type: "Trawler", beamRatio: 0.24, speedRange: [8, 12],
+    cabinsPerUnit: 0.4, cabinBaseFt: 35, guestsPerCabin: 2,
+    engines: { "40": "1× John Deere 4045", "55": "1× John Deere 6068", "68": "2× John Deere 6090", "96": "2× John Deere 6135" },
+    rangeByLength: { "40": 3000, "55": 3500, "68": 4000, "96": 5000 },
+  },
+  riviera: {
+    type: "Motor Yacht", beamRatio: 0.26, speedRange: [28, 36],
+    cabinsPerUnit: 0.45, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "39": "2× Volvo Penta IPS500", "50": "2× Volvo Penta IPS700", "58": "2× MAN V8", "72": "2× MAN V12" },
+    rangeByLength: { "39": 350, "50": 400, "58": 450, "72": 500 },
+  },
+  absolute: {
+    type: "Motor Yacht", beamRatio: 0.24, speedRange: [26, 34],
+    cabinsPerUnit: 0.5, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "40": "2× Volvo Penta IPS400", "50": "2× Volvo Penta IPS600", "60": "2× Volvo Penta IPS800", "72": "2× MAN V12" },
+    rangeByLength: { "40": 300, "50": 350, "60": 400, "72": 450 },
+  },
+  galeon: {
+    type: "Motor Yacht", beamRatio: 0.25, speedRange: [26, 34],
+    cabinsPerUnit: 0.5, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "32": "2× Volvo Penta D6", "42": "2× Volvo Penta IPS500", "50": "2× Volvo Penta IPS700", "64": "2× MAN V8" },
+    rangeByLength: { "32": 250, "42": 300, "50": 350, "64": 400 },
+  },
+  prestige: {
+    type: "Motor Yacht", beamRatio: 0.24, speedRange: [25, 32],
+    cabinsPerUnit: 0.5, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "42": "2× Volvo Penta IPS500", "52": "2× Volvo Penta IPS700", "59": "2× Volvo Penta IPS800", "69": "2× MAN V8" },
+    rangeByLength: { "42": 300, "52": 350, "59": 400, "69": 450 },
+  },
+  "monte carlo": {
+    type: "Motor Yacht", beamRatio: 0.24, speedRange: [24, 30],
+    cabinsPerUnit: 0.5, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "52": "2× Volvo Penta IPS700", "66": "2× Volvo Penta IPS950", "76": "2× MAN V12" },
+    rangeByLength: { "52": 350, "66": 400, "76": 500 },
+  },
+  "ocean alexander": {
+    type: "Motor Yacht", beamRatio: 0.24, speedRange: [22, 30],
+    cabinsPerUnit: 0.45, cabinBaseFt: 35, guestsPerCabin: 2,
+    engines: { "45": "2× Caterpillar C9", "70": "2× Caterpillar C18", "84": "2× Caterpillar C32", "100": "2× MTU 12V 2000" },
+    rangeByLength: { "45": 400, "70": 500, "84": 600, "100": 700 },
+  },
+  wellcraft: {
+    type: "Center Console", beamRatio: 0.28, speedRange: [32, 45],
+    cabinsPerUnit: 0.25, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "22": "1× Mercury 250", "26": "2× Mercury 300", "30": "2× Mercury 400", "35": "3× Mercury 400" },
+    rangeByLength: { "22": 200, "26": 250, "30": 300, "35": 350 },
+  },
+  regulator: {
+    type: "Center Console", beamRatio: 0.30, speedRange: [35, 48],
+    cabinsPerUnit: 0.15, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "23": "2× Yamaha F250", "28": "2× Yamaha F350", "34": "3× Yamaha F350", "41": "4× Yamaha F350" },
+    rangeByLength: { "23": 250, "28": 300, "34": 350, "41": 400 },
+  },
+  yellowfin: {
+    type: "Center Console", beamRatio: 0.28, speedRange: [35, 50],
+    cabinsPerUnit: 0.15, cabinBaseFt: 28, guestsPerCabin: 2,
+    engines: { "24": "2× Yamaha F300", "32": "2× Yamaha F425", "36": "3× Yamaha F425", "42": "4× Yamaha F425" },
+    rangeByLength: { "24": 250, "32": 300, "36": 350, "42": 400 },
+  },
+};
+
+/** Estimate specs from builder name + length using builder profiles */
+function estimateFromProfile(builder: string | null, lengthFt: number | null): Partial<ScrapedYacht> {
+  if (!builder || !lengthFt || lengthFt < 15) return {};
+
+  const key = builder.toLowerCase();
+  const profile = BUILDER_PROFILES[key];
+  if (!profile) return {};
+
+  const result: Partial<ScrapedYacht> = {};
+  result.type = profile.type;
+
+  // Beam
+  const beamFt = Math.round(lengthFt * profile.beamRatio * 10) / 10;
+  result.beamFt = beamFt;
+  result.beamM = Math.round(beamFt * 0.3048 * 10) / 10;
+
+  // Speed — interpolate within range based on length
+  const [minSpd, maxSpd] = profile.speedRange;
+  result.maxSpeed = Math.round((minSpd + maxSpd) / 2);
+
+  // Cabins
+  const rawCabins = (lengthFt - profile.cabinBaseFt) / 10 * profile.cabinsPerUnit;
+  const cabins = Math.max(1, Math.round(rawCabins * 2) / 2);
+  result.cabins = Math.round(cabins);
+  result.guests = result.cabins * profile.guestsPerCabin;
+
+  // Engine — find closest length bucket
+  const buckets = Object.keys(profile.engines).map(Number).sort((a, b) => a - b);
+  let engineKey = String(buckets[0]);
+  for (const b of buckets) {
+    if (lengthFt >= b) engineKey = String(b);
+  }
+  result.engine = profile.engines[engineKey] ?? null;
+
+  // Range
+  const rangeBuckets = Object.keys(profile.rangeByLength).map(Number).sort((a, b) => a - b);
+  let rangeKey = String(rangeBuckets[0]);
+  for (const b of rangeBuckets) {
+    if (lengthFt >= b) rangeKey = String(b);
+  }
+  result.range = profile.rangeByLength[rangeKey] ?? null;
+
+  return result;
+}
+
+/** Builders that use decifeet naming (e.g., "350" = 35ft) */
+const DECIFEET_BUILDERS = new Set([
+  "boston whaler", "grady white", "wellcraft", "regulator",
+  "yellowfin", "robalo", "sailfish", "sea ray", "searay",
+  "bayliner", "chaparral", "cobalt", "formula",
+]);
+
+/** Spelled-out numbers for model names like "Seventy 7", "Sixty 5" */
+const WORD_NUMBERS: Record<string, number> = {
+  twenty: 20, thirty: 30, forty: 40, fifty: 50,
+  sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+  hundred: 100,
+};
+
+/** Try to infer length from model name/number — most yachts encode length in name */
+function inferLengthFromModel(model: string | null, builder: string | null): number | null {
+  if (!model) return null;
+
+  const isDecifeetBuilder = builder ? DECIFEET_BUILDERS.has(builder.toLowerCase()) : false;
+
+  // Common patterns: "62", "95 Yacht", "400 SLX", "350 Outrage"
+  const numMatch = model.match(/^(\d{2,3})\b/);
+  if (numMatch) {
+    let num = parseInt(numMatch[1]);
+    // Decifeet builders: "350" = 35ft, "280" = 28ft
+    if (isDecifeetBuilder && num >= 150 && num <= 999) {
+      num = Math.round(num / 10);
+    }
+    if (num >= 15 && num <= 200) return num;
+  }
+
+  // Try end-of-string number: "Oasis 40M"
+  const endMatch = model.match(/(\d{2,3})\s*(?:m|ft)?$/i);
+  if (endMatch) {
+    const num = parseInt(endMatch[1]);
+    if (num >= 15 && num <= 200) return num;
+  }
+
+  // Try spelled-out numbers: "Seventy 7" → 77, "Sixty 5" → 65
+  const modelLower = model.toLowerCase();
+  for (const [word, base] of Object.entries(WORD_NUMBERS)) {
+    if (modelLower.includes(word)) {
+      // Check for trailing digit: "Seventy 7" → 77
+      const trailingDigitMatch = modelLower.match(new RegExp(`${word}\\s*(\\d)?`));
+      const ones = trailingDigitMatch?.[1] ? parseInt(trailingDigitMatch[1]) : 0;
+      const total = base + ones;
+      if (total >= 20 && total <= 200) return total;
+    }
+  }
+
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Fallback image — curated yacht photos by type                      */
+/* ------------------------------------------------------------------ */
+
+/** Curated Unsplash photo IDs by yacht type — free, high-quality, reliable */
+const FALLBACK_IMAGES: Record<string, string[]> = {
+  "Motor Yacht": [
+    "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&h=500&fit=crop",
+  ],
+  "Sailing Yacht": [
+    "https://images.unsplash.com/photo-1534854638093-bada1813ca19?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1559304022-afbf28bc53e0?w=800&h=500&fit=crop",
+  ],
+  "Catamaran": [
+    "https://images.unsplash.com/photo-1605005997079-d4443d180c65?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=500&fit=crop",
+  ],
+  "Sportfisher": [
+    "https://images.unsplash.com/photo-1544551763-77932f4e30c8?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800&h=500&fit=crop",
+  ],
+  "Center Console": [
+    "https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1544551763-77932f4e30c8?w=800&h=500&fit=crop",
+  ],
+  "Trawler": [
+    "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
+  ],
+};
+
+const DEFAULT_YACHT_IMAGES = [
+  "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
+  "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
+  "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&h=500&fit=crop",
+];
+
+function generateFallbackImage(builder: string | null, type: string | null): string {
+  const images = (type && FALLBACK_IMAGES[type]) || DEFAULT_YACHT_IMAGES;
+  // Deterministic selection based on builder name for consistency
+  let hash = 0;
+  const seed = builder || "yacht";
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return images[Math.abs(hash) % images.length];
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main scraper — URL parsing + optional HTML scraping                */
 /* ------------------------------------------------------------------ */
 
@@ -786,6 +1145,15 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   // ALWAYS parse the URL slug first — this never fails
   const urlData = parseUrlSlug(url);
+
+  // Infer length from model number if not already parsed
+  let inferredLengthFt = urlData.lengthFt ?? null;
+  if (!inferredLengthFt && urlData.model) {
+    inferredLengthFt = inferLengthFromModel(urlData.model, urlData.builder ?? null);
+  }
+
+  // Estimate specs from builder profile + length
+  const profileData = estimateFromProfile(urlData.builder ?? null, inferredLengthFt);
 
   // Try to fetch HTML for richer data (but don't fail if blocked)
   const html = await tryFetchHtml(url);
@@ -858,27 +1226,104 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     return true;
   }
 
-  // Merge priority: HTML scraped > spec database > URL-parsed > defaults
+  // Detect if HTML came from a DIFFERENT page (redirect/search results)
+  // Check both builder AND model — "Sea Ray SPX 210" ≠ "Sea Ray 400 SLX"
+  const htmlMatchesUrl = (() => {
+    if (!htmlBuilder && !htmlName) return true; // no HTML data to validate
+    if (!urlData.builder) return true; // no URL builder to compare against
+    const urlBuilder = urlData.builder.toLowerCase();
+    const hBuilder = (htmlBuilder || "").toLowerCase();
+    const hName = (htmlName || "").toLowerCase();
+
+    // Step 1: Builder must match
+    const builderMatches = hBuilder.includes(urlBuilder) || hName.includes(urlBuilder) ||
+           urlBuilder.includes(hBuilder);
+    if (!builderMatches) return false;
+
+    // Step 2: If we have a model number from the URL, check it appears in HTML name
+    // This catches cases like "Sea Ray SPX 210" (HTML) vs "Sea Ray 400 SLX" (URL)
+    if (urlData.model) {
+      const urlModelNum = urlData.model.match(/\d{2,3}/)?.[0];
+      if (urlModelNum && hName) {
+        // HTML name should contain the model number from the URL
+        if (!hName.includes(urlModelNum)) return false;
+      }
+    }
+
+    return true;
+  })();
+
+  // If HTML came from wrong page, discard ALL HTML-scraped data
+  if (!htmlMatchesUrl) {
+    htmlName = null;
+    htmlBuilder = null;
+    htmlModel = null;
+    htmlPrice = null;
+    htmlPriceNum = null;
+    htmlYear = null;
+    htmlLengthFt = null;
+    htmlLengthM = null;
+    htmlBeamFt = null;
+    htmlBeamM = null;
+    htmlSpeed = null;
+    htmlCabins = null;
+    htmlGuests = null;
+    htmlRange = null;
+    htmlEngine = null;
+    htmlEngineHours = null;
+    htmlLocation = null;
+    // Keep imageUrl only if it's an OG image (might still be relevant)
+    htmlImageUrl = null;
+    htmlType = null;
+  }
+
+  // Validate spec database length against inferred length — if >40% off, it matched a wrong model
+  let trustedSpecLengthFt = specData.lengthFt ?? null;
+  let trustedSpecLengthM = specData.lengthM ?? null;
+  if (inferredLengthFt && trustedSpecLengthFt) {
+    const ratio = trustedSpecLengthFt / inferredLengthFt;
+    if (ratio > 1.4 || ratio < 0.6) {
+      trustedSpecLengthFt = null;
+      trustedSpecLengthM = null;
+    }
+  }
+
+  // Merge priority: HTML scraped > validated spec database > inferred from model > URL-parsed > defaults
+  const mergedLengthFt = htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
+  const mergedLengthM = htmlLengthM ?? trustedSpecLengthM ?? (inferredLengthFt ? ftToM(inferredLengthFt) : null) ?? urlData.lengthM ?? null;
+
+  // Build the name: prefer URL-parsed name when HTML is unreliable
+  const finalName = (() => {
+    if (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 &&
+        isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) {
+      return htmlName;
+    }
+    if (urlData.name) return urlData.name;
+    // Construct from parts
+    const parts = [urlData.year, urlData.builder, urlData.model].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Unknown Yacht";
+  })();
+
   return {
-    name: (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 && isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) ? htmlName : urlData.name || "Unknown Yacht",
+    name: finalName,
     builder: (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
     model: (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
-    type: isClean(htmlType) ? htmlType : (specData.type || null),
+    type: isClean(htmlType) ? htmlType : (specData.type || profileData.type || null),
     year: htmlYear || urlData.year || null,
-    price: htmlPrice,
-    priceNum: htmlPriceNum,
-    lengthFt: htmlLengthFt ?? specData.lengthFt ?? urlData.lengthFt ?? null,
-    lengthM: htmlLengthM ?? specData.lengthM ?? urlData.lengthM ?? null,
-    beamFt: htmlBeamFt ?? specData.beamFt ?? null,
-    beamM: htmlBeamM ?? specData.beamM ?? null,
-    maxSpeed: htmlSpeed ?? specData.maxSpeed ?? null,
-    cabins: htmlCabins ?? specData.cabins ?? null,
-    guests: htmlGuests ?? specData.guests ?? null,
-    range: htmlRange ?? specData.range ?? null,
-    engine: (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? null,
+    price: htmlPrice ?? null,
+    priceNum: htmlPriceNum ?? null,
+    lengthFt: mergedLengthFt,
+    lengthM: mergedLengthM,
+    beamFt: htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null,
+    beamM: htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null,
+    maxSpeed: htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
+    cabins: htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
+    guests: htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
+    range: htmlRange ?? specData.range ?? profileData.range ?? null,
+    engine: (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
     engineHours: htmlEngineHours ?? null,
     location: isClean(htmlLocation) ? htmlLocation : null,
-    imageUrl: htmlImageUrl,
+    imageUrl: htmlImageUrl || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
     source,
     url,
   };

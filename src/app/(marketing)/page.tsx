@@ -463,12 +463,19 @@ export default function HomePage() {
             GET IN TOUCH
           </motion.p>
 
-          {/* Photo placeholder */}
+          {/* Connor Gray photo */}
           <motion.div
             variants={fadeUp}
             custom={1}
-            className="mx-auto mt-10 h-32 w-32 rounded-full bg-gradient-to-br from-[#0c1a2e] via-[#162a45] to-[#0c1220] border border-border"
-          />
+            className="mx-auto mt-10 h-32 w-32 overflow-hidden rounded-full border border-border"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/connor-gray-sm.jpeg"
+              alt="Connor Gray"
+              className="h-full w-full object-cover"
+            />
+          </motion.div>
 
           <motion.h2
             variants={fadeUp}

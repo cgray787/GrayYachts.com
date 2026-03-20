@@ -12,6 +12,7 @@ import {
   Briefcase,
   ChevronDown,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -81,13 +82,13 @@ export function Sidebar({ profile }: SidebarProps) {
 
   return (
     <aside className="fixed top-0 left-0 z-40 hidden h-screen w-60 flex-col border-r border-border bg-bg-secondary lg:flex">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6">
+      {/* Logo — links back to main page */}
+      <Link href="/" className="flex items-center gap-3 px-6 py-6 transition-opacity hover:opacity-80">
         <Anchor className="h-6 w-6 text-gold" />
         <span className="font-[family-name:var(--font-cormorant)] text-lg font-semibold tracking-wide text-gold">
           GRAY YACHTS
         </span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pt-2">
@@ -193,6 +194,22 @@ export function Sidebar({ profile }: SidebarProps) {
               {profile?.email ?? "james@donovan.com"}
             </p>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                await supabase.auth.signOut();
+              } catch {
+                // Supabase not configured — just redirect
+              }
+              window.location.href = "/";
+            }}
+            title="Sign out"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-card hover:text-text-primary"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
