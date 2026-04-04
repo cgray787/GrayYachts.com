@@ -61,7 +61,7 @@ https://github.com/cgray787/GrayYachts.com.git
 - **URL:** `https://eorkwxzhtidstznpzlyg.supabase.co`
 - **Region:** US East (us-east-1)
 - **Admin email:** connorgray41@gmail.com
-- **Env vars:** `.env.local` (local) + `wrangler.jsonc` vars + wrangler secrets (for service_role key)
+- **Env vars:** `.env.local` (local) + `wrangler.jsonc` vars + wrangler secrets (for service_role key, FIRECRAWL_API_KEY)
 
 ## Project Structure
 
@@ -73,7 +73,7 @@ src/
 │   ├── (portal)/portal/          # Authenticated client portal (layout includes Sidebar)
 │   │   ├── dashboard/            # Server + client component (fetches Supabase data)
 │   │   ├── my-yachts/            # Yacht grid + [id] detail page (tabs: services, maintenance, docs, location)
-│   │   ├── compare-yachts/       # URL scraping comparison tool (localStorage + drag-and-drop)
+│   │   ├── compare-yachts/       # URL scraping comparison tool (localStorage + drag-and-drop + mobile comparison table)
 │   │   ├── documents/            # Document management UI (demo data)
 │   │   ├── maintenance/          # Maintenance tracking UI (demo data)
 │   │   └── services/             # Service provider directory
@@ -88,7 +88,7 @@ src/
 │   │   ├── navbar.tsx            # Fixed header with SIGN IN button
 │   │   └── footer.tsx            # 3-column footer
 │   └── portal/
-│       └── sidebar.tsx           # Fixed sidebar with nav, logout, user profile
+│       └── sidebar.tsx           # Fixed sidebar with nav, logout, user profile + mobile drawer navigation
 ├── lib/
 │   ├── utils.ts                  # cn() helper (clsx wrapper)
 │   ├── admin.ts                  # isAdmin() check (hardcoded email list)
@@ -115,14 +115,16 @@ Supabase PostgreSQL with RLS enabled on all tables.
 
 ### `GET /api/scrape-yacht?url=<encoded-url>`
 Scrapes yacht specifications from listing URLs. Multi-strategy pipeline:
+0. **Firecrawl** (primary) — JS-rendered pages, best image extraction. Requires `FIRECRAWL_API_KEY` env var. Gracefully skips if key is absent.
 1. Parse URL slug for year/builder/model (always works)
 2. Infer length from model number (handles decifeet builders + spelled-out numbers)
 3. Estimate specs from 25+ builder profiles (beam, speed, cabins, engine, range)
 4. Look up superyachts.com spec database via sitemap discovery + NUXT state parsing
-5. Fetch HTML and extract specs from meta tags, JSON-LD, and page content
+5. Fetch HTML (direct fetch → Jina AI Reader → allorigins proxy) and extract specs from meta tags, JSON-LD, and page content
 6. Validate HTML data matches URL (prevents wrong data from redirected pages)
 
 **Note:** NUXT parsing uses regex-based variable resolution (no `eval` — blocked by Cloudflare Workers).
+**Note:** Firecrawl uses native `fetch` (no npm package) for Cloudflare Workers compatibility.
 
 ## Authentication Flow
 
