@@ -18,6 +18,19 @@ export const metadata: Metadata = {
   title: "Gray Yachts — Pacific Northwest's Premier Yacht Experience",
   description:
     "Cinematic yacht brokerage in the Pacific Northwest. Sell-side advisory, buy-side representation, drone cinematography, and full-spectrum yacht services.",
+  openGraph: {
+    title: "Gray Yachts",
+    description: "Pacific Northwest's Premier Yacht Experience. Brokerage, cinematography, and full-spectrum yacht services.",
+    url: "https://grayyachts.com",
+    siteName: "Gray Yachts",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gray Yachts — Pacific Northwest's Premier Yacht Experience",
+    description: "Cinematic yacht brokerage in the Pacific Northwest.",
+  },
 };
 
 export default function RootLayout({

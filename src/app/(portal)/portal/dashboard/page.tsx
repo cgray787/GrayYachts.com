@@ -61,7 +61,7 @@ const DEMO_STATS: DashboardStats = {
   yachtCount: 3,
   pendingServices: 2,
   documentCount: 12,
-  nextAppointment: "Mar 18",
+  nextAppointment: "May 15",
 };
 
 /* ───── Helpers ───── */
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .gte("service_date", new Date().toISOString());
 
-      if (yachtsResult.data?.length) {
+      if (yachtsResult.data) {
         stats = {
           yachtCount: yachtsResult.data.length,
           pendingServices: pendingResult.count ?? 0,

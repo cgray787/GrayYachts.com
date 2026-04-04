@@ -240,7 +240,7 @@ export default function MaintenancePage() {
       </div>
 
       {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-4 gap-5">
+      <div className="mb-8 grid grid-cols-2 gap-5 md:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -325,7 +325,7 @@ export default function MaintenancePage() {
                     key={rec.id}
                     className="overflow-hidden rounded-xl border border-border bg-bg-card transition-colors"
                   >
-                    <div className="flex">
+                    <div className="flex flex-col sm:flex-row">
                       {/* Content */}
                       <div className="flex-1 p-5">
                         {/* Badge + date row */}

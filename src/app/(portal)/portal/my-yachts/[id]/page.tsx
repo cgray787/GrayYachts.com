@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import {
   Shield,
   Navigation,
@@ -25,7 +26,7 @@ const SERVICE_CARDS = [
     iconBg: "bg-success/10",
     title: "Insurance",
     description:
-      "Full coverage marine insurance. Renewal due Mar 28, 2026.",
+      "Full coverage marine insurance. Renewal due Aug 15, 2026.",
     badge: "Active",
     badgeColor: "bg-success/10 text-success",
   },
@@ -55,7 +56,7 @@ const SERVICE_CARDS = [
     iconBg: "bg-error/10",
     title: "Engine Service",
     description:
-      "Scheduled MTU engine overhaul. Next service Mar 18.",
+      "Scheduled MTU engine overhaul. Next service May 15.",
     badge: "Scheduled",
     badgeColor: "bg-info/10 text-info",
   },
@@ -77,7 +78,7 @@ const MAINTENANCE_RECORDS = [
     cost: "$4,200",
   },
   {
-    date: "Mar 18, 2026",
+    date: "May 15, 2026",
     service: "MTU engine overhaul (scheduled)",
     status: "Pending",
     statusColor: "bg-warning/10 text-warning",
@@ -126,11 +127,20 @@ const DOCUMENTS = [
 const TABS = ["Services", "Maintenance", "Documents", "Location"] as const;
 type Tab = (typeof TABS)[number];
 
+const YACHT_DATA: Record<string, { name: string; spec: string; gradient: string }> = {
+  "serenity-ii": { name: "Serenity II", spec: "Benetti \u00b7 42m Motor Yacht \u00b7 2022", gradient: "from-slate-700 via-slate-600 to-blue-900" },
+  "windchaser": { name: "Windchaser", spec: "Oyster \u00b7 28m Sailing Yacht \u00b7 2021", gradient: "from-blue-900 via-indigo-800 to-slate-700" },
+  "aegean-star": { name: "Aegean Star", spec: "Lagoon \u00b7 35m Catamaran \u00b7 2020", gradient: "from-slate-800 via-teal-900 to-slate-700" },
+};
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function YachtDetailPage() {
+  const params = useParams();
+  const id = typeof params.id === "string" ? params.id : "";
+  const yacht = YACHT_DATA[id] ?? { name: "Unknown Yacht", spec: "Details unavailable", gradient: "from-slate-700 via-slate-600 to-slate-800" };
   const [activeTab, setActiveTab] = useState<Tab>("Services");
 
   return (
@@ -138,16 +148,15 @@ export default function YachtDetailPage() {
       {/* ── Hero banner ── */}
       <div className="relative h-72 w-full overflow-hidden sm:h-80 md:h-96">
         {/* Gradient placeholder for yacht image */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 to-bg-card" />
-        {/* Subtle noise overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent" />
+        <div className={cn("absolute inset-0 bg-gradient-to-br", yacht.gradient)} />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-bg-card" />
         {/* Yacht name */}
         <div className="absolute bottom-8 left-8 z-10 sm:bottom-10 sm:left-12">
           <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-light tracking-wide text-text-primary sm:text-5xl">
-            Serenity II
+            {yacht.name}
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Benetti &middot; 42m Motor Yacht &middot; 2022
+            {yacht.spec}
           </p>
         </div>
       </div>

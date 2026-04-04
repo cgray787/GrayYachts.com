@@ -83,15 +83,22 @@ export function Sidebar({ profile }: SidebarProps) {
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Auto-close drawer on navigation
-  useEffect(() => setDrawerOpen(false), [pathname]);
+  // Auto-close drawer + sync services accordion on navigation
+  useEffect(() => {
+    setDrawerOpen(false);
+    if (pathname.startsWith("/portal/services")) {
+      setServicesOpen(true);
+    }
+  }, [pathname]);
 
   // Scroll lock when drawer is open
   useEffect(() => {
     if (drawerOpen) {
       document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
+    } else {
+      document.body.style.overflow = "";
     }
+    return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
 
   const navContent = (onNavigate?: () => void) => (
@@ -243,6 +250,8 @@ export function Sidebar({ profile }: SidebarProps) {
       onClick={() => setDrawerOpen(!drawerOpen)}
       className="fixed top-3 left-3 z-[60] flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-secondary text-text-secondary transition-colors hover:text-gold lg:hidden"
       aria-label="Toggle navigation"
+      aria-expanded={drawerOpen}
+      aria-controls="mobile-drawer"
     >
       {drawerOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
     </button>
@@ -257,6 +266,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
     {/* Mobile drawer */}
     <div
+      id="mobile-drawer"
       role="dialog"
       aria-modal="true"
       aria-label="Navigation"

@@ -35,7 +35,6 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {

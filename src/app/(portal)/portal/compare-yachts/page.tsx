@@ -803,6 +803,12 @@ export default function CompareYachtsPage() {
     ) => {
       const trimmed = url.trim();
       if (!trimmed) return;
+
+      try { new URL(trimmed); } catch {
+        setScrapeError("Please enter a valid URL (e.g. https://www.yachtworld.com/...)");
+        return;
+      }
+
       setLoadingFn(true);
       setScrapeError(null);
 

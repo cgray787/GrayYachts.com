@@ -289,7 +289,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="mb-8 grid grid-cols-4 gap-5">
+      <div className="mb-8 grid grid-cols-2 gap-5 md:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -379,7 +379,7 @@ export default function DocumentsPage() {
                         : "border-border"
                     )}
                   >
-                    <div className="flex">
+                    <div className="flex flex-col sm:flex-row">
                       {/* Content */}
                       <div className="flex-1 p-5">
                         {/* Badges + date */}
@@ -451,7 +451,7 @@ export default function DocumentsPage() {
                           setCardDragOver(null);
                         }}
                         className={cn(
-                          "flex w-40 shrink-0 flex-col items-center justify-center border-l border-dashed p-4 text-center transition-colors",
+                          "hidden w-40 shrink-0 flex-col items-center justify-center border-l border-dashed p-4 text-center transition-colors sm:flex",
                           cardDragOver === doc.id
                             ? "border-gold bg-gold/5"
                             : "border-border/50 bg-bg-secondary/20 hover:border-border hover:bg-bg-secondary/40"

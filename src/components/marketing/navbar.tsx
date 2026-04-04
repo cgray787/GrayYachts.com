@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogIn } from "lucide-react";
 
 const navLinks = [
@@ -74,35 +74,38 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile menu */}
-      {mobileOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="border-b border-border bg-bg-primary/95 backdrop-blur-md px-6 pb-6 md:hidden"
-        >
-          <div className="flex flex-col gap-4">
-            {navLinks.map((link) => (
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="border-b border-border bg-bg-primary/95 backdrop-blur-md px-6 pb-6 md:hidden"
+          >
+            <div className="flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary"
+                >
+                  {link.label}
+                </Link>
+              ))}
               <Link
-                key={link.label}
-                href={link.href}
+                href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary"
+                className="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-gold hover:text-gold-hover"
               >
-                {link.label}
+                <LogIn className="h-3.5 w-3.5" />
+                SIGN IN
               </Link>
-            ))}
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-gold hover:text-gold-hover"
-            >
-              <LogIn className="h-3.5 w-3.5" />
-              SIGN IN
-            </Link>
-          </div>
-        </motion.div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

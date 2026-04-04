@@ -117,6 +117,15 @@ function extractOg(html: string): Record<string, string> {
   while ((m = pattern2.exec(html)) !== null) {
     og[m[2]] = m[1];
   }
+  // Twitter card meta tags (name= instead of property=)
+  const twitterPattern = /<meta[^>]*name=["'](twitter:[^"']+)["'][^>]*content=["']([^"']*)["'][^>]*\/?>/gi;
+  while ((m = twitterPattern.exec(html)) !== null) {
+    og[m[1]] = m[2];
+  }
+  const twitterPattern2 = /<meta[^>]*content=["']([^"']*)["'][^>]*name=["'](twitter:[^"']+)["'][^>]*\/?>/gi;
+  while ((m = twitterPattern2.exec(html)) !== null) {
+    og[m[2]] = m[1];
+  }
   return og;
 }
 
@@ -351,6 +360,9 @@ function extractImage(html: string, og: Record<string, string>, jsonLd: Record<s
   // OG image first
   if (og["og:image"]) return og["og:image"];
 
+  // Twitter card image
+  if (og["twitter:image"]) return og["twitter:image"];
+
   // JSON-LD
   if (jsonLd?.image) {
     const img = jsonLd.image;
@@ -358,6 +370,16 @@ function extractImage(html: string, og: Record<string, string>, jsonLd: Record<s
     if (Array.isArray(img) && img[0]) return typeof img[0] === "string" ? img[0] : (img[0] as Record<string, string>).url;
     if (typeof img === "object") return (img as Record<string, string>).url;
   }
+
+  // HTML meta fallbacks
+  const metaImg = html.match(/<meta[^>]+(?:name|property)=["'](?:image|thumbnail)["'][^>]+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:name|property)=["'](?:image|thumbnail)["']/i);
+  if (metaImg?.[1]) return metaImg[1];
+
+  // Common gallery/hero image patterns on listing sites
+  const heroImg = html.match(/<img[^>]+class=["'][^"']*(?:hero|gallery|listing|main|primary|featured)[^"']*["'][^>]+src=["']([^"']+)["']/i)
+    ?? html.match(/<img[^>]+src=["']([^"']+)["'][^>]+class=["'][^"']*(?:hero|gallery|listing|main|primary|featured)[^"']*["']/i);
+  if (heroImg?.[1] && !heroImg[1].includes("logo") && !heroImg[1].includes("icon")) return heroImg[1];
 
   return null;
 }
@@ -677,9 +699,10 @@ async function lookupSpecsFromDatabase(
         const nuxtEnd = html.indexOf("</script>", nuxtIdx);
         const nuxtBlock = html.slice(nuxtIdx, nuxtEnd);
 
-        // 1. Extract param names
-        const pStart = nuxtBlock.indexOf("(") + 1;
-        const pEnd = nuxtBlock.indexOf(")");
+        // 1. Extract param names from "function(a,b,c,...)"
+        const funcParamStart = nuxtBlock.indexOf("function(");
+        const pStart = funcParamStart >= 0 ? funcParamStart + "function(".length : nuxtBlock.indexOf("(") + 1;
+        const pEnd = nuxtBlock.indexOf(")", pStart);
         const params = nuxtBlock.slice(pStart, pEnd).split(",").map(s => s.trim());
 
         // 2. Find the return object to identify which vars hold which fields
@@ -1363,10 +1386,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
 
-  // Basic URL validation
+  // URL validation + SSRF protection
+  let parsed: URL;
   try {
-    new URL(url);
+    parsed = new URL(url);
   } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return NextResponse.json({ error: "Invalid URL protocol" }, { status: 400 });
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".local") ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    hostname === "169.254.169.254" ||
+    hostname === "[::1]" ||
+    hostname === "0.0.0.0"
+  ) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
