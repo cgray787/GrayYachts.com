@@ -404,6 +404,120 @@ function SpecRow({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Mobile Comparison Table                                            */
+/* ------------------------------------------------------------------ */
+
+function ComparisonTable({
+  left,
+  right,
+}: {
+  left: YachtListing;
+  right: YachtListing;
+}) {
+  const priceWinner = compareSpec(left.priceNum, right.priceNum, true);
+
+  const winnerColor = (winner: Winner, side: "a" | "b") =>
+    winner === side
+      ? "text-success font-medium"
+      : winner === "tie"
+        ? "text-text-primary"
+        : "text-text-secondary/60";
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-bg-card">
+      {/* Yacht headers */}
+      <div className="grid grid-cols-2 gap-px bg-border">
+        {[left, right].map((yacht) => (
+          <div key={yacht.id} className="bg-bg-card">
+            <div className={cn("relative h-24 w-full bg-gradient-to-br", yacht.gradient)}>
+              {yacht.imageUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={yacht.imageUrl}
+                  alt={yacht.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              )}
+              <span className={cn("absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm", yacht.sourceBadgeColor)}>
+                {yacht.source}
+              </span>
+            </div>
+            <div className="px-3 py-2">
+              <p className="font-[family-name:var(--font-cormorant)] text-base font-light text-text-primary truncate">
+                {yacht.name}
+              </p>
+              <p className="text-[11px] text-text-secondary truncate">
+                {yacht.builder} &middot; {yacht.type} &middot; {yacht.year}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Spec table */}
+      <table className="w-full table-fixed text-sm">
+        <tbody>
+          {/* Price row */}
+          <tr className="border-t border-border">
+            <td className="w-[38%] px-3 py-2.5 text-xs text-text-secondary">Price</td>
+            <td className={cn("w-[31%] px-2 py-2.5 text-center truncate", winnerColor(priceWinner, "a"))}>
+              {left.price}
+            </td>
+            <td className={cn("w-[31%] px-2 py-2.5 text-center truncate", winnerColor(priceWinner, "b"))}>
+              {right.price}
+            </td>
+          </tr>
+
+          {/* Spec rows */}
+          {SPEC_FIELDS.map((field) => {
+            const leftVal = String(left[field.key]);
+            const rightVal = String(right[field.key]);
+            const leftNum = typeof left[field.numKey] === "number" ? (left[field.numKey] as number) : 0;
+            const rightNum = typeof right[field.numKey] === "number" ? (right[field.numKey] as number) : 0;
+
+            let winner: Winner | undefined;
+            if (!field.isLocation && leftNum !== 0 && rightNum !== 0) {
+              winner = compareSpec(leftNum, rightNum, field.lowerIsBetter);
+            }
+
+            return (
+              <tr key={field.label} className="border-t border-border/50">
+                <td className="px-3 py-2.5 text-xs text-text-secondary">{field.label}</td>
+                <td className={cn("px-2 py-2.5 text-center text-xs truncate", field.isLocation ? "text-gold" : winner ? winnerColor(winner, "a") : "text-text-primary")}>
+                  {field.isLocation && <MapPin className="mr-0.5 inline h-3 w-3" />}
+                  {leftVal}
+                </td>
+                <td className={cn("px-2 py-2.5 text-center text-xs truncate", field.isLocation ? "text-gold" : winner ? winnerColor(winner, "b") : "text-text-primary")}>
+                  {field.isLocation && <MapPin className="mr-0.5 inline h-3 w-3" />}
+                  {rightVal}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Footer links */}
+      <div className="flex border-t border-border">
+        {[left, right].map((yacht) => (
+          <a
+            key={yacht.id}
+            href={yacht.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-1 items-center justify-center gap-1 py-3 text-[11px] text-gold transition-colors hover:text-gold-hover"
+          >
+            <ExternalLink className="h-3 w-3" />
+            View Listing
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Comparison Card                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -995,7 +1109,13 @@ export default function CompareYachtsPage() {
           </button>
         </div>
 
-        <div className="mb-12 grid gap-6 lg:grid-cols-2">
+        {/* Mobile: unified comparison table */}
+        <div className="mb-12 lg:hidden">
+          <ComparisonTable left={leftYacht} right={rightYacht} />
+        </div>
+
+        {/* Desktop: side-by-side cards */}
+        <div className="mb-12 hidden gap-6 lg:grid lg:grid-cols-2">
           <ComparisonCard
             yacht={leftYacht}
             other={rightYacht}

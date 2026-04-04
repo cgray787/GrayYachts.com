@@ -522,6 +522,29 @@ const FETCH_HEADERS = {
 };
 
 async function tryFetchHtml(url: string): Promise<string | null> {
+  // Strategy 0: Firecrawl — JS-rendered pages, better image extraction
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+  if (firecrawlKey) {
+    try {
+      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${firecrawlKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url, formats: ["html"] }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (res.ok) {
+        const json = await res.json() as { success: boolean; data?: { html?: string } };
+        const html = json?.data?.html ?? "";
+        if (html.length > 500 && !html.includes("cf-challenge")) {
+          return html;
+        }
+      }
+    } catch { /* fall through to other strategies */ }
+  }
+
   // Strategy 1: Direct fetch
   try {
     const res = await fetch(url, {
