@@ -442,18 +442,22 @@ function extractNameAndBuilder(
 
 /** Known yacht builders for matching in URL slugs */
 const KNOWN_BUILDERS = [
-  "absolute", "azimut", "bayliner", "benetti", "bertram", "beneteau",
-  "boston-whaler", "boston whaler", "cabo", "carver", "catalina",
-  "chris-craft", "chris craft", "cruisers", "dufour", "fairline",
-  "ferretti", "formula", "fountain", "galeon", "grady-white", "grady white",
+  "absolute", "american-tug", "american tug", "azimut", "back-cove", "back cove",
+  "bayliner", "benetti", "bertram", "beneteau", "boston-whaler", "boston whaler",
+  "burger", "cabo", "carver", "catalina", "chris-craft", "chris craft",
+  "cobalt", "cruisers", "cutwater", "defever", "dufour", "fairline",
+  "ferretti", "formula", "fountain", "four-winns", "four winns",
+  "galeon", "grady-white", "grady white", "grand-banks", "grand banks",
   "hatteras", "hinckley", "hunter", "hylas", "island-packet", "island packet",
-  "jeanneau", "lagoon", "lazzara", "leopard", "lurssen", "malibu",
-  "meridian", "monte-carlo", "monte carlo", "nordhavn", "ocean-alexander",
-  "ocean alexander", "oyster", "pacific-mariner", "pacific mariner",
-  "pershing", "prestige", "princess", "ranger", "regal", "regulator",
-  "riva", "riviera", "robalo", "sailfish", "sabre", "san-lorenzo",
-  "san lorenzo", "sea-ray", "sea ray", "searay", "sunseeker", "tiara",
-  "viking", "wellcraft", "yellowfin",
+  "jeanneau", "kadey-krogen", "kadey krogen", "lagoon", "lazzara", "leopard",
+  "lurssen", "malibu", "maritimo", "mastercraft", "meridian",
+  "monte-carlo", "monte carlo", "nautica", "nordhavn", "nordic-tug", "nordic tug",
+  "ocean-alexander", "ocean alexander", "oyster", "pacific-mariner", "pacific mariner",
+  "pershing", "prestige", "princess", "ranger", "ranger-tugs", "ranger tugs",
+  "regal", "regulator", "riva", "riviera", "robalo", "sailfish", "sabre",
+  "san-lorenzo", "san lorenzo", "scout", "sea-ray", "sea ray", "searay",
+  "sunseeker", "tiara", "true-north", "true north", "viking", "wellcraft",
+  "yellowfin",
 ];
 
 function parseUrlSlug(url: string): Partial<ScrapedYacht> {
@@ -609,7 +613,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
         },
         body: JSON.stringify({
           url,
-          formats: ["extract", "screenshot", "html"],
+          formats: ["extract", "screenshot", "html", "markdown"],
           extract: {
             schema: YACHT_EXTRACT_SCHEMA,
             prompt: "This is a yacht/boat listing page. Extract ALL available specifications. Look in the details section, specifications table, sidebar, and any collapsed/tabbed sections. The length is often listed as LOA or Length Overall. Beam is the width. Look for engine make/model (e.g. 'Twin Volvo D6-435', '2x CAT C18'), horsepower, and engine hours. Look for number of cabins/staterooms and sleeping capacity. Find the asking price, location/port, and max/cruising speed in knots. Return null for any field not found on the page — do NOT return 0 or placeholder values.",
@@ -622,17 +626,19 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
           success: boolean;
           data?: {
             html?: string;
+            markdown?: string;
             extract?: FirecrawlExtract;
             screenshot?: string;
             metadata?: { ogImage?: string; title?: string };
           };
         };
         const html = json?.data?.html ?? "";
+        const markdown = json?.data?.markdown ?? null;
         const firecrawlExtract = json?.data?.extract ?? null;
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
         const validHtml = html.length > 500 && !html.includes("cf-challenge") ? html : null;
-        return { html: validHtml, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
+        return { html: validHtml, markdown, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
       }
     } catch { /* fall through to other strategies */ }
   }
@@ -1101,14 +1107,62 @@ const BUILDER_PROFILES: Record<string, BuilderProfile> = {
     engines: { "24": "2× Yamaha F300", "32": "2× Yamaha F425", "36": "3× Yamaha F425", "42": "4× Yamaha F425" },
     rangeByLength: { "24": 250, "32": 300, "36": 350, "42": 400 },
   },
+  burger: {
+    type: "Motor Yacht", beamRatio: 0.22, speedRange: [12, 18],
+    cabinsPerUnit: 0.08, cabinBaseFt: 50, guestsPerCabin: 2,
+    engines: { "60": "2× CAT C18", "80": "2× CAT C32", "100": "2× MTU 16V 2000" },
+    rangeByLength: { "60": 1500, "80": 2000, "100": 2500 },
+  },
+  "american tug": {
+    type: "Trawler", beamRatio: 0.28, speedRange: [8, 14],
+    cabinsPerUnit: 0.08, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "34": "1× Cummins QSB 6.7 380hp", "39": "1× Cummins QSC 8.3 450hp", "44": "2× Cummins QSB 6.7" },
+    rangeByLength: { "34": 800, "39": 1000, "44": 1200 },
+  },
+  "true north": {
+    type: "Trawler", beamRatio: 0.28, speedRange: [8, 12],
+    cabinsPerUnit: 0.08, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "34": "1× Yanmar 6LY 440hp", "38": "1× Yanmar 6LY 440hp", "44": "2× Yanmar 6LY" },
+    rangeByLength: { "34": 600, "38": 800, "44": 1000 },
+  },
+  "grand banks": {
+    type: "Trawler", beamRatio: 0.27, speedRange: [10, 18],
+    cabinsPerUnit: 0.08, cabinBaseFt: 32, guestsPerCabin: 2,
+    engines: { "36": "2× Cummins QSB 6.7", "42": "2× Cummins QSC 8.3", "54": "2× CAT C9" },
+    rangeByLength: { "36": 1200, "42": 1500, "54": 2000 },
+  },
+  "nordic tug": {
+    type: "Trawler", beamRatio: 0.30, speedRange: [8, 12],
+    cabinsPerUnit: 0.08, cabinBaseFt: 30, guestsPerCabin: 2,
+    engines: { "26": "1× Yanmar 4JH80", "32": "1× Cummins QSB 5.9", "37": "1× Cummins QSB 6.7", "42": "2× Cummins QSB 5.9" },
+    rangeByLength: { "26": 600, "32": 800, "37": 1000, "42": 1200 },
+  },
+  "ranger tugs": {
+    type: "Trawler", beamRatio: 0.30, speedRange: [15, 22],
+    cabinsPerUnit: 0.10, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "25": "1× Volvo D3-220", "27": "1× Volvo D4-300", "29": "1× Volvo D4-300", "31": "1× Volvo D6-380" },
+    rangeByLength: { "25": 400, "27": 500, "29": 600, "31": 700 },
+  },
+  cutwater: {
+    type: "Trawler", beamRatio: 0.29, speedRange: [15, 25],
+    cabinsPerUnit: 0.10, cabinBaseFt: 24, guestsPerCabin: 2,
+    engines: { "24": "1× Yamaha F200", "28": "1× Volvo D4-300", "30": "2× Yamaha F200" },
+    rangeByLength: { "24": 350, "28": 450, "30": 500 },
+  },
+  maritimo: {
+    type: "Motor Yacht", beamRatio: 0.26, speedRange: [22, 32],
+    cabinsPerUnit: 0.08, cabinBaseFt: 40, guestsPerCabin: 2,
+    engines: { "48": "2× Scania DI13", "54": "2× MAN V8", "60": "2× MAN V12", "72": "2× MAN V12 1550hp" },
+    rangeByLength: { "48": 400, "54": 500, "60": 600, "72": 700 },
+  },
 };
 
 /** Estimate specs from builder name + length using builder profiles */
 function estimateFromProfile(builder: string | null, lengthFt: number | null): Partial<ScrapedYacht> {
   if (!builder || !lengthFt || lengthFt < 15) return {};
 
-  const key = builder.toLowerCase();
-  const profile = BUILDER_PROFILES[key];
+  const key = builder.toLowerCase().replace(/-/g, " ");
+  const profile = BUILDER_PROFILES[key] ?? BUILDER_PROFILES[builder.toLowerCase()];
   if (!profile) return {};
 
   const result: Partial<ScrapedYacht> = {};
