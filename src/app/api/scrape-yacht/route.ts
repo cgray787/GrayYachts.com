@@ -543,15 +543,61 @@ const FETCH_HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
+interface FirecrawlExtract {
+  name?: string | null;
+  builder?: string | null;
+  model?: string | null;
+  year?: number | null;
+  price?: string | null;
+  priceNum?: number | null;
+  lengthFt?: number | null;
+  lengthM?: number | null;
+  beamFt?: number | null;
+  beamM?: number | null;
+  maxSpeed?: number | null;
+  cabins?: number | null;
+  guests?: number | null;
+  range?: number | null;
+  engine?: string | null;
+  engineHours?: number | null;
+  location?: string | null;
+  type?: string | null;
+}
+
 interface FetchResult {
   html: string | null;
   markdown?: string | null;
   firecrawlImageUrl?: string | null;
   firecrawlScreenshot?: string | null;
+  firecrawlExtract?: FirecrawlExtract | null;
 }
 
+const YACHT_EXTRACT_SCHEMA = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Full yacht/boat name including year, builder and model (e.g. '2022 Benetti Oasis 40M')" },
+    builder: { type: "string", description: "Manufacturer/builder name (e.g. 'Benetti', 'Viking', 'Prestige')" },
+    model: { type: "string", description: "Model name (e.g. 'Oasis 40M', 'X60', 'Navetta 75')" },
+    year: { type: "number", description: "Model year" },
+    price: { type: "string", description: "Asking price as displayed (e.g. '$8,200,000')" },
+    priceNum: { type: "number", description: "Asking price as a number with no formatting" },
+    lengthFt: { type: "number", description: "Overall length in feet" },
+    lengthM: { type: "number", description: "Overall length in meters" },
+    beamFt: { type: "number", description: "Beam (width) in feet" },
+    beamM: { type: "number", description: "Beam (width) in meters" },
+    maxSpeed: { type: "number", description: "Maximum speed in knots" },
+    cabins: { type: "number", description: "Number of cabins/staterooms" },
+    guests: { type: "number", description: "Number of guests/passengers/sleeps" },
+    range: { type: "number", description: "Range in nautical miles" },
+    engine: { type: "string", description: "Engine description (e.g. '2× MTU 16V 2000 M96L')" },
+    engineHours: { type: "number", description: "Engine hours" },
+    location: { type: "string", description: "Location/port/city where the yacht is located" },
+    type: { type: "string", description: "Type of vessel: Motor Yacht, Sailing Yacht, Catamaran, Sportfisher, Trawler, or Center Console" },
+  },
+};
+
 async function tryFetchHtml(url: string): Promise<FetchResult> {
-  // Strategy 0: Firecrawl — JS-rendered pages, better image/data extraction
+  // Strategy 0: Firecrawl — AI-powered extraction + screenshot
   const firecrawlKey = process.env.FIRECRAWL_API_KEY;
   if (firecrawlKey) {
     try {
@@ -561,28 +607,29 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
           "Authorization": `Bearer ${firecrawlKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, formats: ["html", "markdown", "screenshot"] }),
-        signal: AbortSignal.timeout(20000),
+        body: JSON.stringify({
+          url,
+          formats: ["extract", "screenshot", "html"],
+          extract: { schema: YACHT_EXTRACT_SCHEMA },
+        }),
+        signal: AbortSignal.timeout(30000),
       });
       if (res.ok) {
         const json = await res.json() as {
           success: boolean;
           data?: {
             html?: string;
-            markdown?: string;
+            extract?: FirecrawlExtract;
             screenshot?: string;
             metadata?: { ogImage?: string; title?: string };
           };
         };
         const html = json?.data?.html ?? "";
-        const markdown = json?.data?.markdown ?? null;
+        const firecrawlExtract = json?.data?.extract ?? null;
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
-        if (html.length > 500 && !html.includes("cf-challenge")) {
-          return { html, markdown, firecrawlImageUrl, firecrawlScreenshot };
-        }
-        // Even if HTML is bad, we might still have markdown/screenshot/image
-        return { html: null, markdown, firecrawlImageUrl, firecrawlScreenshot };
+        const validHtml = html.length > 500 && !html.includes("cf-challenge") ? html : null;
+        return { html: validHtml, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
       }
     } catch { /* fall through to other strategies */ }
   }
@@ -1455,41 +1502,44 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     }
   }
 
-  // Merge priority: HTML scraped > validated spec database > inferred from model > URL-parsed > defaults
-  const mergedLengthFt = htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
-  const mergedLengthM = htmlLengthM ?? trustedSpecLengthM ?? (inferredLengthFt ? ftToM(inferredLengthFt) : null) ?? urlData.lengthM ?? null;
+  // Firecrawl AI extract — highest priority, fills gaps from AI-parsed listing data
+  const ai = fetchResult.firecrawlExtract;
 
-  // Build the name: prefer URL-parsed name when HTML is unreliable
+  // Merge priority: Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
+  const mergedLengthFt = ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
+  const mergedLengthM = ai?.lengthM ?? htmlLengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
+
+  // Build the name: prefer AI extract > HTML > URL-parsed
   const finalName = (() => {
+    if (ai?.name && ai.name.length > 3) return ai.name;
     if (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 &&
         isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) {
       return htmlName;
     }
     if (urlData.name) return urlData.name;
-    // Construct from parts
     const parts = [urlData.year, urlData.builder, urlData.model].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "Unknown Yacht";
   })();
 
   return {
     name: finalName,
-    builder: (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
-    model: (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
-    type: isClean(htmlType) ? htmlType : (specData.type || profileData.type || null),
-    year: htmlYear || urlData.year || null,
-    price: htmlPrice ?? null,
-    priceNum: htmlPriceNum ?? null,
+    builder: ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
+    model: ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
+    type: ai?.type || (isClean(htmlType) ? htmlType : null) || specData.type || profileData.type || null,
+    year: ai?.year || htmlYear || urlData.year || null,
+    price: ai?.price ?? htmlPrice ?? null,
+    priceNum: ai?.priceNum ?? htmlPriceNum ?? null,
     lengthFt: mergedLengthFt,
     lengthM: mergedLengthM,
-    beamFt: htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null,
-    beamM: htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null,
-    maxSpeed: htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
-    cabins: htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
-    guests: htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
-    range: htmlRange ?? specData.range ?? profileData.range ?? null,
-    engine: (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
-    engineHours: htmlEngineHours ?? null,
-    location: isClean(htmlLocation) ? htmlLocation : null,
+    beamFt: ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null,
+    beamM: ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null,
+    maxSpeed: ai?.maxSpeed ?? htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
+    cabins: ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
+    guests: ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
+    range: ai?.range ?? htmlRange ?? specData.range ?? profileData.range ?? null,
+    engine: ai?.engine ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
+    engineHours: ai?.engineHours ?? htmlEngineHours ?? null,
+    location: ai?.location ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
     imageUrl: htmlImageUrl || fetchResult.firecrawlImageUrl || fetchResult.firecrawlScreenshot || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
     source,
     url,
