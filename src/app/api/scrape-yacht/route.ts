@@ -1503,7 +1503,22 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   }
 
   // Firecrawl AI extract — highest priority, fills gaps from AI-parsed listing data
-  const ai = fetchResult.firecrawlExtract;
+  // Sanitize: AI returns 0 for missing numeric fields — treat 0 as null
+  const rawAi = fetchResult.firecrawlExtract;
+  const ai = rawAi ? {
+    ...rawAi,
+    lengthFt: rawAi.lengthFt || null,
+    lengthM: rawAi.lengthM || null,
+    beamFt: rawAi.beamFt || null,
+    beamM: rawAi.beamM || null,
+    maxSpeed: rawAi.maxSpeed || null,
+    cabins: rawAi.cabins || null,
+    guests: rawAi.guests || null,
+    range: rawAi.range || null,
+    engineHours: rawAi.engineHours || null,
+    priceNum: rawAi.priceNum || null,
+    year: rawAi.year || null,
+  } : null;
 
   // Merge priority: Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
   const mergedLengthFt = ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
@@ -1537,9 +1552,9 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     cabins: ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
     guests: ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
     range: ai?.range ?? htmlRange ?? specData.range ?? profileData.range ?? null,
-    engine: ai?.engine ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
+    engine: (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
     engineHours: ai?.engineHours ?? htmlEngineHours ?? null,
-    location: ai?.location ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
+    location: (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
     imageUrl: htmlImageUrl || fetchResult.firecrawlImageUrl || fetchResult.firecrawlScreenshot || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
     source,
     url,
