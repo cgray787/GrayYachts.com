@@ -543,7 +543,13 @@ const FETCH_HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
-async function tryFetchHtml(url: string): Promise<string | null> {
+interface FetchResult {
+  html: string | null;
+  firecrawlImageUrl?: string | null;
+  firecrawlScreenshot?: string | null;
+}
+
+async function tryFetchHtml(url: string): Promise<FetchResult> {
   // Strategy 0: Firecrawl — JS-rendered pages, better image extraction
   const firecrawlKey = process.env.FIRECRAWL_API_KEY;
   if (firecrawlKey) {
@@ -554,14 +560,27 @@ async function tryFetchHtml(url: string): Promise<string | null> {
           "Authorization": `Bearer ${firecrawlKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, formats: ["html"] }),
-        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({ url, formats: ["html", "screenshot"] }),
+        signal: AbortSignal.timeout(15000),
       });
       if (res.ok) {
-        const json = await res.json() as { success: boolean; data?: { html?: string } };
+        const json = await res.json() as {
+          success: boolean;
+          data?: {
+            html?: string;
+            screenshot?: string;
+            metadata?: { ogImage?: string; title?: string };
+          };
+        };
         const html = json?.data?.html ?? "";
+        const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
+        const firecrawlScreenshot = json?.data?.screenshot ?? null;
         if (html.length > 500 && !html.includes("cf-challenge")) {
-          return html;
+          return { html, firecrawlImageUrl, firecrawlScreenshot };
+        }
+        // Even if HTML is bad, we might still have screenshot/image
+        if (firecrawlImageUrl || firecrawlScreenshot) {
+          return { html: null, firecrawlImageUrl, firecrawlScreenshot };
         }
       }
     } catch { /* fall through to other strategies */ }
@@ -577,7 +596,7 @@ async function tryFetchHtml(url: string): Promise<string | null> {
       const html = await res.text();
       // Check for Cloudflare challenge pages
       if (html.length > 500 && !html.includes("Just a moment...") && !html.includes("cf-challenge")) {
-        return html;
+        return { html };
       }
     }
   } catch { /* try next */ }
@@ -595,7 +614,7 @@ async function tryFetchHtml(url: string): Promise<string | null> {
     if (res.ok) {
       const html = await res.text();
       if (html.length > 500 && !html.includes("Target URL returned error")) {
-        return html;
+        return { html };
       }
     }
   } catch { /* try next */ }
@@ -609,12 +628,12 @@ async function tryFetchHtml(url: string): Promise<string | null> {
     if (res.ok) {
       const html = await res.text();
       if (html.length > 500 && !html.includes("Just a moment...")) {
-        return html;
+        return { html };
       }
     }
   } catch { /* try next */ }
 
-  return null;
+  return { html: null };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1202,7 +1221,8 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const profileData = estimateFromProfile(urlData.builder ?? null, inferredLengthFt);
 
   // Try to fetch HTML for richer data (but don't fail if blocked)
-  const html = await tryFetchHtml(url);
+  const fetchResult = await tryFetchHtml(url);
+  const html = fetchResult.html;
 
   // Always try spec database as fallback for missing fields
   const specData = await lookupSpecsFromDatabase(urlData.builder ?? null, urlData.model ?? null);
@@ -1318,7 +1338,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     htmlEngine = null;
     htmlEngineHours = null;
     htmlLocation = null;
-    // Keep imageUrl only if it's an OG image (might still be relevant)
+    // Wipe HTML-extracted image since HTML didn't match — but Firecrawl image/screenshot may still be valid
     htmlImageUrl = null;
     htmlType = null;
   }
@@ -1369,7 +1389,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     engine: (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
     engineHours: htmlEngineHours ?? null,
     location: isClean(htmlLocation) ? htmlLocation : null,
-    imageUrl: htmlImageUrl || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
+    imageUrl: htmlImageUrl || fetchResult.firecrawlImageUrl || fetchResult.firecrawlScreenshot || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
     source,
     url,
   };
