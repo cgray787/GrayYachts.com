@@ -545,12 +545,13 @@ const FETCH_HEADERS = {
 
 interface FetchResult {
   html: string | null;
+  markdown?: string | null;
   firecrawlImageUrl?: string | null;
   firecrawlScreenshot?: string | null;
 }
 
 async function tryFetchHtml(url: string): Promise<FetchResult> {
-  // Strategy 0: Firecrawl — JS-rendered pages, better image extraction
+  // Strategy 0: Firecrawl — JS-rendered pages, better image/data extraction
   const firecrawlKey = process.env.FIRECRAWL_API_KEY;
   if (firecrawlKey) {
     try {
@@ -560,28 +561,28 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
           "Authorization": `Bearer ${firecrawlKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, formats: ["html", "screenshot"] }),
-        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({ url, formats: ["html", "markdown", "screenshot"] }),
+        signal: AbortSignal.timeout(20000),
       });
       if (res.ok) {
         const json = await res.json() as {
           success: boolean;
           data?: {
             html?: string;
+            markdown?: string;
             screenshot?: string;
             metadata?: { ogImage?: string; title?: string };
           };
         };
         const html = json?.data?.html ?? "";
+        const markdown = json?.data?.markdown ?? null;
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
         if (html.length > 500 && !html.includes("cf-challenge")) {
-          return { html, firecrawlImageUrl, firecrawlScreenshot };
+          return { html, markdown, firecrawlImageUrl, firecrawlScreenshot };
         }
-        // Even if HTML is bad, we might still have screenshot/image
-        if (firecrawlImageUrl || firecrawlScreenshot) {
-          return { html: null, firecrawlImageUrl, firecrawlScreenshot };
-        }
+        // Even if HTML is bad, we might still have markdown/screenshot/image
+        return { html: null, markdown, firecrawlImageUrl, firecrawlScreenshot };
       }
     } catch { /* fall through to other strategies */ }
   }
@@ -1282,6 +1283,106 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
       /(?:boat|vessel|hull)\s*type[^>]*?[:\-]\s*([^<,]{3,30})/i,
       /(?:motor\s*yacht|sailing\s*yacht|catamaran|sportfish|trawler|center\s*console|flybridge|express)/i,
     );
+  }
+
+  // Fallback: extract specs from Firecrawl markdown (clean text, much easier to parse)
+  const md = fetchResult.markdown;
+  if (md && md.length > 100) {
+    // Price
+    if (!htmlPrice) {
+      const pMatch = md.match(/(?:\$|USD\s*)\s*([\d,]+(?:\.\d{2})?)/);
+      if (pMatch) {
+        const num = parseInt(pMatch[1].replace(/,/g, ""));
+        if (num > 1000) { htmlPrice = `$${num.toLocaleString()}`; htmlPriceNum = num; }
+      }
+      if (!htmlPrice) {
+        const askMatch = md.match(/(?:asking|price|listed)[:\s]*\$?([\d,]+)/i);
+        if (askMatch) {
+          const num = parseInt(askMatch[1].replace(/,/g, ""));
+          if (num > 1000) { htmlPrice = `$${num.toLocaleString()}`; htmlPriceNum = num; }
+        }
+      }
+    }
+    // Length
+    if (!htmlLengthFt) {
+      const lMatch = md.match(/(?:length|LOA|overall)[:\s]*(\d+(?:\.\d+)?)\s*(?:ft|feet|')/i)
+        ?? md.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(?:length|LOA|overall)/i)
+        ?? md.match(/(?:length|LOA)[:\s]*(\d+(?:\.\d+)?)\s*m/i);
+      if (lMatch) {
+        const isMeters = /m$/i.test(lMatch[0]);
+        const val = parseFloat(lMatch[1]);
+        if (isMeters && val > 3 && val < 200) { htmlLengthM = val; htmlLengthFt = Math.round(val * 3.281 * 10) / 10; }
+        else if (val > 10 && val < 500) { htmlLengthFt = val; htmlLengthM = Math.round(val * 0.3048 * 10) / 10; }
+      }
+    }
+    // Beam
+    if (!htmlBeamFt) {
+      const bMatch = md.match(/beam[:\s]*(\d+(?:\.\d+)?)\s*(?:ft|feet|')/i)
+        ?? md.match(/beam[:\s]*(\d+(?:\.\d+)?)\s*m/i);
+      if (bMatch) {
+        const isMeters = /m$/i.test(bMatch[0]);
+        const val = parseFloat(bMatch[1]);
+        if (isMeters && val > 1 && val < 30) { htmlBeamM = val; htmlBeamFt = Math.round(val * 3.281 * 10) / 10; }
+        else if (val > 3 && val < 80) { htmlBeamFt = val; htmlBeamM = Math.round(val * 0.3048 * 10) / 10; }
+      }
+    }
+    // Speed
+    if (!htmlSpeed) {
+      const sMatch = md.match(/(?:max|top|cruising)?\s*speed[:\s]*(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i)
+        ?? md.match(/(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i);
+      if (sMatch) { const v = parseFloat(sMatch[1]); if (v > 3 && v < 80) htmlSpeed = v; }
+    }
+    // Cabins
+    if (!htmlCabins) {
+      const cMatch = md.match(/(\d+)\s*(?:cabin|stateroom|berth)/i);
+      if (cMatch) { const v = parseInt(cMatch[1]); if (v > 0 && v < 30) htmlCabins = v; }
+    }
+    // Guests
+    if (!htmlGuests) {
+      const gMatch = md.match(/(\d+)\s*(?:guest|passenger|sleeps)/i);
+      if (gMatch) { const v = parseInt(gMatch[1]); if (v > 0 && v < 50) htmlGuests = v; }
+    }
+    // Engine
+    if (!htmlEngine) {
+      const eMatch = md.match(/(?:engine|power|propulsion)[:\s]*((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo|MAN|MTU|Cummins|Yanmar|Mercury|Yamaha|John Deere|Detroit)[^,\n]{3,50})/i)
+        ?? md.match(/((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo|MAN|MTU|Cummins|Yanmar|Mercury|Yamaha|John Deere|Detroit)[^,\n]{3,50})/i);
+      if (eMatch) htmlEngine = eMatch[1].trim();
+    }
+    // Engine hours
+    if (!htmlEngineHours) {
+      const hMatch = md.match(/(?:engine\s*)?hours?[:\s]*(\d[\d,]*)/i)
+        ?? md.match(/(\d[\d,]*)\s*(?:engine\s*)?hours/i);
+      if (hMatch) { const v = parseInt(hMatch[1].replace(/,/g, "")); if (v > 0 && v < 50000) htmlEngineHours = v; }
+    }
+    // Range
+    if (!htmlRange) {
+      const rMatch = md.match(/range[:\s]*(\d[\d,]*)\s*(?:nm|nautical|nmi)/i)
+        ?? md.match(/(\d[\d,]*)\s*(?:nm|nautical miles)/i);
+      if (rMatch) { const v = parseInt(rMatch[1].replace(/,/g, "")); if (v > 10 && v < 20000) htmlRange = v; }
+    }
+    // Location
+    if (!htmlLocation || htmlLocation.includes("bgrp.io")) {
+      const locMatch = md.match(/(?:location|port|city|marina)[:\s]*([A-Z][a-zA-Z\s,]+(?:,\s*[A-Z]{2})?)/m);
+      if (locMatch) { const loc = locMatch[1].trim(); if (loc.length > 2 && loc.length < 60) htmlLocation = loc; }
+    }
+    // Name from markdown title
+    if (!htmlName || htmlName === "Unknown Yacht") {
+      const nameMatch = md.match(/^#\s+(.+)/m);
+      if (nameMatch) {
+        const n = nameMatch[1].replace(/\s*[-|]\s*(YachtWorld|BoatTrader|boats\.com|Denison|for sale).*$/i, "").trim();
+        if (n.length > 3 && n.length < 80) htmlName = n;
+      }
+    }
+    // Builder from markdown
+    if (!htmlBuilder) {
+      const builderMatch = md.match(/(?:builder|manufacturer|make|brand)[:\s]*([A-Z][a-zA-Z\s&-]+)/im);
+      if (builderMatch) { const b = builderMatch[1].trim(); if (b.length > 2 && b.length < 40) htmlBuilder = b; }
+    }
+  }
+
+  // Clean up garbage location values
+  if (htmlLocation && (htmlLocation.includes("bgrp.io") || htmlLocation.includes("detected"))) {
+    htmlLocation = null;
   }
 
   // Validate HTML-extracted fields: reject values that look like code/CSS/JS garbage
