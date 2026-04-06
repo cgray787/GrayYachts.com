@@ -1559,9 +1559,13 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     }
   }
 
-  // Firecrawl AI extract — highest priority, fills gaps from AI-parsed listing data
+  // Detect if the page is a search/category page (not a listing) — discard AI data if so
+  const pageText = fetchResult.markdown ?? "";
+  const isSearchPage = /boats?\s+for\s+sale|search\s+results|showing\s+\d+\s+(?:of|results)|filter|sort\s+by|no\s+(?:results|listings)/i.test(pageText.slice(0, 2000));
+
+  // Firecrawl AI extract — only trust if it landed on an actual listing page
   // Sanitize: AI returns 0 for missing numeric fields — treat 0 as null
-  const rawAi = fetchResult.firecrawlExtract;
+  const rawAi = (!isSearchPage && fetchResult.firecrawlExtract) ? fetchResult.firecrawlExtract : null;
   const ai = rawAi ? {
     ...rawAi,
     lengthFt: rawAi.lengthFt || null,
@@ -1577,13 +1581,35 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     year: rawAi.year || null,
   } : null;
 
+  // Sanity checks on AI-extracted numeric values
+  if (ai) {
+    // Beam must be significantly less than length (typically 15-35% of length)
+    if (ai.beamFt && ai.lengthFt && ai.beamFt >= ai.lengthFt * 0.5) ai.beamFt = null;
+    if (ai.beamM && ai.lengthM && ai.beamM >= ai.lengthM * 0.5) ai.beamM = null;
+    // Speed must be reasonable (3-80 knots)
+    if (ai.maxSpeed && (ai.maxSpeed < 3 || ai.maxSpeed > 80)) ai.maxSpeed = null;
+    // Cabins must be reasonable (1-20)
+    if (ai.cabins && (ai.cabins < 1 || ai.cabins > 20)) ai.cabins = null;
+    // Range must be reasonable (10-20000 nm)
+    if (ai.range && (ai.range < 10 || ai.range > 20000)) ai.range = null;
+    // Engine hours (1-50000)
+    if (ai.engineHours && (ai.engineHours < 1 || ai.engineHours > 50000)) ai.engineHours = null;
+  }
+
   // Merge priority: Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
   const mergedLengthFt = ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
   const mergedLengthM = ai?.lengthM ?? htmlLengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
 
+  // Final sanity: beam should always be < length
+  let finalBeamFt = ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null;
+  let finalBeamM = ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null;
+  if (finalBeamFt && mergedLengthFt && finalBeamFt >= mergedLengthFt * 0.5) {
+    finalBeamFt = null; finalBeamM = null;
+  }
+
   // Build the name: prefer AI extract > HTML > URL-parsed
   const finalName = (() => {
-    if (ai?.name && ai.name.length > 3) return ai.name;
+    if (ai?.name && ai.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(ai.name)) return ai.name;
     if (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 &&
         isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) {
       return htmlName;
@@ -1603,8 +1629,8 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     priceNum: ai?.priceNum ?? htmlPriceNum ?? null,
     lengthFt: mergedLengthFt,
     lengthM: mergedLengthM,
-    beamFt: ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null,
-    beamM: ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null,
+    beamFt: finalBeamFt,
+    beamM: finalBeamM,
     maxSpeed: ai?.maxSpeed ?? htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
     cabins: ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
     guests: ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
