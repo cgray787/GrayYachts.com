@@ -61,7 +61,7 @@ https://github.com/cgray787/GrayYachts.com.git
 - **URL:** `https://eorkwxzhtidstznpzlyg.supabase.co`
 - **Region:** US East (us-east-1)
 - **Admin email:** connorgray41@gmail.com
-- **Env vars:** `.env.local` (local) + `wrangler.jsonc` vars + wrangler secrets (`SUPABASE_SERVICE_ROLE_KEY`, `FIRECRAWL_API_KEY`)
+- **Env vars:** `.env.local` (local) + `wrangler.jsonc` vars + wrangler secrets (`SUPABASE_SERVICE_ROLE_KEY`, `FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`)
 
 ## Project Structure
 
@@ -115,18 +115,25 @@ Supabase PostgreSQL with RLS enabled on all tables.
 
 ### `GET /api/scrape-yacht?url=<encoded-url>`
 Scrapes yacht specifications from listing URLs. Multi-strategy pipeline:
-0. **Firecrawl** (primary) — JS-rendered pages, best image extraction. Requires `FIRECRAWL_API_KEY` env var (Cloudflare secret). Gracefully skips if key is absent.
-1. Parse URL slug for year/builder/model (always works)
-2. Infer length from model number (handles decifeet builders + spelled-out numbers)
-3. Estimate specs from 25+ builder profiles (beam, speed, cabins, engine, range)
-4. Look up superyachts.com spec database via sitemap discovery + NUXT state parsing
-5. Fetch HTML (direct fetch → Jina AI Reader → allorigins proxy) and extract specs from meta tags, JSON-LD, Twitter cards, and page content
-6. Validate HTML data matches URL (prevents wrong data from redirected pages)
-7. **SSRF protection** — blocks internal/private IPs and non-HTTP protocols
+0. **Firecrawl** — JS-rendered pages, returns HTML + markdown + AI extract + full-page screenshot + og:image. Requires `FIRECRAWL_API_KEY` Cloudflare secret.
+1. **Claude Haiku 4.5 vision** (primary spec source) — sends the Firecrawl screenshot to `claude-haiku-4-5-20251001` with a strict JSON schema and reads specs the way a human would. Highest priority in the merge for every spec field (name, builder, year, length, beam, price, cabins, guests, maxSpeed, range, engine, engineHours, location, type). Requires `ANTHROPIC_API_KEY` Cloudflare secret. Cost ~$0.003/scrape.
+2. Parse URL slug for year/builder/model (always works)
+3. Infer length from model number (handles decifeet builders + spelled-out numbers)
+4. Estimate specs from 25+ builder profiles (beam, speed, cabins, engine, range)
+5. Look up superyachts.com spec database via sitemap discovery + NUXT state parsing
+6. Fetch HTML (direct fetch → Jina AI Reader → allorigins proxy) and extract specs from meta tags, JSON-LD, Twitter cards, and page content
+7. Validate HTML data matches URL (token-based builder match — lenient, avoids wiping specs for minor layout differences)
+8. **SSRF protection** — blocks internal/private IPs and non-HTTP protocols
 
-**Note:** NUXT parsing uses regex-based variable resolution (no `eval` — blocked by Cloudflare Workers).
-**Note:** Firecrawl uses native `fetch` (no npm package) for Cloudflare Workers compatibility.
-**Note:** `FIRECRAWL_API_KEY` must be set via `npx wrangler secret put` (not in `wrangler.jsonc` vars).
+**Merge priority (per field):** Claude vision → Firecrawl AI extract → HTML regex → markdown regex → spec database → builder-profile estimation → URL-parsed → defaults.
+
+**Image source (separate chain):** Firecrawl `og:image` → Firecrawl full-page screenshot → branded Unsplash fallback. HTML hero and AI-guessed hero URLs are intentionally excluded; Firecrawl is the only image source.
+
+**Notes:**
+- NUXT parsing uses regex-based variable resolution (no `eval` — blocked by Cloudflare Workers).
+- Firecrawl and Anthropic both use native `fetch` (no SDK packages) for Cloudflare Workers compatibility.
+- Secrets (`FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) must be set via `npx wrangler secret put`, not `wrangler.jsonc` vars.
+- Compare-yachts localStorage key is `gy-compare-catalog-v5`; `loadCatalog()` auto-drops any `gy-compare-catalog-*` keys that don't match the current version, so bumping the key in code force-invalidates stale client caches on next page load.
 
 ## Authentication Flow
 

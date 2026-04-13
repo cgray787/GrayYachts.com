@@ -202,11 +202,12 @@ function extractLength(html: string, jsonLd: Record<string, unknown> | null): { 
     }
   }
 
-  // HTML patterns
+  // HTML patterns — accept LOA, Length Overall, Overall Length, Hull Length, loa, with : - = or whitespace separators
   const ftMatch = firstMatch(html,
-    /(?:length|loa)[^>]*?(\d+(?:\.\d+)?)\s*(?:'|ft|feet)/i,
-    /(\d+(?:\.\d+)?)\s*(?:'|ft|feet)\s*(?:length|loa)?/i,
-    />(\d{2,3})\s*(?:'|ft|feet)</i,
+    /(?:length\s*overall|overall\s*length|hull\s*length|length|loa|l\.o\.a\.?)[^>]{0,40}?[:\-=]?\s*(\d+(?:\.\d+)?)\s*(?:'|ft\b|feet\b|foot\b)/i,
+    /(\d+(?:\.\d+)?)\s*(?:'|ft\b|feet\b|foot\b)[^>]{0,20}?(?:length|loa|l\.o\.a\.?|overall)/i,
+    />(\d{2,3}(?:\.\d+)?)\s*(?:'|ft|feet|foot)s?\s*</i,
+    /(\d{2,3}(?:\.\d+)?)\s*(?:ft\.|feet)\b/i,
   );
   if (ftMatch) {
     const ft = parseNumber(ftMatch);
@@ -214,8 +215,8 @@ function extractLength(html: string, jsonLd: Record<string, unknown> | null): { 
   }
 
   const mMatch = firstMatch(html,
-    /(?:length|loa)[^>]*?(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\b/i,
-    /(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\s*(?:length|loa)/i,
+    /(?:length\s*overall|overall\s*length|hull\s*length|length|loa|l\.o\.a\.?)[^>]{0,40}?[:\-=]?\s*(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\b/i,
+    /(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?[^>]{0,20}?(?:length|loa|l\.o\.a\.?|overall)/i,
   );
   if (mMatch) {
     const m = parseNumber(mMatch);
@@ -227,8 +228,8 @@ function extractLength(html: string, jsonLd: Record<string, unknown> | null): { 
 
 function extractBeam(html: string): { ft: number | null; m: number | null } {
   const ftMatch = firstMatch(html,
-    /beam[^>]*?(\d+(?:\.\d+)?)\s*(?:'|ft|feet)/i,
-    /(?:beam|width)\D{0,30}(\d+(?:\.\d+)?)\s*(?:'|ft)/i,
+    /(?:beam\s*overall|overall\s*beam|max(?:imum)?\s*beam|beam|width)[^>]{0,40}?[:\-=]?\s*(\d+(?:\.\d+)?)\s*(?:'|ft\b|feet\b|foot\b)/i,
+    /(?:beam|width)\D{0,30}(\d+(?:\.\d+)?)\s*(?:'|ft\b)/i,
   );
   if (ftMatch) {
     const ft = parseNumber(ftMatch);
@@ -236,7 +237,7 @@ function extractBeam(html: string): { ft: number | null; m: number | null } {
   }
 
   const mMatch = firstMatch(html,
-    /beam[^>]*?(\d+(?:\.\d+)?)\s*m(?:eter)?/i,
+    /(?:beam\s*overall|overall\s*beam|max(?:imum)?\s*beam|beam|width)[^>]{0,40}?[:\-=]?\s*(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\b/i,
     /(?:beam|width)\D{0,30}(\d+(?:\.\d+)?)\s*m\b/i,
   );
   if (mMatch) {
@@ -303,10 +304,12 @@ function extractEngine(html: string): string | null {
 }
 
 function extractEngineHours(html: string): number | null {
+  // Require the "engine hours" or "hours on engine(s)" phrasing to avoid picking up
+  // "24 hours" or "open 24 hours" in disclaimers/footers.
   const s = firstMatch(html,
-    /(?:engine\s*)?hours?[^>]*?(\d[\d,]*)\s*(?:hr|hour)?/i,
-    /(\d[\d,]*)\s*(?:hr|hours?)\b/i,
-    /hours?\s*[:\-]?\s*(\d[\d,]*)/i,
+    /engine\s*hours?[^>]{0,20}?[:\-=]?\s*(\d[\d,]*)/i,
+    /hours?\s*(?:on\s*(?:the\s*)?engines?|of\s*use)[^>]{0,10}?[:\-=]?\s*(\d[\d,]*)/i,
+    /(\d[\d,]*)\s*(?:engine\s*)?hours?\b/i,
   );
   const n = parseNumber(s);
   return (n && n >= 1 && n <= 50000) ? n : null;
@@ -324,8 +327,8 @@ function extractYear(html: string, jsonLd: Record<string, unknown> | null): numb
   }
 
   const s = firstMatch(html,
-    /(?:year|model\s*year)[^>]*?(\d{4})/i,
-    /(?:built|launched)\s*(?:in)?\s*(\d{4})/i,
+    /(?:year\s*built|year\s*of\s*manufacture|model\s*year|year)[^>]{0,20}?[:\-=]?\s*(\d{4})/i,
+    /(?:built|launched|manufactured|commissioned)\s*(?:in)?\s*[:\-=]?\s*(\d{4})/i,
   );
   const n = parseNumber(s);
   return (n && n >= 1950 && n <= new Date().getFullYear() + 2) ? n : null;
@@ -566,6 +569,7 @@ interface FirecrawlExtract {
   engineHours?: number | null;
   location?: string | null;
   type?: string | null;
+  imageUrl?: string | null;
 }
 
 interface FetchResult {
@@ -574,6 +578,131 @@ interface FetchResult {
   firecrawlImageUrl?: string | null;
   firecrawlScreenshot?: string | null;
   firecrawlExtract?: FirecrawlExtract | null;
+}
+
+interface VisionExtract {
+  name?: string | null;
+  builder?: string | null;
+  model?: string | null;
+  year?: number | null;
+  price?: string | null;
+  priceNum?: number | null;
+  lengthFt?: number | null;
+  lengthM?: number | null;
+  beamFt?: number | null;
+  beamM?: number | null;
+  maxSpeed?: number | null;
+  cabins?: number | null;
+  guests?: number | null;
+  range?: number | null;
+  engine?: string | null;
+  engineHours?: number | null;
+  location?: string | null;
+  type?: string | null;
+}
+
+/**
+ * First-principles extraction: ship the page screenshot to Claude Haiku 4.5
+ * vision and read specs the same way a human would. Bypasses all HTML
+ * variance, collapsed tabs, and bot shields.
+ *
+ * Returns null on missing API key, network failure, or unparseable response —
+ * callers must fall through to regex/markdown extractors.
+ */
+async function extractWithVision(screenshotUrl: string): Promise<VisionExtract | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `You are reading a screenshot of a single yacht/boat listing page. Extract the specifications visible in the screenshot and return them as a single JSON object with EXACTLY these keys (use null for anything not visible):
+
+{
+  "name": string | null,           // Full listing title, e.g. "2022 Benetti Oasis 40M"
+  "builder": string | null,        // Manufacturer, e.g. "Benetti", "Prestige", "Jeanneau"
+  "model": string | null,          // Model name/number, e.g. "Oasis 40M", "520", "Leader 12.5"
+  "year": integer | null,          // Model year as integer
+  "price": string | null,          // Displayed price including currency, e.g. "US$449,000"
+  "priceNum": number | null,       // Numeric price only, no currency/commas
+  "lengthFt": number | null,       // Length overall in feet (convert from meters if needed: 1m = 3.281ft)
+  "lengthM": number | null,        // Length overall in meters (convert from feet if needed: 1ft = 0.3048m)
+  "beamFt": number | null,         // Beam/width in feet
+  "beamM": number | null,          // Beam/width in meters
+  "maxSpeed": number | null,       // Max or top speed in knots
+  "cabins": integer | null,        // Number of cabins/staterooms
+  "guests": integer | null,        // Passenger/sleeping capacity
+  "range": number | null,          // Cruising range in nautical miles
+  "engine": string | null,         // Engine description including count, make, model, HP
+  "engineHours": number | null,    // Total engine hours
+  "location": string | null,       // City, state/country where vessel is located
+  "type": string | null            // Motor Yacht, Sailing Yacht, Catamaran, Sportfisher, Trawler, etc.
+}
+
+Rules:
+- Read values from the ENTIRE screenshot: hero section, spec tables, sidebars, description prose.
+- Descriptions often state "cruises at 22 knots" or "range of 2,800nm" — capture those.
+- If the page shows "Price on Request" or similar, return null for price/priceNum.
+- NEVER return 0, "N/A", empty string, "Unknown", "Various", or placeholder values — always use null.
+- If both ft and m appear for length or beam, populate BOTH keys.
+- If only one unit is shown, convert it and populate both.
+- Return ONLY the JSON object, no prose, no markdown fences.`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "url", url: screenshotUrl } },
+              { type: "text", text: prompt },
+            ],
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { content?: Array<{ type: string; text?: string }> };
+    const text = json.content?.find(c => c.type === "text")?.text ?? "";
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]) as VisionExtract;
+
+    // Sanity scrubs — treat 0/empty/"N/A" as null (Haiku occasionally slips)
+    const clean = <T,>(v: T): T | null => {
+      if (v === 0 || v === "" || v === "N/A" || v === "Unknown" || v === "various" || v === "Various") return null;
+      return v ?? null;
+    };
+    return {
+      name: clean(parsed.name),
+      builder: clean(parsed.builder),
+      model: clean(parsed.model),
+      year: clean(parsed.year),
+      price: clean(parsed.price),
+      priceNum: clean(parsed.priceNum),
+      lengthFt: clean(parsed.lengthFt),
+      lengthM: clean(parsed.lengthM),
+      beamFt: clean(parsed.beamFt),
+      beamM: clean(parsed.beamM),
+      maxSpeed: clean(parsed.maxSpeed),
+      cabins: clean(parsed.cabins),
+      guests: clean(parsed.guests),
+      range: clean(parsed.range),
+      engine: clean(parsed.engine),
+      engineHours: clean(parsed.engineHours),
+      location: clean(parsed.location),
+      type: clean(parsed.type),
+    };
+  } catch {
+    return null;
+  }
 }
 
 const YACHT_EXTRACT_SCHEMA = {
@@ -597,6 +726,7 @@ const YACHT_EXTRACT_SCHEMA = {
     engineHours: { type: "number", description: "Total engine hours on the engines" },
     location: { type: "string", description: "City, state/country where the boat is located or berthed" },
     type: { type: "string", description: "Vessel type: Motor Yacht, Sailing Yacht, Catamaran, Sportfisher, Trawler, Center Console, Express Cruiser, Flybridge, or Power" },
+    imageUrl: { type: "string", description: "URL of the primary/hero photograph of this specific yacht (not a logo, thumbnail, or placeholder). Prefer the first image in the listing's photo gallery." },
   },
 };
 
@@ -616,7 +746,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
           formats: ["extract", "screenshot", "html", "markdown"],
           extract: {
             schema: YACHT_EXTRACT_SCHEMA,
-            prompt: "This is a yacht/boat listing page. Extract ALL available specifications. Look in the details section, specifications table, sidebar, and any collapsed/tabbed sections. The length is often listed as LOA or Length Overall. Beam is the width. Look for engine make/model (e.g. 'Twin Volvo D6-435', '2x CAT C18'), horsepower, and engine hours. Look for number of cabins/staterooms and sleeping capacity. Find the asking price, location/port, and max/cruising speed in knots. Return null for any field not found on the page — do NOT return 0 or placeholder values.",
+            prompt: "This is a yacht/boat listing page. Extract ALL available specifications. Look EVERYWHERE on the page: specification tables, sidebars, collapsed/tabbed sections (Specs, Features, Details, Equipment), AND the long-form prose description — descriptions often state cruising speed, range, or engine in sentences like 'cruises comfortably at 22 knots with a range of 2800nm'. The length is LOA or Length Overall (convert meters to feet if needed). Beam is the width. Engine: include count + make + model + HP (e.g. 'Twin Volvo D6-435 IPS600 435hp'). Cabins = staterooms. Guests = sleeping capacity. maxSpeed and range can appear anywhere in description text. imageUrl MUST be the URL of the hero/primary photo of THIS yacht (from the photo gallery); never a logo, icon, or placeholder. Return null for any field genuinely not mentioned — do NOT return 0, empty strings, or placeholder values.",
           },
         }),
         signal: AbortSignal.timeout(30000),
@@ -1011,6 +1141,12 @@ const BUILDER_PROFILES: Record<string, BuilderProfile> = {
     engines: { "25": "1× MerCruiser 350", "32": "2× MerCruiser 350", "40": "2× Cummins QSB6.7", "50": "2× Cummins QSC8.3" },
     rangeByLength: { "25": 200, "32": 250, "40": 300, "50": 350 },
   },
+  bayliner: {
+    type: "Motor Yacht", beamRatio: 0.27, speedRange: [20, 30],
+    cabinsPerUnit: 0.8, cabinBaseFt: 25, guestsPerCabin: 2,
+    engines: { "25": "1× MerCruiser 5.0L MPI", "32": "2× MerCruiser 350 MAG", "45": "2× Cummins 6BTA 330hp", "58": "2× Cummins 6CTA 450hp" },
+    rangeByLength: { "25": 200, "32": 250, "45": 300, "58": 350 },
+  },
   "boston whaler": {
     type: "Center Console", beamRatio: 0.30, speedRange: [35, 50],
     cabinsPerUnit: 0.2, cabinBaseFt: 25, guestsPerCabin: 2,
@@ -1222,6 +1358,15 @@ function inferLengthFromModel(model: string | null, builder: string | null): num
 
   const isDecifeetBuilder = builder ? DECIFEET_BUILDERS.has(builder.toLowerCase()) : false;
 
+  // Bayliner 4-digit models: "5788" = 57ft, "4788" = 47ft, "3988" = 39ft
+  if (builder && builder.toLowerCase() === "bayliner") {
+    const fourDigit = model.match(/^(\d{4})\b/);
+    if (fourDigit) {
+      const ft = parseInt(fourDigit[1].slice(0, 2));
+      if (ft >= 15 && ft <= 80) return ft;
+    }
+  }
+
   // Common patterns: "62", "95 Yacht", "400 SLX", "350 Outrage"
   const numMatch = model.match(/^(\d{2,3})\b/);
   if (numMatch) {
@@ -1329,6 +1474,12 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const fetchResult = await tryFetchHtml(url);
   const html = fetchResult.html;
 
+  // Vision extraction: send the Firecrawl screenshot to Claude Haiku 4.5 and
+  // read specs the same way a human would. Highest-quality source when present.
+  const visionPromise = fetchResult.firecrawlScreenshot
+    ? extractWithVision(fetchResult.firecrawlScreenshot)
+    : Promise.resolve(null);
+
   // Always try spec database as fallback for missing fields
   const specData = await lookupSpecsFromDatabase(urlData.builder ?? null, urlData.model ?? null);
 
@@ -1391,7 +1542,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   // Fallback: extract specs from Firecrawl markdown (clean text, much easier to parse)
   const md = fetchResult.markdown;
-  if (md && md.length > 100) {
+  if (md && md.length > 20) {
     // Price
     if (!htmlPrice) {
       const pMatch = md.match(/(?:\$|USD\s*)\s*([\d,]+(?:\.\d{2})?)/);
@@ -1400,31 +1551,31 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
         if (num > 1000) { htmlPrice = `$${num.toLocaleString()}`; htmlPriceNum = num; }
       }
       if (!htmlPrice) {
-        const askMatch = md.match(/(?:asking|price|listed)[:\s]*\$?([\d,]+)/i);
+        const askMatch = md.match(/(?:asking|price|listed)[:\s|]*\$?([\d,]+)/i);
         if (askMatch) {
           const num = parseInt(askMatch[1].replace(/,/g, ""));
           if (num > 1000) { htmlPrice = `$${num.toLocaleString()}`; htmlPriceNum = num; }
         }
       }
     }
-    // Length
+    // Length — tolerate "LOA", "Length Overall", "Overall Length", markdown pipes/spaces
     if (!htmlLengthFt) {
-      const lMatch = md.match(/(?:length|LOA|overall)[:\s]*(\d+(?:\.\d+)?)\s*(?:ft|feet|')/i)
-        ?? md.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(?:length|LOA|overall)/i)
-        ?? md.match(/(?:length|LOA)[:\s]*(\d+(?:\.\d+)?)\s*m/i);
+      const lMatch = md.match(/(?:length\s*overall|overall\s*length|hull\s*length|length|l\.?o\.?a\.?)[:\s|]+(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|')/i)
+        ?? md.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|')[^\n]{0,20}?(?:length|loa|overall)/i)
+        ?? md.match(/(?:length\s*overall|overall\s*length|hull\s*length|length|l\.?o\.?a\.?)[:\s|]+(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\b/i);
       if (lMatch) {
-        const isMeters = /m$/i.test(lMatch[0]);
+        const isMeters = /m(?:eter|etre)?s?\b/i.test(lMatch[0]);
         const val = parseFloat(lMatch[1]);
         if (isMeters && val > 3 && val < 200) { htmlLengthM = val; htmlLengthFt = Math.round(val * 3.281 * 10) / 10; }
         else if (val > 10 && val < 500) { htmlLengthFt = val; htmlLengthM = Math.round(val * 0.3048 * 10) / 10; }
       }
     }
-    // Beam
+    // Beam — tolerate "Beam Overall", "Max Beam"
     if (!htmlBeamFt) {
-      const bMatch = md.match(/beam[:\s]*(\d+(?:\.\d+)?)\s*(?:ft|feet|')/i)
-        ?? md.match(/beam[:\s]*(\d+(?:\.\d+)?)\s*m/i);
+      const bMatch = md.match(/(?:beam\s*overall|overall\s*beam|max(?:imum)?\s*beam|beam|width)[:\s|]+(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|')/i)
+        ?? md.match(/(?:beam\s*overall|overall\s*beam|max(?:imum)?\s*beam|beam|width)[:\s|]+(\d+(?:\.\d+)?)\s*m(?:eter|etre)?s?\b/i);
       if (bMatch) {
-        const isMeters = /m$/i.test(bMatch[0]);
+        const isMeters = /m(?:eter|etre)?s?\b/i.test(bMatch[0]);
         const val = parseFloat(bMatch[1]);
         if (isMeters && val > 1 && val < 30) { htmlBeamM = val; htmlBeamFt = Math.round(val * 3.281 * 10) / 10; }
         else if (val > 3 && val < 80) { htmlBeamFt = val; htmlBeamM = Math.round(val * 0.3048 * 10) / 10; }
@@ -1432,42 +1583,58 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     }
     // Speed
     if (!htmlSpeed) {
-      const sMatch = md.match(/(?:max|top|cruising)?\s*speed[:\s]*(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i)
+      const sMatch = md.match(/(?:max(?:imum)?|top|cruis(?:ing|e))\s*speed[:\s|]+(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i)
+        ?? md.match(/speed[:\s|]+(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i)
         ?? md.match(/(\d+(?:\.\d+)?)\s*(?:knots|kn|kts)/i);
       if (sMatch) { const v = parseFloat(sMatch[1]); if (v > 3 && v < 80) htmlSpeed = v; }
     }
     // Cabins
     if (!htmlCabins) {
-      const cMatch = md.match(/(\d+)\s*(?:cabin|stateroom|berth)/i);
+      const cMatch = md.match(/(?:cabins?|staterooms?|berths?)[:\s|]+(\d+)/i)
+        ?? md.match(/(\d+)\s*(?:cabin|stateroom|berth)/i);
       if (cMatch) { const v = parseInt(cMatch[1]); if (v > 0 && v < 30) htmlCabins = v; }
     }
     // Guests
     if (!htmlGuests) {
-      const gMatch = md.match(/(\d+)\s*(?:guest|passenger|sleeps)/i);
+      const gMatch = md.match(/(?:guests?|passengers?|sleeps)[:\s|]+(\d+)/i)
+        ?? md.match(/(\d+)\s*(?:guest|passenger|sleeps)/i);
       if (gMatch) { const v = parseInt(gMatch[1]); if (v > 0 && v < 50) htmlGuests = v; }
+    }
+    // Year
+    if (!htmlYear) {
+      const yMatch = md.match(/(?:year\s*built|year\s*of\s*manufacture|model\s*year|year)[:\s|]+(\d{4})/i)
+        ?? md.match(/(?:built|launched|manufactured|commissioned)\s*(?:in)?\s*[:\-=]?\s*(\d{4})/i);
+      if (yMatch) { const v = parseInt(yMatch[1]); if (v >= 1950 && v <= new Date().getFullYear() + 2) htmlYear = v; }
     }
     // Engine
     if (!htmlEngine) {
-      const eMatch = md.match(/(?:engine|power|propulsion)[:\s]*((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo|MAN|MTU|Cummins|Yanmar|Mercury|Yamaha|John Deere|Detroit)[^,\n]{3,50})/i)
-        ?? md.match(/((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo|MAN|MTU|Cummins|Yanmar|Mercury|Yamaha|John Deere|Detroit)[^,\n]{3,50})/i);
+      const eMatch = md.match(/(?:engines?|power|propulsion|motor)[:\s|]+((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo(?:\s*Penta)?|MAN|MTU|Cummins|Yanmar|Mercury|MerCruiser|Yamaha|John\s*Deere|Detroit|Honda|Suzuki)[^,\n|]{3,60})/i)
+        ?? md.match(/((?:\d+\s*[×x]\s*)?(?:Cat(?:erpillar)?|Volvo(?:\s*Penta)?|MAN|MTU|Cummins|Yanmar|Mercury|MerCruiser|Yamaha|John\s*Deere|Detroit)[^,\n|]{3,60})/i);
       if (eMatch) htmlEngine = eMatch[1].trim();
     }
     // Engine hours
     if (!htmlEngineHours) {
-      const hMatch = md.match(/(?:engine\s*)?hours?[:\s]*(\d[\d,]*)/i)
-        ?? md.match(/(\d[\d,]*)\s*(?:engine\s*)?hours/i);
+      const hMatch = md.match(/engine\s*hours?[:\s|]+(\d[\d,]*)/i)
+        ?? md.match(/hours?\s*(?:on\s*(?:the\s*)?engines?|of\s*use)[:\s|]+(\d[\d,]*)/i)
+        ?? md.match(/(\d[\d,]*)\s*(?:engine\s*)?hours\b/i);
       if (hMatch) { const v = parseInt(hMatch[1].replace(/,/g, "")); if (v > 0 && v < 50000) htmlEngineHours = v; }
     }
     // Range
     if (!htmlRange) {
-      const rMatch = md.match(/range[:\s]*(\d[\d,]*)\s*(?:nm|nautical|nmi)/i)
-        ?? md.match(/(\d[\d,]*)\s*(?:nm|nautical miles)/i);
+      const rMatch = md.match(/(?:cruising\s*)?range[:\s|]+(\d[\d,]*)\s*(?:nm|nautical|nmi)/i)
+        ?? md.match(/(\d[\d,]*)\s*(?:nm|nautical\s*miles?|nmi)\b/i);
       if (rMatch) { const v = parseInt(rMatch[1].replace(/,/g, "")); if (v > 10 && v < 20000) htmlRange = v; }
     }
     // Location
     if (!htmlLocation || htmlLocation.includes("bgrp.io")) {
-      const locMatch = md.match(/(?:location|port|city|marina)[:\s]*([A-Z][a-zA-Z\s,]+(?:,\s*[A-Z]{2})?)/m);
+      const locMatch = md.match(/(?:location|port|city|marina|berth|lying|currently\s*lying)[:\s|]+([A-Z][a-zA-Z\s,]+(?:,\s*[A-Z]{2})?)/m);
       if (locMatch) { const loc = locMatch[1].trim(); if (loc.length > 2 && loc.length < 60) htmlLocation = loc; }
+    }
+    // Type
+    if (!htmlType) {
+      const tMatch = md.match(/(?:boat\s*type|vessel\s*type|hull\s*type|type)[:\s|]+([A-Z][A-Za-z\s]{3,30})/)
+        ?? md.match(/\b(Motor\s*Yacht|Sailing\s*Yacht|Catamaran|Sportfisher|Sport\s*Fisher|Trawler|Center\s*Console|Express\s*Cruiser|Flybridge|Sport\s*Cruiser|Power\s*Yacht)\b/i);
+      if (tMatch) { const t = tMatch[1].trim(); if (t.length > 3 && t.length < 40) htmlType = t; }
     }
     // Name from markdown title
     if (!htmlName || htmlName === "Unknown Yacht") {
@@ -1498,7 +1665,9 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   }
 
   // Detect if HTML came from a DIFFERENT page (redirect/search results)
-  // Check both builder AND model — "Sea Ray SPX 210" ≠ "Sea Ray 400 SLX"
+  // Lenient: match on builder tokens (any token overlap), and treat model-number
+  // mismatch as a WEAK signal only (not a hard fail) — sites often rename or
+  // reformat model numbers in their display title.
   const htmlMatchesUrl = (() => {
     if (!htmlBuilder && !htmlName) return true; // no HTML data to validate
     if (!urlData.builder) return true; // no URL builder to compare against
@@ -1506,22 +1675,15 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     const hBuilder = (htmlBuilder || "").toLowerCase();
     const hName = (htmlName || "").toLowerCase();
 
-    // Step 1: Builder must match
-    const builderMatches = hBuilder.includes(urlBuilder) || hName.includes(urlBuilder) ||
-           urlBuilder.includes(hBuilder);
-    if (!builderMatches) return false;
+    // Builder token overlap: any meaningful token from URL builder appears in HTML
+    const urlTokens = urlBuilder.split(/[\s\-_]+/).filter(t => t.length >= 3);
+    const combined = `${hBuilder} ${hName}`;
+    const tokenMatch = urlTokens.length === 0
+      ? true
+      : urlTokens.some(t => combined.includes(t));
+    const fullMatch = hBuilder.includes(urlBuilder) || hName.includes(urlBuilder) || urlBuilder.includes(hBuilder);
 
-    // Step 2: If we have a model number from the URL, check it appears in HTML name
-    // This catches cases like "Sea Ray SPX 210" (HTML) vs "Sea Ray 400 SLX" (URL)
-    if (urlData.model) {
-      const urlModelNum = urlData.model.match(/\d{2,3}/)?.[0];
-      if (urlModelNum && hName) {
-        // HTML name should contain the model number from the URL
-        if (!hName.includes(urlModelNum)) return false;
-      }
-    }
-
-    return true;
+    return tokenMatch || fullMatch;
   })();
 
   // If HTML came from wrong page, discard ALL HTML-scraped data
@@ -1559,9 +1721,23 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     }
   }
 
-  // Detect if the page is a search/category page (not a listing) — discard AI data if so
+  // Detect if the page is a search/category page (not a listing) — discard AI data if so.
+  // Require >=2 strong signals to avoid false positives: the phrase "boats for sale"
+  // appears on legitimate listing titles like "2022 Benetti 40M for sale".
   const pageText = fetchResult.markdown ?? "";
-  const isSearchPage = /boats?\s+for\s+sale|search\s+results|showing\s+\d+\s+(?:of|results)|filter|sort\s+by|no\s+(?:results|listings)/i.test(pageText.slice(0, 2000));
+  const head = pageText.slice(0, 3000);
+  const searchSignals = [
+    /search\s+results/i,
+    /showing\s+\d+\s+(?:of|results|listings)/i,
+    /\d+\s+(?:results|listings|matches)\s+found/i,
+    /sort\s+by[:\s]/i,
+    /filter\s+by[:\s]/i,
+    /refine\s+your\s+search/i,
+    /no\s+(?:results|listings)\s+(?:found|match)/i,
+    /view\s+\d+\s+more\s+(?:boats|listings)/i,
+  ];
+  const signalCount = searchSignals.reduce((n, r) => n + (r.test(head) ? 1 : 0), 0);
+  const isSearchPage = signalCount >= 2;
 
   // Firecrawl AI extract — only trust if it landed on an actual listing page
   // Sanitize: AI returns 0 for missing numeric fields — treat 0 as null
@@ -1596,19 +1772,23 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     if (ai.engineHours && (ai.engineHours < 1 || ai.engineHours > 50000)) ai.engineHours = null;
   }
 
-  // Merge priority: Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
-  const mergedLengthFt = ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
-  const mergedLengthM = ai?.lengthM ?? htmlLengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
+  // Await vision extraction (kicked off in parallel earlier)
+  const vision = await visionPromise;
+
+  // Merge priority: Vision (Claude Haiku on screenshot) > Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
+  const mergedLengthFt = vision?.lengthFt ?? ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
+  const mergedLengthM = vision?.lengthM ?? ai?.lengthM ?? htmlLengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
 
   // Final sanity: beam should always be < length
-  let finalBeamFt = ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null;
-  let finalBeamM = ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null;
+  let finalBeamFt = vision?.beamFt ?? ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null;
+  let finalBeamM = vision?.beamM ?? ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null;
   if (finalBeamFt && mergedLengthFt && finalBeamFt >= mergedLengthFt * 0.5) {
     finalBeamFt = null; finalBeamM = null;
   }
 
-  // Build the name: prefer AI extract > HTML > URL-parsed
+  // Build the name: prefer Vision > AI extract > HTML > URL-parsed
   const finalName = (() => {
+    if (vision?.name && vision.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(vision.name)) return vision.name;
     if (ai?.name && ai.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(ai.name)) return ai.name;
     if (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 &&
         isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) {
@@ -1619,26 +1799,62 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     return parts.length > 0 ? parts.join(" ") : "Unknown Yacht";
   })();
 
+  // Price estimation for "Price on Request" listings
+  let finalPrice = vision?.price ?? ai?.price ?? htmlPrice ?? null;
+  let finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
+
+  if (!finalPriceNum && mergedLengthFt) {
+    const currentYear = new Date().getFullYear();
+    const yachtYear = vision?.year || ai?.year || htmlYear || urlData.year || currentYear;
+    const age = Math.max(0, currentYear - yachtYear);
+
+    // Base price per foot by size bracket
+    let pricePerFt: number;
+    if (mergedLengthFt < 30) pricePerFt = 500;
+    else if (mergedLengthFt < 50) pricePerFt = 1500;
+    else if (mergedLengthFt < 80) pricePerFt = 3000;
+    else if (mergedLengthFt < 100) pricePerFt = 6000;
+    else pricePerFt = 15000;
+
+    let estimated = pricePerFt * mergedLengthFt;
+    // Depreciate 3% per year, floor at 30% of new
+    const depreciationFactor = Math.max(0.30, Math.pow(0.97, age));
+    estimated = Math.round(estimated * depreciationFactor / 1000) * 1000;
+
+    finalPrice = `~$${estimated.toLocaleString()} (estimated)`;
+    finalPriceNum = estimated;
+  }
+
   return {
     name: finalName,
-    builder: ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
-    model: ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
-    type: ai?.type || (isClean(htmlType) ? htmlType : null) || specData.type || profileData.type || null,
-    year: ai?.year || htmlYear || urlData.year || null,
-    price: ai?.price ?? htmlPrice ?? null,
-    priceNum: ai?.priceNum ?? htmlPriceNum ?? null,
+    builder: vision?.builder || ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
+    model: vision?.model || ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
+    type: vision?.type || ai?.type || (isClean(htmlType) ? htmlType : null) || specData.type || profileData.type || null,
+    year: vision?.year || ai?.year || htmlYear || urlData.year || null,
+    price: finalPrice,
+    priceNum: finalPriceNum,
     lengthFt: mergedLengthFt,
     lengthM: mergedLengthM,
     beamFt: finalBeamFt,
     beamM: finalBeamM,
-    maxSpeed: ai?.maxSpeed ?? htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
-    cabins: ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
-    guests: ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
-    range: ai?.range ?? htmlRange ?? specData.range ?? profileData.range ?? null,
-    engine: (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
-    engineHours: ai?.engineHours ?? htmlEngineHours ?? null,
-    location: (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
-    imageUrl: htmlImageUrl || fetchResult.firecrawlImageUrl || fetchResult.firecrawlScreenshot || generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null),
+    maxSpeed: vision?.maxSpeed ?? ai?.maxSpeed ?? htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
+    cabins: vision?.cabins ?? ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
+    guests: vision?.guests ?? ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
+    range: vision?.range ?? ai?.range ?? htmlRange ?? specData.range ?? profileData.range ?? null,
+    engine: (vision?.engine && vision.engine.length > 2 ? vision.engine : null) ?? (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
+    engineHours: vision?.engineHours ?? ai?.engineHours ?? htmlEngineHours ?? null,
+    location: (vision?.location && vision.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(vision.location) ? vision.location : null) ?? (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
+    imageUrl: (() => {
+      // Firecrawl-only picture source:
+      //   1. Firecrawl og:image URL (proper hero photo from page metadata)
+      //   2. Firecrawl full-page screenshot (visual capture of the listing)
+      //   3. Branded Unsplash fallback
+      const ogImage = fetchResult.firecrawlImageUrl;
+      if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
+        return ogImage;
+      }
+      return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
+    })(),
     source,
     url,
   };

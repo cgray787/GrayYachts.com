@@ -338,10 +338,19 @@ const SPEC_FIELDS: SpecField[] = [
 /*  localStorage persistence                                           */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = "gy-compare-catalog-v3"; // v3: added imageUrl field
+const STORAGE_KEY = "gy-compare-catalog-v5"; // v5: force-wipe any stale pre-vision payloads
 
 function loadCatalog(): YachtListing[] {
   if (typeof window === "undefined") return SEED_YACHTS;
+  // One-time cleanup: drop any legacy gy-compare-catalog-* entries from older schemas.
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("gy-compare-catalog-") && k !== STORAGE_KEY) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch { /* ignore */ }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -772,8 +781,24 @@ function CatalogCard({
 
 export default function CompareYachtsPage() {
   const [catalog, setCatalog] = useState<YachtListing[]>(() => loadCatalog());
-  const [leftId, setLeftId] = useState(catalog[0]?.id ?? "");
-  const [rightId, setRightId] = useState(catalog[1]?.id ?? "");
+  const [leftId, setLeftId] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = JSON.parse(localStorage.getItem("gy-compare-slots") || "{}");
+        if (saved.leftId) return saved.leftId as string;
+      } catch { /* ignore */ }
+    }
+    return catalog[0]?.id ?? "";
+  });
+  const [rightId, setRightId] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = JSON.parse(localStorage.getItem("gy-compare-slots") || "{}");
+        if (saved.rightId) return saved.rightId as string;
+      } catch { /* ignore */ }
+    }
+    return catalog[1]?.id ?? "";
+  });
   const [dragOverSlot, setDragOverSlot] = useState<"a" | "b" | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -787,6 +812,13 @@ export default function CompareYachtsPage() {
   useEffect(() => {
     saveCatalog(catalog);
   }, [catalog]);
+
+  // Persist slot selections
+  useEffect(() => {
+    try {
+      localStorage.setItem("gy-compare-slots", JSON.stringify({ leftId, rightId }));
+    } catch { /* ignore */ }
+  }, [leftId, rightId]);
 
   const leftYacht = catalog.find((y) => y.id === leftId) ?? catalog[0];
   const rightYacht = catalog.find((y) => y.id === rightId) ?? catalog[1];
@@ -947,8 +979,20 @@ export default function CompareYachtsPage() {
   };
 
   const handleRemove = (yachtId: string) => {
-    if (yachtId === leftId || yachtId === rightId) return;
-    setCatalog((prev) => prev.filter((y) => y.id !== yachtId));
+    const remaining = catalog.filter((y) => y.id !== yachtId);
+    if (remaining.length < 2) return; // need at least 2 yachts
+
+    if (yachtId === leftId) {
+      // Reassign left slot to another yacht that isn't in the right slot
+      const alt = remaining.find((y) => y.id !== rightId);
+      if (alt) setLeftId(alt.id);
+    } else if (yachtId === rightId) {
+      // Reassign right slot to another yacht that isn't in the left slot
+      const alt = remaining.find((y) => y.id !== leftId);
+      if (alt) setRightId(alt.id);
+    }
+
+    setCatalog(remaining);
   };
 
   const handleSwap = () => {
