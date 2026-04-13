@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Upload,
   FolderOpen,
@@ -12,8 +12,12 @@ import {
   FileText,
   BookOpen,
   File,
+  Loader2,
+  Download,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 /* ───── Types ───── */
 
@@ -42,6 +46,24 @@ interface DocumentItem {
   category: DocCategory[];
   group: string;
   highlighted?: boolean;
+}
+
+interface UploadedDoc {
+  id: string;
+  title: string;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  storage_path: string;
+  category: string;
+  uploaded_at: string;
+}
+
+function formatBytes(n: number | null): string {
+  if (!n) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
 /* ───── Static data ───── */
@@ -203,6 +225,97 @@ export default function DocumentsPage() {
   const [activeTab, setActiveTab] = useState<DocCategory>("All Documents");
   const [isDragOver, setIsDragOver] = useState(false);
   const [cardDragOver, setCardDragOver] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    const supabase = createClient();
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from("documents")
+      .select("id,title,file_name,file_type,file_size,storage_path,category,uploaded_at")
+      .order("uploaded_at", { ascending: false });
+    if (!error && data) setUploadedDocs(data as UploadedDoc[]);
+  }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  const uploadFiles = useCallback(async (files: FileList) => {
+    const supabase = createClient();
+    if (!supabase) { setUploadError("Supabase is not configured"); return; }
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user) { setUploadError("Please sign in to upload documents"); return; }
+
+    setUploading(true);
+    setUploadError(null);
+
+    for (const file of Array.from(files)) {
+      try {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("documents")
+          .upload(path, file, { contentType: file.type || undefined });
+        if (upErr) { setUploadError(upErr.message); continue; }
+
+        const { error: dbErr } = await supabase.from("documents").insert({
+          user_id: user.id,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          category: "certificate",
+          file_name: file.name,
+          file_type: file.type || null,
+          file_size: file.size,
+          storage_path: path,
+        });
+        if (dbErr) setUploadError(dbErr.message);
+      } catch (e) {
+        setUploadError(e instanceof Error ? e.message : "Upload failed");
+      }
+    }
+
+    setUploading(false);
+    await refetch();
+  }, [refetch]);
+
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      uploadFiles(e.target.files);
+    }
+    e.target.value = "";
+  }, [uploadFiles]);
+
+  const handleDownload = useCallback(async (storagePath: string, fileName: string) => {
+    const supabase = createClient();
+    if (!supabase) return;
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(storagePath, 60);
+    if (error || !data) return;
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = fileName;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
+
+  const handleDelete = useCallback(async (id: string, storagePath: string) => {
+    const supabase = createClient();
+    if (!supabase) return;
+    if (!confirm("Delete this document?")) return;
+    await supabase.storage.from("documents").remove([storagePath]);
+    await supabase.from("documents").delete().eq("id", id);
+    await refetch();
+  }, [refetch]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -216,7 +329,10 @@ export default function DocumentsPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      uploadFiles(e.dataTransfer.files);
+    }
+  }, [uploadFiles]);
 
   const filtered = documents.filter((d) => d.category.includes(activeTab));
 
@@ -278,15 +394,95 @@ export default function DocumentsPage() {
           documentation. Supports PDF, JPG, PNG
         </p>
         <div className="mt-5 flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-bg-primary transition-colors hover:bg-gold-hover">
-            <FolderOpen className="h-4 w-4" />
-            Browse Files
+          <button
+            onClick={handleBrowseClick}
+            disabled={uploading}
+            className="flex items-center gap-2 rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-bg-primary transition-colors hover:bg-gold-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FolderOpen className="h-4 w-4" />
+            )}
+            {uploading ? "Uploading…" : "Browse Files"}
           </button>
           <span className="text-sm text-text-secondary">
             or drop files above
           </span>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+          className="hidden"
+          onChange={handleFileInputChange}
+        />
+        {uploadError && (
+          <p className="mt-3 text-sm text-red-400">{uploadError}</p>
+        )}
       </div>
+
+      {/* Uploaded documents */}
+      {uploadedDocs.length > 0 && (
+        <div className="mb-10">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-gold" />
+            <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-medium text-text-primary">
+              Your Documents
+            </h2>
+            <span className="text-xs text-text-secondary">
+              {uploadedDocs.length} uploaded
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {uploadedDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="group rounded-xl border border-border bg-bg-card p-4 transition-colors hover:border-gold/40"
+              >
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-400/10">
+                    <FileText className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => handleDownload(doc.storage_path, doc.file_name)}
+                      className="rounded-md p-1.5 text-text-secondary hover:bg-bg-card-hover hover:text-text-primary"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(doc.id, doc.storage_path)}
+                      className="rounded-md p-1.5 text-text-secondary hover:bg-red-500/10 hover:text-red-400"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <p className="truncate text-sm font-medium text-text-primary" title={doc.title}>
+                  {doc.title}
+                </p>
+                <p className="truncate text-xs text-text-secondary" title={doc.file_name}>
+                  {doc.file_name}
+                </p>
+                <div className="mt-3 flex items-center justify-between text-xs text-text-secondary">
+                  <span>{formatBytes(doc.file_size)}</span>
+                  <span>
+                    {new Date(doc.uploaded_at).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="mb-8 grid grid-cols-2 gap-5 md:grid-cols-4">
