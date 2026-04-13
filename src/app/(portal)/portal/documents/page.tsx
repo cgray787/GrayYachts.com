@@ -59,6 +59,21 @@ interface UploadedDoc {
   uploaded_at: string;
 }
 
+const UPLOAD_CATEGORIES = [
+  { value: "certificate", label: "Certificate", color: "bg-gold-muted text-gold" },
+  { value: "registration", label: "Registration", color: "bg-indigo-500/20 text-indigo-400" },
+  { value: "owner_manual", label: "Owner Manual", color: "bg-orange-500/20 text-orange-400" },
+  { value: "coast_guard", label: "Coast Guard", color: "bg-blue-500/20 text-blue-400" },
+  { value: "insurance", label: "Insurance", color: "bg-purple-500/20 text-purple-400" },
+  { value: "warranty", label: "Warranty", color: "bg-yellow-500/20 text-yellow-400" },
+] as const;
+
+type UploadCategory = (typeof UPLOAD_CATEGORIES)[number]["value"];
+
+const CATEGORY_META: Record<string, { label: string; color: string }> = Object.fromEntries(
+  UPLOAD_CATEGORIES.map((c) => [c.value, { label: c.label, color: c.color }])
+);
+
 function formatBytes(n: number | null): string {
   if (!n) return "—";
   if (n < 1024) return `${n} B`;
@@ -229,6 +244,7 @@ export default function DocumentsPage() {
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadCategory, setUploadCategory] = useState<UploadCategory>("certificate");
 
   const refetch = useCallback(async () => {
     const supabase = createClient();
@@ -264,7 +280,7 @@ export default function DocumentsPage() {
         const { error: dbErr } = await supabase.from("documents").insert({
           user_id: user.id,
           title: file.name.replace(/\.[^.]+$/, ""),
-          category: "certificate",
+          category: uploadCategory,
           file_name: file.name,
           file_type: file.type || null,
           file_size: file.size,
@@ -278,7 +294,7 @@ export default function DocumentsPage() {
 
     setUploading(false);
     await refetch();
-  }, [refetch]);
+  }, [refetch, uploadCategory]);
 
   const handleBrowseClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -393,7 +409,20 @@ export default function DocumentsPage() {
           Upload certificates, registration, owner manuals, and vessel
           documentation. Supports PDF, JPG, PNG
         </p>
-        <div className="mt-5 flex items-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-text-secondary">
+            Category
+            <select
+              value={uploadCategory}
+              onChange={(e) => setUploadCategory(e.target.value as UploadCategory)}
+              disabled={uploading}
+              className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none transition-colors hover:border-gold/40 focus:border-gold disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {UPLOAD_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </label>
           <button
             onClick={handleBrowseClick}
             disabled={uploading}
@@ -468,16 +497,23 @@ export default function DocumentsPage() {
                 <p className="truncate text-xs text-text-secondary" title={doc.file_name}>
                   {doc.file_name}
                 </p>
-                <div className="mt-3 flex items-center justify-between text-xs text-text-secondary">
-                  <span>{formatBytes(doc.file_size)}</span>
-                  <span>
-                    {new Date(doc.uploaded_at).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  {CATEGORY_META[doc.category] && (
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", CATEGORY_META[doc.category].color)}>
+                      {CATEGORY_META[doc.category].label}
+                    </span>
+                  )}
+                  <span className="text-xs text-text-secondary">
+                    {formatBytes(doc.file_size)}
                   </span>
                 </div>
+                <p className="mt-2 text-[11px] text-text-secondary">
+                  {new Date(doc.uploaded_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
               </div>
             ))}
           </div>
