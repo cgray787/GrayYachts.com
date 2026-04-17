@@ -103,13 +103,26 @@ src/
 
 Supabase PostgreSQL with RLS enabled on all tables.
 
-**Tables:**
+**Portal tables (product-facing):**
 - `profiles` — User accounts (linked to auth.users), roles: client | admin
 - `yachts` — Vessels owned by users (name, builder, model, year, length, beam, type, status, location)
 - `documents` — Uploaded files (title, file_url, category, yacht_id)
 - `maintenance_records` — Service history per yacht (service_date, category, title, cost, technician)
 - `service_providers` — Directory of professionals (name, category, phone, email)
 - `activity_log` — Audit trail (action, description, yacht_id)
+- `listings` — Yacht listings
+
+**Paperclip agent tables (shared with grayyachts-agents repo):**
+- `prospects` — Lead gen pipeline (name, email, source_url, status, hot_lead)
+- `content_drafts` — Social content drafts (platform, content, status, hashtags)
+- `outreach_sequences` — Gmail outreach state machine (prospect_id, lead_type, status, thread_id, emails_sent)
+- `inbound_messages` — Reply Handler inbound email tracking (gmail_message_id, classification, draft_id, status)
+- `blog_posts` — SEO blog content with QA workflow (qa_status, qa_last_feedback, qa_attempt)
+- `blog_images` — Image dedup + branding tracking (source, source_photo_id, source_platform, branded_url, alt_text). UNIQUE(source_photo_id, source_platform)
+- `qa_reviews` — Per-pass QA results from QA Reviewer (pass_num, pass_name, status, issues jsonb)
+- `seo_keywords` — Keyword backlog + ranking tracking
+- `seo_performance` — SERP position + AI citation tracking
+- `seo_strategy_log` — Strategy shifts + content wins
 
 ## API Routes
 
