@@ -10,6 +10,7 @@ import {
   FileText,
   Wrench,
   Briefcase,
+  ClipboardCheck,
   ChevronDown,
   ChevronRight,
   LogOut,
@@ -55,6 +56,11 @@ const navItems = [
       { label: "Berth & Marina", href: "/portal/services/berth-marina" },
       { label: "Engine & Boat Service", href: "/portal/services/engine-boat" },
     ],
+  },
+  {
+    label: "Marine Tech",
+    href: "/portal/marine-tech",
+    icon: ClipboardCheck,
   },
 ];
 

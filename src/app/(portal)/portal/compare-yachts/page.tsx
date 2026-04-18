@@ -739,7 +739,7 @@ function CatalogCard({
         {yacht.source}
       </span>
 
-      {/* Actions */}
+      {/* Actions – LEFT/RIGHT on hover */}
       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={() => onAssign("a")}
@@ -755,16 +755,16 @@ function CatalogCard({
         >
           RIGHT
         </button>
-        {!isSeed && (
-          <button
-            onClick={onRemove}
-            className="rounded p-1 text-text-secondary transition-colors hover:text-error"
-            title="Remove from catalog"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        )}
       </div>
+
+      {/* Delete – always visible */}
+      <button
+        onClick={onRemove}
+        className="shrink-0 rounded p-1 text-text-secondary/40 transition-colors hover:text-error"
+        title="Remove from catalog"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
 
       {isActive && (
         <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[8px] font-bold text-bg-primary">
