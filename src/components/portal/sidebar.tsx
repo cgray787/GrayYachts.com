@@ -11,6 +11,7 @@ import {
   Wrench,
   Briefcase,
   ClipboardCheck,
+  Inbox,
   ChevronDown,
   ChevronRight,
   LogOut,
@@ -27,14 +28,14 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "My Yachts",
-    href: "/portal/my-yachts",
-    icon: Ship,
-  },
-  {
     label: "Compare Yachts",
     href: "/portal/compare-yachts",
     icon: Columns2,
+  },
+  {
+    label: "My Yachts",
+    href: "/portal/my-yachts",
+    icon: Ship,
   },
   {
     label: "Documents",
@@ -61,6 +62,15 @@ const navItems = [
     label: "Marine Tech",
     href: "/portal/marine-tech",
     icon: ClipboardCheck,
+  },
+  {
+    label: "Content Review",
+    href: "/portal/content-review",
+    icon: Inbox,
+    subItems: [
+      { label: "Cold Email Outreach", href: "/portal/content-review/outreach" },
+      { label: "Newsletter & Blog", href: "/portal/content-review/blog" },
+    ],
   },
 ];
 

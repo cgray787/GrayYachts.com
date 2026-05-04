@@ -150,34 +150,49 @@ export default function DashboardClient({
             </Link>
           </div>
           <div className="space-y-4">
-            {yachts.map((yacht) => (
-              <div
-                key={yacht.name}
-                className="overflow-hidden rounded-xl border border-border bg-bg-card"
-              >
-                {/* Image placeholder */}
+            {yachts.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-bg-card/50 px-6 py-12 text-center">
+                <p className="text-sm text-text-primary">
+                  No yachts on file yet.
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  Add a vessel to your account to see it here.
+                </p>
+                <Link
+                  href="/portal/my-yachts"
+                  className="mt-4 inline-block text-sm font-medium text-gold transition-colors hover:text-gold-hover"
+                >
+                  Add a yacht →
+                </Link>
+              </div>
+            ) : (
+              yachts.map((yacht) => (
                 <div
-                  className={`h-36 bg-gradient-to-br ${yacht.gradient}`}
-                />
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-text-primary">
-                        {yacht.name}
-                      </h3>
-                      <p className="mt-0.5 text-sm text-text-secondary">
-                        {yacht.spec}
-                      </p>
+                  key={yacht.name}
+                  className="overflow-hidden rounded-xl border border-border bg-bg-card"
+                >
+                  {/* Image placeholder */}
+                  <div className={`h-36 bg-gradient-to-br ${yacht.gradient}`} />
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-text-primary">
+                          {yacht.name}
+                        </h3>
+                        <p className="mt-0.5 text-sm text-text-secondary">
+                          {yacht.spec}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${yacht.badgeColor}`}
+                      >
+                        {yacht.badge}
+                      </span>
                     </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${yacht.badgeColor}`}
-                    >
-                      {yacht.badge}
-                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

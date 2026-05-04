@@ -131,6 +131,11 @@ function timeAgo(dateStr: string): string {
 
 export default async function DashboardPage() {
   let firstName = "James";
+  // Demo data is ONLY shown when Supabase is unconfigured (e.g. local dev
+  // without env vars). An authenticated user with zero owned yachts must
+  // see an empty fleet — never seed yachts that aren't theirs. Anything
+  // else would risk showing a client another client's data, or making them
+  // think they own boats they don't.
   let yachts: DashboardYacht[] = DEMO_YACHTS;
   let activities: DashboardActivity[] = DEMO_ACTIVITIES;
   let stats: DashboardStats = DEMO_STATS;
@@ -163,7 +168,10 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .order("name");
 
-      if (yachtsResult.data?.length) {
+      // Once authenticated, always show the user's actual yachts — even when
+      // that's an empty array. This is the line that prevents a logged-in
+      // client with no yachts from seeing demo seeds.
+      if (yachtsResult.data) {
         yachts = yachtsResult.data.map((y, i) => ({
           name: y.name,
           spec: `${y.length_m ? `${y.length_m}m · ` : ""}${y.type ?? "Yacht"}`,
@@ -180,7 +188,7 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (activityResult.data?.length) {
+      if (activityResult.data) {
         activities = activityResult.data.map((a, i) => {
           const yachtRaw = a.yachts as unknown;
           const yachtData = Array.isArray(yachtRaw) ? (yachtRaw[0] as { name: string } | undefined) ?? null : (yachtRaw as { name: string } | null);
