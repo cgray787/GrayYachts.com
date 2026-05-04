@@ -26,6 +26,16 @@ interface ScrapedYacht {
   imageUrl: string | null;
   source: string;
   url: string;
+  /**
+   * Per-field warnings produced by the post-merge sanity-check pass. Empty
+   * array = nothing implausible detected. Each entry names a field and a
+   * short reason ("length: vision said 14.6ft but model 435 implies 43.5ft —
+   * preferred URL value"). The frontend uses this to flag cards as
+   * "Needs review" before the user shares them with a client.
+   */
+  flags: string[];
+  /** Coarse confidence rollup for at-a-glance UI badges. */
+  confidence: "high" | "medium" | "low";
 }
 
 /* ------------------------------------------------------------------ */
@@ -57,13 +67,32 @@ function mToFt(m: number): number {
 
 function detectSource(url: string): string {
   const l = url.toLowerCase();
+  // High-volume aggregators
   if (l.includes("yachtworld")) return "YachtWorld";
   if (l.includes("boattrader")) return "BoatTrader";
   if (l.includes("boats.com")) return "boats.com";
-  if (l.includes("denison")) return "Denison";
   if (l.includes("yacht.de") || l.includes("yachtall")) return "Yacht.de";
   if (l.includes("rightboat")) return "RightBoat";
   if (l.includes("theyachtmarket")) return "TheYachtMarket";
+  if (l.includes("yachtbroker.org")) return "YachtBroker";
+  if (l.includes("yatco")) return "YATCO";
+  // Brokerage houses (luxury / superyacht)
+  if (l.includes("denison")) return "Denison";
+  if (l.includes("fraseryachts") || l.includes("fraser.")) return "Fraser";
+  if (l.includes("burgessyachts") || l.includes("burgess.")) return "Burgess";
+  if (l.includes("northropandjohnson") || l.includes("northrop")) return "Northrop & Johnson";
+  if (l.includes("camperandnicholsons") || l.includes("camperandnicholson")) return "Camper & Nicholsons";
+  if (l.includes("iyc.com") || l.includes("iyc-")) return "IYC";
+  if (l.includes("moranyachts")) return "Moran";
+  if (l.includes("edmiston")) return "Edmiston";
+  if (l.includes("hmy")) return "HMY";
+  if (l.includes("siyachts") || l.includes("staten")) return "SI Yachts";
+  if (l.includes("galatiyachts") || l.includes("galati")) return "Galati";
+  if (l.includes("unitedyacht") || l.includes("uys.")) return "United Yacht";
+  if (l.includes("worth") && l.includes("yacht")) return "Worth Avenue Yachts";
+  if (l.includes("bluepoint")) return "Bluepointe";
+  if (l.includes("yachtcontroller")) return "Yacht Controller";
+  // Anything else — Firecrawl + vision still works, frontend just shows "Listing".
   return "Listing";
 }
 
@@ -637,12 +666,16 @@ async function extractWithVision(screenshotUrl: string): Promise<VisionExtract |
 }
 
 Rules:
+- This is a FULL-PAGE screenshot. Scan from top to bottom. Spec tables, engine sections, and "Boat Details" panels usually appear BELOW the hero image — keep reading past the photo.
 - Read values from the ENTIRE screenshot: hero section, spec tables, sidebars, description prose.
-- Descriptions often state "cruises at 22 knots" or "range of 2,800nm" — capture those.
+- Cruising speed and range are sometimes only mentioned in the description prose (e.g. phrases describing cruising or range) — capture those if and only if they are explicitly stated for THIS yacht.
+- DO NOT GUESS. If a field is not clearly visible or stated on the page, return null. Never invent typical/plausible values.
+- DO NOT echo example values from these instructions. Only return values you can read from the screenshot.
 - If the page shows "Price on Request" or similar, return null for price/priceNum.
 - NEVER return 0, "N/A", empty string, "Unknown", "Various", or placeholder values — always use null.
 - If both ft and m appear for length or beam, populate BOTH keys.
 - If only one unit is shown, convert it and populate both.
+- Engine: capture the count + make + model + total HP exactly as written (e.g. quad/triple/twin/single). Do not collapse a quad-engine setup into a twin.
 - Return ONLY the JSON object, no prose, no markdown fences.`;
 
   try {
@@ -743,10 +776,15 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
         },
         body: JSON.stringify({
           url,
-          formats: ["extract", "screenshot", "html", "markdown"],
+          // screenshot@fullPage — viewport-only screenshots cut off the spec
+          // table on tall listing pages (YachtWorld, BoatTrader, etc all
+          // place specs below the hero image), which forced Claude vision
+          // to fall back on prompt examples and hallucinate. Full-page
+          // gives vision the same scroll the buyer sees.
+          formats: ["extract", "screenshot@fullPage", "html", "markdown"],
           extract: {
             schema: YACHT_EXTRACT_SCHEMA,
-            prompt: "This is a yacht/boat listing page. Extract ALL available specifications. Look EVERYWHERE on the page: specification tables, sidebars, collapsed/tabbed sections (Specs, Features, Details, Equipment), AND the long-form prose description — descriptions often state cruising speed, range, or engine in sentences like 'cruises comfortably at 22 knots with a range of 2800nm'. The length is LOA or Length Overall (convert meters to feet if needed). Beam is the width. Engine: include count + make + model + HP (e.g. 'Twin Volvo D6-435 IPS600 435hp'). Cabins = staterooms. Guests = sleeping capacity. maxSpeed and range can appear anywhere in description text. imageUrl MUST be the URL of the hero/primary photo of THIS yacht (from the photo gallery); never a logo, icon, or placeholder. Return null for any field genuinely not mentioned — do NOT return 0, empty strings, or placeholder values.",
+            prompt: "This is a yacht/boat listing page. Extract ALL available specifications for THIS specific yacht. Look EVERYWHERE on the page: specification tables, sidebars, collapsed/tabbed sections (Specs, Features, Details, Equipment), AND the long-form prose description — descriptions sometimes state cruising speed, range, or engine in sentences. The length is LOA or Length Overall (convert meters to feet if needed). Beam is the width. Engine: capture the exact count + make + model + total HP as printed on the page (e.g. preserve quad/triple/twin/single — do not collapse a quad into a twin). Cabins = staterooms. Guests = sleeping capacity. maxSpeed and range can appear anywhere in description text — but only capture them if they are explicitly stated for THIS yacht; never guess or use a typical value. imageUrl MUST be the URL of the hero/primary photo of THIS yacht (from the photo gallery); never a logo, icon, or placeholder. Return null for any field genuinely not mentioned — do NOT return 0, empty strings, placeholder values, or invented numbers.",
           },
         }),
         signal: AbortSignal.timeout(30000),
@@ -1343,6 +1381,12 @@ const DECIFEET_BUILDERS = new Set([
   "boston whaler", "grady white", "wellcraft", "regulator",
   "yellowfin", "robalo", "sailfish", "sea ray", "searay",
   "bayliner", "chaparral", "cobalt", "formula",
+  // Center-console / outboard-driven brands that encode length × 10 in their model number
+  // (e.g. "Everglades 435" = 43.5 ft). Without this, model "435" is treated as out-of-range
+  // and we lose our anchor against vision/AI hallucination.
+  "everglades", "pursuit", "intrepid", "hcb", "contender",
+  "edgewater", "scout", "jupiter", "midnight express",
+  "freeman", "invincible", "valhalla", "scarab",
 ]);
 
 /** Spelled-out numbers for model names like "Seventy 7", "Sixty 5" */
@@ -1825,7 +1869,19 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     finalPriceNum = estimated;
   }
 
-  return {
+  const finalImageUrl = (() => {
+    // Firecrawl-only picture source:
+    //   1. Firecrawl og:image URL (proper hero photo from page metadata)
+    //   2. Firecrawl full-page screenshot (visual capture of the listing)
+    //   3. Branded Unsplash fallback
+    const ogImage = fetchResult.firecrawlImageUrl;
+    if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
+      return ogImage;
+    }
+    return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
+  })();
+
+  const draft: ScrapedYacht = {
     name: finalName,
     builder: vision?.builder || ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
     model: vision?.model || ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
@@ -1844,20 +1900,116 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     engine: (vision?.engine && vision.engine.length > 2 ? vision.engine : null) ?? (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
     engineHours: vision?.engineHours ?? ai?.engineHours ?? htmlEngineHours ?? null,
     location: (vision?.location && vision.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(vision.location) ? vision.location : null) ?? (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
-    imageUrl: (() => {
-      // Firecrawl-only picture source:
-      //   1. Firecrawl og:image URL (proper hero photo from page metadata)
-      //   2. Firecrawl full-page screenshot (visual capture of the listing)
-      //   3. Branded Unsplash fallback
-      const ogImage = fetchResult.firecrawlImageUrl;
-      if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
-        return ogImage;
-      }
-      return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
-    })(),
+    imageUrl: finalImageUrl,
     source,
     url,
+    flags: [],
+    confidence: "high",
   };
+
+  return runSanityChecks(draft, { inferredLengthFt, urlLengthFt: urlData.lengthFt ?? null, urlYear: urlData.year ?? null });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Post-merge sanity / cross-validation pass                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Defends against the failure mode where the vision/AI extractor confidently
+ * returns wrong numbers (hallucinated, mis-OCR'd, or pulled from the wrong
+ * row). For each field we apply two checks:
+ *
+ *   1. Plausibility bounds — values outside what's physically reasonable for
+ *      a yacht listing get nulled and flagged.
+ *   2. Cross-source consistency — when we have an independent anchor (e.g.
+ *      length inferred from the model number "Everglades 435" → 43.5 ft),
+ *      a large disagreement with the extracted length means we trust the
+ *      anchor and flag the field for human review.
+ *
+ * Anything we adjust gets recorded in `flags`. The frontend renders a
+ * "Needs review" banner whenever flags.length > 0, so the user knows to
+ * sanity-check the card before sharing it with a client.
+ */
+function runSanityChecks(
+  y: ScrapedYacht,
+  ctx: { inferredLengthFt: number | null; urlLengthFt: number | null; urlYear: number | null },
+): ScrapedYacht {
+  const flags: string[] = [];
+
+  // Length cross-check against URL-derived anchor (model number).
+  const anchorFt = ctx.urlLengthFt ?? ctx.inferredLengthFt;
+  if (anchorFt && y.lengthFt) {
+    const ratio = y.lengthFt / anchorFt;
+    // > 40% off in either direction is too much variance to ignore.
+    if (ratio < 0.6 || ratio > 1.4) {
+      flags.push(
+        `length: extracted ${y.lengthFt.toFixed(1)} ft conflicts with model-derived ${anchorFt.toFixed(1)} ft — preferred model-derived value`,
+      );
+      y.lengthFt = anchorFt;
+      y.lengthM = Math.round(anchorFt * 0.3048 * 10) / 10;
+    }
+  }
+
+  // Plausibility bounds: drop values that no real yacht listing would show.
+  if (y.lengthFt !== null && (y.lengthFt < 12 || y.lengthFt > 600)) {
+    flags.push(`length: implausible value ${y.lengthFt} ft — discarded`);
+    y.lengthFt = null;
+    y.lengthM = null;
+  }
+  if (y.beamFt !== null && y.lengthFt !== null) {
+    const ratio = y.beamFt / y.lengthFt;
+    if (ratio < 0.15 || ratio > 0.55) {
+      flags.push(`beam: ${y.beamFt} ft is outside 15–55% of length — discarded`);
+      y.beamFt = null;
+      y.beamM = null;
+    }
+  }
+  if (y.maxSpeed !== null && (y.maxSpeed < 4 || y.maxSpeed > 90)) {
+    flags.push(`maxSpeed: ${y.maxSpeed} kn is outside 4–90 kn — discarded`);
+    y.maxSpeed = null;
+  }
+  if (y.range !== null && (y.range < 30 || y.range > 12000)) {
+    flags.push(`range: ${y.range} nm is outside 30–12,000 nm — discarded`);
+    y.range = null;
+  }
+  // A 40-something-foot outboard center-console with > 1500 nm range is
+  // unrealistic — that pattern is almost always the prompt-example leak
+  // ("range of 2,800nm") sneaking through.
+  const looksOutboard = (y.engine ?? "").toLowerCase().match(/\b(yamaha|mercury|suzuki|honda|outboard|f\d{3})\b/);
+  const isCenterConsole = (y.type ?? "").toLowerCase().includes("center console");
+  if (y.range !== null && y.range > 1500 && (looksOutboard || isCenterConsole) && (y.lengthFt ?? 0) < 60) {
+    flags.push(`range: ${y.range} nm is unrealistic for an outboard / center-console under 60 ft — discarded`);
+    y.range = null;
+  }
+  if (y.engineHours !== null && (y.engineHours < 0 || y.engineHours > 60000)) {
+    flags.push(`engineHours: ${y.engineHours} is outside 0–60,000 — discarded`);
+    y.engineHours = null;
+  }
+  if (y.year !== null) {
+    const currentYear = new Date().getFullYear();
+    if (y.year < 1900 || y.year > currentYear + 2) {
+      flags.push(`year: ${y.year} is outside 1900–${currentYear + 2} — discarded`);
+      y.year = null;
+    }
+  }
+  if (y.cabins !== null && (y.cabins < 0 || y.cabins > 30)) {
+    flags.push(`cabins: ${y.cabins} is outside 0–30 — discarded`);
+    y.cabins = null;
+  }
+  if (y.guests !== null && (y.guests < 0 || y.guests > 100)) {
+    flags.push(`guests: ${y.guests} is outside 0–100 — discarded`);
+    y.guests = null;
+  }
+
+  // Critical-field coverage → coarse confidence rollup.
+  const critical = [y.lengthFt, y.year, y.priceNum, y.engine, y.location];
+  const filled = critical.filter((v) => v !== null && v !== undefined && v !== "").length;
+  let confidence: ScrapedYacht["confidence"];
+  if (flags.length === 0 && filled >= 4) confidence = "high";
+  else if (flags.length <= 1 && filled >= 3) confidence = "medium";
+  else confidence = "low";
+
+  return { ...y, flags, confidence };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1898,13 +2050,44 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
+  // Shared edge cache: a yacht's specs don't change minute-to-minute, so
+  // there's no point re-paying Firecrawl + Anthropic for every user that
+  // looks at the same listing. With 24h caching, 20 concurrent users on the
+  // same URL = 1 upstream scrape, 19 instant cache hits. The cache is keyed
+  // on the request URL (which embeds the listing URL), so per-listing
+  // isolation is automatic. Skipped on local dev where caches.default is
+  // absent.
+  const edgeCache: Cache | undefined = (globalThis as unknown as {
+    caches?: { default?: Cache };
+  }).caches?.default;
+  const cacheKey = new Request(request.url, { method: "GET" });
+  if (edgeCache) {
+    const cached = await edgeCache.match(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
     const data = await scrapeYacht(url);
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "no-cache" },
+    const response = NextResponse.json(data, {
+      headers: {
+        // Public, 24h shared cache. The frontend talks to /api/scrape-yacht
+        // through fetch (no credentials) so "public" is safe; "s-maxage"
+        // controls Cloudflare's edge cache lifetime.
+        "Cache-Control": "public, max-age=300, s-maxage=86400",
+      },
     });
+    if (edgeCache) {
+      try {
+        await edgeCache.put(cacheKey, response.clone());
+      } catch {
+        // Cache writes are best-effort.
+      }
+    }
+    return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to scrape";
+    // NEVER cache errors — a transient Firecrawl blip shouldn't poison the
+    // cache for 24h.
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

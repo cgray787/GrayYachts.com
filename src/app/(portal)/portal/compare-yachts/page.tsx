@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useCallback, useEffect, type DragEvent } from "react";
+import { useState, useCallback, useEffect, useRef, type DragEvent } from "react";
 import {
   AlertTriangle,
   CheckCircle,
+  ChevronDown,
   ExternalLink,
   MapPin,
   ArrowUpDown,
   Ship,
+  ShieldCheck,
   Link2,
+  Pencil,
   Plus,
   GripVertical,
   Loader2,
@@ -47,6 +50,15 @@ interface YachtListing {
   url: string;
   gradient: string;
   imageUrl: string | null;
+  // Self-check metadata. flags are produced by the server's sanity-check
+  // pass; verified is set by the user clicking "Mark Reviewed". The UI
+  // requires verified === true (or zero flags) before it considers the card
+  // safe to share with a client.
+  flags?: string[];
+  confidence?: "high" | "medium" | "low";
+  verified?: boolean;
+  /** Field paths the user manually edited; never overwritten by a re-scrape. */
+  edited?: string[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -201,10 +213,30 @@ const SEED_YACHTS: YachtListing[] = [
 /* ------------------------------------------------------------------ */
 
 const SOURCE_COLORS: Record<string, string> = {
+  // High-volume aggregators
   YachtWorld: "bg-emerald-400/10 text-emerald-400",
   BoatTrader: "bg-blue-400/10 text-blue-400",
   "boats.com": "bg-purple-400/10 text-purple-400",
+  "Yacht.de": "bg-cyan-400/10 text-cyan-400",
+  RightBoat: "bg-cyan-400/10 text-cyan-400",
+  TheYachtMarket: "bg-cyan-400/10 text-cyan-400",
+  YachtBroker: "bg-cyan-400/10 text-cyan-400",
+  YATCO: "bg-emerald-400/10 text-emerald-400",
+  // Brokerage houses
   Denison: "bg-amber-400/10 text-amber-400",
+  Fraser: "bg-amber-400/10 text-amber-400",
+  Burgess: "bg-amber-400/10 text-amber-400",
+  "Northrop & Johnson": "bg-amber-400/10 text-amber-400",
+  "Camper & Nicholsons": "bg-amber-400/10 text-amber-400",
+  IYC: "bg-amber-400/10 text-amber-400",
+  Moran: "bg-amber-400/10 text-amber-400",
+  Edmiston: "bg-amber-400/10 text-amber-400",
+  HMY: "bg-amber-400/10 text-amber-400",
+  "SI Yachts": "bg-amber-400/10 text-amber-400",
+  Galati: "bg-amber-400/10 text-amber-400",
+  "United Yacht": "bg-amber-400/10 text-amber-400",
+  "Worth Avenue Yachts": "bg-amber-400/10 text-amber-400",
+  // Misc
   "Yacht Way": "bg-teal-400/10 text-teal-400",
   Listing: "bg-text-secondary/10 text-text-secondary",
 };
@@ -241,6 +273,8 @@ interface ScrapeResult {
   imageUrl: string | null;
   source: string;
   url: string;
+  flags?: string[];
+  confidence?: "high" | "medium" | "low";
   error?: string;
 }
 
@@ -300,7 +334,54 @@ async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     url,
     gradient: GRADIENTS[Math.abs(hash) % GRADIENTS.length],
     imageUrl: data.imageUrl ?? null,
+    flags: data.flags ?? [],
+    confidence: data.confidence ?? "medium",
+    verified: false,
+    edited: [],
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Yacht image (durable, proxy-backed)                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Build a stable image URL from a yacht listing URL. Routed through our
+ * own /api/yacht-image proxy so the image survives Firecrawl's signed-URL
+ * expiry, vendor downtime, and stale localStorage entries with a null
+ * `imageUrl`. The proxy fetches via Firecrawl on first hit and is then
+ * cached at Cloudflare's edge.
+ */
+function yachtImageSrc(listingUrl: string): string {
+  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}`;
+}
+
+function YachtImage({
+  yacht,
+  className,
+}: {
+  yacht: YachtListing;
+  className?: string;
+}) {
+  if (!yacht.url) return null;
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={yachtImageSrc(yacht.url)}
+      alt={yacht.name}
+      loading="lazy"
+      className={cn("absolute inset-0 h-full w-full object-cover", className)}
+      onError={(e) => {
+        const img = e.target as HTMLImageElement;
+        img.style.display = "none";
+        // Surface failures so they're at least diagnosable in DevTools
+        // instead of silently degrading to a gradient.
+        if (typeof window !== "undefined") {
+          console.warn("[YachtImage] failed to load", img.src);
+        }
+      }}
+    />
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -338,7 +419,10 @@ const SPEC_FIELDS: SpecField[] = [
 /*  localStorage persistence                                           */
 /* ------------------------------------------------------------------ */
 
-const STORAGE_KEY = "gy-compare-catalog-v5"; // v5: force-wipe any stale pre-vision payloads
+// v6: post-merge sanity-check + per-yacht flags/verified/edited fields. Bumping
+// the key force-wipes catalog entries scraped before the hallucination
+// guardrails landed, since those entries carry baked-in wrong specs.
+const STORAGE_KEY = "gy-compare-catalog-v6";
 
 function loadCatalog(): YachtListing[] {
   if (typeof window === "undefined") return SEED_YACHTS;
@@ -371,18 +455,100 @@ function saveCatalog(catalog: YachtListing[]) {
 /*  Spec Row                                                           */
 /* ------------------------------------------------------------------ */
 
+/** Pull the first numeric value out of a display string like "12.5m (40 ft)" or "$2,000,000". */
+function extractFirstNumber(text: string): number {
+  const cleaned = text.replace(/,/g, "");
+  const m = cleaned.match(/(-?\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+/**
+ * Inline-editable spec value. The parent always controls the value; on save
+ * we hand the new string up so the parent can update the catalog (and any
+ * numeric mirror of the field). Falls back to read-only when no `onSave`
+ * is provided (used by the mobile comparison table).
+ */
+function EditableSpec({
+  value,
+  onSave,
+  className,
+  inputWidthClass = "w-44",
+  textAlign = "right",
+}: {
+  value: string;
+  onSave?: (next: string) => void;
+  className?: string;
+  inputWidthClass?: string;
+  textAlign?: "left" | "right" | "center";
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!onSave || !editing) {
+    return (
+      <button
+        type="button"
+        disabled={!onSave}
+        onClick={() => {
+          if (!onSave) return;
+          setDraft(value); // seed the draft from the current value each time we enter edit mode
+          setEditing(true);
+        }}
+        className={cn(
+          "group inline-flex items-center gap-1.5 -mx-1 rounded px-1 transition-colors",
+          onSave && "hover:bg-gold/5 cursor-text",
+          className,
+        )}
+        title={onSave ? "Click to edit" : undefined}
+      >
+        <span>{value}</span>
+        {onSave && <Pencil className="h-3 w-3 text-text-secondary opacity-0 transition-opacity group-hover:opacity-100" />}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+        setEditing(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          if (draft !== value) onSave(draft);
+          setEditing(false);
+        } else if (e.key === "Escape") {
+          setDraft(value);
+          setEditing(false);
+        }
+      }}
+      className={cn(
+        "rounded border border-gold bg-bg-primary px-2 py-0.5 text-sm text-text-primary focus:outline-none",
+        inputWidthClass,
+        textAlign === "right" && "text-right",
+        textAlign === "center" && "text-center",
+      )}
+    />
+  );
+}
+
 function SpecRow({
   label,
   value,
   winner,
   side,
   isLocation,
+  onSave,
 }: {
   label: string;
   value: string;
   winner?: Winner;
   side: "a" | "b";
   isLocation?: boolean;
+  onSave?: (next: string) => void;
 }) {
   const isWinner = winner === side;
   const isLoser = winner !== undefined && winner !== "tie" && winner !== side;
@@ -403,11 +569,114 @@ function SpecRow({
         )}
       >
         {isLocation && <MapPin className="mr-1 inline h-3 w-3" />}
-        {value}
+        <EditableSpec value={value} onSave={onSave} />
         {isWinner && !isLocation && (
           <span className="ml-1.5 text-[10px] text-success">&#9650;</span>
         )}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Self-check banner shown above each ComparisonCard.
+ * - When the server flagged issues, it shows the count + a click-to-expand
+ *   list and asks the user to confirm.
+ * - When the user has manually marked the card reviewed, it shows a green
+ *   "safe to share" badge with an undo button.
+ * Until a card is reviewed (or has zero flags), the user has an explicit
+ * affordance to confirm — the whole point being to never accidentally hand
+ * a hallucinated number to a client.
+ */
+function ReviewBanner({
+  yacht,
+  onMarkVerified,
+}: {
+  yacht: YachtListing;
+  onMarkVerified: (next: boolean) => void;
+}) {
+  const flags = yacht.flags ?? [];
+  const verified = yacht.verified === true;
+  const [open, setOpen] = useState(false);
+
+  if (verified) {
+    return (
+      <div className="flex items-center justify-between border-b border-success/30 bg-success/5 px-4 py-2">
+        <div className="flex items-center gap-2 text-xs">
+          <ShieldCheck className="h-4 w-4 text-success" />
+          <span className="font-medium text-success">Reviewed by you</span>
+          <span className="text-text-secondary">— safe to share</span>
+        </div>
+        <button
+          onClick={() => onMarkVerified(false)}
+          className="rounded px-2 py-0.5 text-[10px] font-medium text-text-secondary transition-colors hover:bg-bg-primary hover:text-text-primary"
+        >
+          Unverify
+        </button>
+      </div>
+    );
+  }
+
+  if (flags.length === 0) {
+    return (
+      <div className="flex items-center justify-between border-b border-border bg-bg-primary/40 px-4 py-2">
+        <div className="flex items-center gap-2 text-xs text-text-secondary">
+          <CheckCircle className="h-4 w-4 text-text-secondary" />
+          <span>
+            Confidence:{" "}
+            <span className={cn(
+              "font-semibold",
+              yacht.confidence === "high" && "text-success",
+              yacht.confidence === "medium" && "text-warning",
+              yacht.confidence === "low" && "text-error",
+            )}>
+              {yacht.confidence ?? "medium"}
+            </span>
+            {" "}— confirm before sharing
+          </span>
+        </div>
+        <button
+          onClick={() => onMarkVerified(true)}
+          className="rounded bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-gold transition-colors hover:bg-gold/20"
+        >
+          Mark Reviewed
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-b border-warning/30 bg-warning/5">
+      <div className="flex items-center justify-between px-4 py-2">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-2 text-xs"
+        >
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <span className="font-medium text-warning">
+            Needs review — {flags.length} issue{flags.length === 1 ? "" : "s"}
+          </span>
+          <ChevronDown className={cn("h-3 w-3 text-warning transition-transform", open && "rotate-180")} />
+        </button>
+        <button
+          onClick={() => onMarkVerified(true)}
+          className="rounded bg-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-gold transition-colors hover:bg-gold/20"
+          title="Confirm the values are correct (or fix them above) before sharing"
+        >
+          Mark Reviewed
+        </button>
+      </div>
+      {open && (
+        <ul className="space-y-1 px-4 pb-3 text-[11px] text-warning/90">
+          {flags.map((f, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="text-warning">·</span>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -439,15 +708,7 @@ function ComparisonTable({
         {[left, right].map((yacht) => (
           <div key={yacht.id} className="bg-bg-card">
             <div className={cn("relative h-24 w-full bg-gradient-to-br", yacht.gradient)}>
-              {yacht.imageUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={yacht.imageUrl}
-                  alt={yacht.name}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-              )}
+              <YachtImage yacht={yacht} />
               <span className={cn("absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm", yacht.sourceBadgeColor)}>
                 {yacht.source}
               </span>
@@ -538,6 +799,8 @@ function ComparisonCard({
   onDragOver,
   onDragLeave,
   onDrop,
+  onUpdate,
+  onMarkVerified,
 }: {
   yacht: YachtListing;
   other: YachtListing;
@@ -546,6 +809,12 @@ function ComparisonCard({
   onDragOver: (e: DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: DragEvent) => void;
+  onUpdate: (
+    field: keyof YachtListing,
+    value: string,
+    numField?: keyof YachtListing,
+  ) => void;
+  onMarkVerified: (verified: boolean) => void;
 }) {
   const priceWinner = compareSpec(yacht.priceNum, other.priceNum, true);
 
@@ -558,7 +827,11 @@ function ComparisonCard({
         "overflow-hidden rounded-xl border-2 bg-bg-card transition-all",
         dragOver
           ? "border-gold shadow-lg shadow-gold/10 scale-[1.01]"
-          : "border-border"
+          : yacht.verified
+            ? "border-success/40"
+            : (yacht.flags?.length ?? 0) > 0
+              ? "border-warning/40"
+              : "border-border",
       )}
     >
       {/* Drop hint */}
@@ -568,17 +841,12 @@ function ComparisonCard({
         </div>
       )}
 
+      {/* Self-check banner */}
+      <ReviewBanner yacht={yacht} onMarkVerified={onMarkVerified} />
+
       {/* Yacht image / gradient fallback */}
       <div className={cn("relative h-44 w-full bg-gradient-to-br", yacht.gradient)}>
-        {yacht.imageUrl && (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={yacht.imageUrl}
-            alt={yacht.name}
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
-        )}
+        <YachtImage yacht={yacht} />
         <span
           className={cn(
             "absolute left-4 top-4 z-10 rounded-full px-3 py-1 text-xs font-medium backdrop-blur-sm",
@@ -592,7 +860,12 @@ function ComparisonCard({
       {/* Content */}
       <div className="p-6">
         <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
-          {yacht.name}
+          <EditableSpec
+            value={yacht.name}
+            onSave={(next) => onUpdate("name", next)}
+            inputWidthClass="w-full"
+            textAlign="left"
+          />
         </h2>
         <p className="mt-1 text-sm text-text-secondary">
           {yacht.builder} &middot; {yacht.type} &middot; {yacht.year}
@@ -610,7 +883,12 @@ function ComparisonCard({
                   : "text-text-secondary/60"
             )}
           >
-            {yacht.price}
+            <EditableSpec
+              value={yacht.price}
+              onSave={(next) => onUpdate("price", next, "priceNum")}
+              inputWidthClass="w-44"
+              textAlign="left"
+            />
           </span>
           <span className="ml-2 text-xs text-text-secondary">
             asking price
@@ -643,6 +921,13 @@ function ComparisonCard({
                 winner={winner}
                 side={side}
                 isLocation={field.isLocation}
+                onSave={(next) =>
+                  onUpdate(
+                    field.key,
+                    next,
+                    typeof yacht[field.numKey] === "number" ? field.numKey : undefined,
+                  )
+                }
               />
             );
           })}
@@ -708,15 +993,7 @@ function CatalogCard({
           yacht.gradient
         )}
       >
-        {yacht.imageUrl && (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={yacht.imageUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
-        )}
+        <YachtImage yacht={yacht} />
       </div>
 
       {/* Info */}
@@ -776,6 +1053,71 @@ function CatalogCard({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Recently-added Yachts dropdown                                     */
+/* ------------------------------------------------------------------ */
+
+function RecentDropdown({
+  catalog,
+  onPick,
+}: {
+  catalog: YachtListing[];
+  onPick: (yacht: YachtListing) => void;
+}) {
+  // Newest first — catalog appends new yachts at the end
+  const recent = [...catalog].reverse().slice(0, 8);
+
+  return (
+    <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl shadow-black/40">
+      <div className="border-b border-border/60 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+        Recently Added
+      </div>
+      {recent.length === 0 ? (
+        <div className="px-3 py-4 text-center text-xs text-text-secondary">
+          No yachts in catalog yet.
+        </div>
+      ) : (
+        <ul className="max-h-72 overflow-y-auto py-1">
+          {recent.map((yacht) => (
+            <li key={yacht.id}>
+              <button
+                type="button"
+                onClick={() => onPick(yacht)}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-gold/5"
+              >
+                <div
+                  className={cn(
+                    "relative h-9 w-12 shrink-0 overflow-hidden rounded-md bg-gradient-to-br",
+                    yacht.gradient
+                  )}
+                >
+                  <YachtImage yacht={yacht} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text-primary">
+                    {yacht.name}
+                  </p>
+                  <p className="truncate text-[11px] text-text-secondary">
+                    {yacht.builder} &middot; {yacht.year} &middot; {yacht.price}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium sm:inline-block",
+                    yacht.sourceBadgeColor
+                  )}
+                >
+                  {yacht.source}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -807,6 +1149,25 @@ export default function CompareYachtsPage() {
   const [loadingLeft, setLoadingLeft] = useState(false);
   const [loadingRight, setLoadingRight] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
+  const [openRecentSlot, setOpenRecentSlot] = useState<"a" | "b" | null>(null);
+  const recentRefA = useRef<HTMLDivElement | null>(null);
+  const recentRefB = useRef<HTMLDivElement | null>(null);
+  // Inline catalog dropdown next to the "Add Yacht from URL" input — lets the
+  // user peek at every yacht they've added without scrolling to the bottom of
+  // the page.
+  const [addUrlCatalogOpen, setAddUrlCatalogOpen] = useState(false);
+
+  // Close the Recent dropdown when clicking outside it
+  useEffect(() => {
+    if (!openRecentSlot) return;
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const ref = openRecentSlot === "a" ? recentRefA.current : recentRefB.current;
+      if (ref && !ref.contains(target)) setOpenRecentSlot(null);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [openRecentSlot]);
 
   // Persist catalog
   useEffect(() => {
@@ -1000,6 +1361,56 @@ export default function CompareYachtsPage() {
     setRightId(leftId);
   };
 
+  /**
+   * Apply a single-field edit from a comparison card. We update both the
+   * display string and (when present) the numeric mirror so winner-comparison
+   * still works. Manual edits dismiss any sanity-check flags that mention
+   * the field, since the user has now overridden the questionable value.
+   * The field path is recorded in `edited[]` so future logic can avoid
+   * clobbering it.
+   */
+  const handleFieldUpdate = useCallback(
+    (
+      yachtId: string,
+      field: keyof YachtListing,
+      value: string,
+      numField?: keyof YachtListing,
+    ) => {
+      setCatalog((prev) =>
+        prev.map((y) => {
+          if (y.id !== yachtId) return y;
+          const numericPart = numField ? extractFirstNumber(value) : null;
+          const fieldKeyLower = String(field).toLowerCase();
+          const remainingFlags = (y.flags ?? []).filter(
+            (f) => !f.toLowerCase().startsWith(fieldKeyLower + ":"),
+          );
+          const editedSet = new Set([...(y.edited ?? []), String(field)]);
+          return {
+            ...y,
+            [field]: value,
+            ...(numField && numericPart !== null ? { [numField]: numericPart } : {}),
+            flags: remainingFlags,
+            edited: Array.from(editedSet),
+          } as YachtListing;
+        }),
+      );
+    },
+    [],
+  );
+
+  const handleMarkVerified = useCallback(
+    (yachtId: string, verified: boolean) => {
+      setCatalog((prev) =>
+        prev.map((y) => (y.id === yachtId ? { ...y, verified } : y)),
+      );
+    },
+    [],
+  );
+
+  const bothReady =
+    (leftYacht.verified === true || (leftYacht.flags?.length ?? 0) === 0) &&
+    (rightYacht.verified === true || (rightYacht.flags?.length ?? 0) === 0);
+
   return (
     <div className="min-h-screen bg-bg-primary">
       <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10">
@@ -1026,25 +1437,53 @@ export default function CompareYachtsPage() {
 
           <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-end">
             {/* Left URL */}
-            <div className="flex-1">
+            <div className="flex-1" ref={recentRefA}>
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                 Yacht 1
               </label>
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
-                <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
-                <input
-                  type="url"
-                  value={urlLeft}
-                  onChange={(e) => setUrlLeft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && urlLeft.trim())
-                      loadUrlToSlot(urlLeft, "a", setLoadingLeft, setUrlLeft);
-                  }}
-                  placeholder="Paste first listing URL..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
-                />
-                {loadingLeft && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+              <div className="relative">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
+                  <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <input
+                    type="url"
+                    value={urlLeft}
+                    onChange={(e) => setUrlLeft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && urlLeft.trim())
+                        loadUrlToSlot(urlLeft, "a", setLoadingLeft, setUrlLeft);
+                    }}
+                    placeholder="Paste first listing URL..."
+                    className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
+                  />
+                  {loadingLeft && (
+                    <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenRecentSlot((s) => (s === "a" ? null : "a"))
+                    }
+                    className="flex shrink-0 items-center gap-1 rounded-md border border-border/60 bg-bg-primary/60 px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
+                    title="Pick from recently added yachts"
+                  >
+                    Recent
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 transition-transform",
+                        openRecentSlot === "a" && "rotate-180"
+                      )}
+                    />
+                  </button>
+                </div>
+                {openRecentSlot === "a" && (
+                  <RecentDropdown
+                    catalog={catalog}
+                    onPick={(yacht) => {
+                      handleAssign(yacht.id, "a");
+                      setUrlLeft("");
+                      setOpenRecentSlot(null);
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -1057,25 +1496,53 @@ export default function CompareYachtsPage() {
             </div>
 
             {/* Right URL */}
-            <div className="flex-1">
+            <div className="flex-1" ref={recentRefB}>
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                 Yacht 2
               </label>
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
-                <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
-                <input
-                  type="url"
-                  value={urlRight}
-                  onChange={(e) => setUrlRight(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && urlRight.trim())
-                      loadUrlToSlot(urlRight, "b", setLoadingRight, setUrlRight);
-                  }}
-                  placeholder="Paste second listing URL..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
-                />
-                {loadingRight && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+              <div className="relative">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-4 py-2.5 focus-within:border-gold transition-colors">
+                  <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <input
+                    type="url"
+                    value={urlRight}
+                    onChange={(e) => setUrlRight(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && urlRight.trim())
+                        loadUrlToSlot(urlRight, "b", setLoadingRight, setUrlRight);
+                    }}
+                    placeholder="Paste second listing URL..."
+                    className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none"
+                  />
+                  {loadingRight && (
+                    <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenRecentSlot((s) => (s === "b" ? null : "b"))
+                    }
+                    className="flex shrink-0 items-center gap-1 rounded-md border border-border/60 bg-bg-primary/60 px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
+                    title="Pick from recently added yachts"
+                  >
+                    Recent
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 transition-transform",
+                        openRecentSlot === "b" && "rotate-180"
+                      )}
+                    />
+                  </button>
+                </div>
+                {openRecentSlot === "b" && (
+                  <RecentDropdown
+                    catalog={catalog}
+                    onPick={(yacht) => {
+                      handleAssign(yacht.id, "b");
+                      setUrlRight("");
+                      setOpenRecentSlot(null);
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -1134,17 +1601,36 @@ export default function CompareYachtsPage() {
         )}
 
         {/* ── Status bar ── */}
-        <div className="mb-8 rounded-lg border border-success/20 bg-success/5 px-5 py-3.5">
+        <div
+          className={cn(
+            "mb-8 rounded-lg px-5 py-3.5",
+            bothReady
+              ? "border border-success/20 bg-success/5"
+              : "border border-warning/30 bg-warning/5",
+          )}
+        >
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium text-success">Comparing</span>
+            {bothReady ? (
+              <ShieldCheck className="h-4 w-4 text-success" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-warning" />
+            )}
+            <span
+              className={cn(
+                "text-sm font-medium",
+                bothReady ? "text-success" : "text-warning",
+              )}
+            >
+              {bothReady ? "Ready to share" : "Review required before sharing"}
+            </span>
             <span className="text-sm text-text-secondary">
               — {leftYacht.name} vs {rightYacht.name}
             </span>
           </div>
           <p className="mt-1 text-xs text-text-secondary">
-            Green specs indicate the better value. Drag yachts from your catalog
-            below to swap them in.
+            {bothReady
+              ? "Both cards have been reviewed (or have no flagged issues). Specs in green are the better value."
+              : "One or both cards need review. Click any value to edit it, then hit \"Mark Reviewed\" before sending to a client."}
           </p>
         </div>
 
@@ -1174,6 +1660,10 @@ export default function CompareYachtsPage() {
             onDragOver={handleDragOver("a")}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop("a")}
+            onUpdate={(field, value, numField) =>
+              handleFieldUpdate(leftYacht.id, field, value, numField)
+            }
+            onMarkVerified={(v) => handleMarkVerified(leftYacht.id, v)}
           />
           <ComparisonCard
             yacht={rightYacht}
@@ -1183,6 +1673,10 @@ export default function CompareYachtsPage() {
             onDragOver={handleDragOver("b")}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop("b")}
+            onUpdate={(field, value, numField) =>
+              handleFieldUpdate(rightYacht.id, field, value, numField)
+            }
+            onMarkVerified={(v) => handleMarkVerified(rightYacht.id, v)}
           />
         </div>
 
@@ -1207,6 +1701,24 @@ export default function CompareYachtsPage() {
               />
             </div>
             <button
+              type="button"
+              onClick={() => setAddUrlCatalogOpen((o) => !o)}
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
+              title="Show every yacht in your catalog"
+            >
+              <Ship className="h-4 w-4" />
+              Catalog
+              <span className="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-primary">
+                {catalog.length}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  addUrlCatalogOpen && "rotate-180",
+                )}
+              />
+            </button>
+            <button
               onClick={handleAddUrl}
               disabled={!urlInput.trim() || loading}
               className="inline-flex items-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-bg-primary transition-colors hover:bg-gold-hover disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1219,6 +1731,41 @@ export default function CompareYachtsPage() {
               {loading ? "Loading..." : "Add to Catalog"}
             </button>
           </div>
+
+          {/* Inline catalog dropdown — shows every yacht the user has added, with
+              the same LEFT/RIGHT/Delete actions as the bottom-of-page list, so
+              users can swap comparisons without scrolling. */}
+          {addUrlCatalogOpen && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-border bg-bg-card">
+              <div className="flex items-center justify-between border-b border-border/60 px-4 py-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                  Your Catalog · {catalog.length} yacht{catalog.length === 1 ? "" : "s"}
+                </span>
+                <span className="text-[10px] text-text-secondary">
+                  Click LEFT or RIGHT to compare
+                </span>
+              </div>
+              {catalog.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-text-secondary">
+                  No yachts yet. Paste a listing URL above to add one.
+                </div>
+              ) : (
+                <div className="max-h-96 space-y-1 overflow-y-auto p-2">
+                  {catalog.map((yacht) => (
+                    <CatalogCard
+                      key={yacht.id}
+                      yacht={yacht}
+                      isActive={yacht.id === leftId || yacht.id === rightId}
+                      onAssign={(slot) => handleAssign(yacht.id, slot)}
+                      onRemove={() => handleRemove(yacht.id)}
+                      isSeed={seedIds.has(yacht.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="text-xs text-text-secondary">Supported:</span>
             {["YachtWorld", "BoatTrader", "boats.com", "Denison", "Any URL"].map(
