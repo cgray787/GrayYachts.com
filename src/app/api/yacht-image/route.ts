@@ -52,7 +52,7 @@ interface FirecrawlScreenshotResponse {
   };
 }
 
-async function fetchScreenshotUrl(listingUrl: string, apiKey: string): Promise<string | null> {
+async function fetchHeroImageUrl(listingUrl: string, apiKey: string): Promise<string | null> {
   const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
@@ -61,8 +61,10 @@ async function fetchScreenshotUrl(listingUrl: string, apiKey: string): Promise<s
     },
     body: JSON.stringify({
       url: listingUrl,
-      // Just the screenshot — much faster/cheaper than the full extract pipeline
-      // that /api/scrape-yacht runs.
+      // We want both: og:image is the listing site's canonical hero photo
+      // (set in <meta property="og:image">) and is almost always a clean
+      // product shot of THIS yacht. The screenshot is the visual fallback
+      // when og:image is missing or generic.
       formats: ["screenshot"],
     }),
     signal: AbortSignal.timeout(FIRECRAWL_TIMEOUT_MS),
@@ -71,11 +73,14 @@ async function fetchScreenshotUrl(listingUrl: string, apiKey: string): Promise<s
   const json = (await res.json()) as FirecrawlScreenshotResponse;
   const screenshot = json?.data?.screenshot;
   const ogImage = json?.data?.metadata?.ogImage;
-  // Prefer the screenshot — it's reliably the listing page (often the hero
-  // photo of *this* yacht). Fall back to og:image only when no screenshot
-  // came back, and skip obvious generic share-images.
-  if (screenshot) return screenshot;
+  // Prefer og:image — listing sites set this as the share/preview image,
+  // so it's a clean photo of the yacht itself. Screenshots can capture the
+  // page mid-render, with filter sidebars open, or with cookie banners
+  // overlaid; that's what produced the cluttered hero in the previous
+  // version of this proxy. Use the screenshot only when og:image is
+  // missing or obviously a generic share/logo asset.
   if (ogImage && !GENERIC_OG_IMAGE_RE.test(ogImage)) return ogImage;
+  if (screenshot) return screenshot;
   return null;
 }
 
@@ -115,7 +120,7 @@ export async function GET(request: NextRequest) {
 
   let screenshotUrl: string | null = null;
   try {
-    screenshotUrl = await fetchScreenshotUrl(listingUrl, firecrawlKey);
+    screenshotUrl = await fetchHeroImageUrl(listingUrl, firecrawlKey);
   } catch {
     return badRequest("Upstream screenshot timeout", 504);
   }

@@ -351,9 +351,14 @@ async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
  * expiry, vendor downtime, and stale localStorage entries with a null
  * `imageUrl`. The proxy fetches via Firecrawl on first hit and is then
  * cached at Cloudflare's edge.
+ *
+ * The trailing `&v=N` is a manual cache-buster: bump it whenever the proxy
+ * logic changes (e.g. og:image vs screenshot preference) so existing edge
+ * cache entries don't keep serving the old bad image.
  */
+const IMAGE_PROXY_VERSION = 2;
 function yachtImageSrc(listingUrl: string): string {
-  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}`;
+  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}&v=${IMAGE_PROXY_VERSION}`;
 }
 
 function YachtImage({
