@@ -28,14 +28,14 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
+    label: "Yacht Catalog",
+    href: "/portal/yacht-catalog",
+    icon: Ship,
+  },
+  {
     label: "Compare Yachts",
     href: "/portal/compare-yachts",
     icon: Columns2,
-  },
-  {
-    label: "My Yachts",
-    href: "/portal/my-yachts",
-    icon: Ship,
   },
   {
     label: "Documents",
