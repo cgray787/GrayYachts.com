@@ -11,7 +11,6 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
 
-export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
 type RecentReport = {
