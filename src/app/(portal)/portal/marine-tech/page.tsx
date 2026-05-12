@@ -10,6 +10,11 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
+import {
+  MarineTechCalendar,
+  buildMonthRange,
+  type CalendarJob,
+} from "@/components/portal/MarineTechCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +26,10 @@ type RecentReport = {
   submitted_at: string | null;
 };
 
-async function loadOverview() {
+async function loadOverview(monthParam: string | undefined) {
   try {
     const db = createMarineTechClient();
+    const { start, end } = buildMonthRange(monthParam);
     const [
       { count: totalJobs },
       { count: newJobs },
@@ -33,6 +39,7 @@ async function loadOverview() {
       { count: totalPDI },
       { count: totalTechs },
       { data: recentReports },
+      { data: monthJobs },
     ] = await Promise.all([
       db.from("jobs").select("*", { count: "exact", head: true }),
       db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "new"),
@@ -46,6 +53,15 @@ async function loadOverview() {
         .select("id, boat_name, owner_name, make_model, submitted_at")
         .order("submitted_at", { ascending: false })
         .limit(5),
+      db
+        .from("jobs")
+        .select(
+          "id, status, scheduled_date, customers(name), boats(name, make, model)"
+        )
+        .gte("scheduled_date", start)
+        .lte("scheduled_date", end)
+        .order("scheduled_date", { ascending: true })
+        .limit(500),
     ]);
 
     return {
@@ -60,13 +76,19 @@ async function loadOverview() {
         totalTechs: totalTechs ?? 0,
       },
       recentReports: (recentReports ?? []) as RecentReport[],
+      monthJobs: (monthJobs ?? []) as unknown as CalendarJob[],
     };
   } catch {
     return { configured: false as const };
   }
 }
 
-export default async function MarineTechPage() {
+export default async function MarineTechPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const { month } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -75,7 +97,7 @@ export default async function MarineTechPage() {
   if (!user) redirect("/login?redirect=/portal/marine-tech");
   if (!isAdmin(user.email)) redirect("/portal/dashboard");
 
-  const overview = await loadOverview();
+  const overview = await loadOverview(month);
 
   return (
     <div className="p-6 lg:p-10">
@@ -194,6 +216,13 @@ export default async function MarineTechPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <MarineTechCalendar
+              jobs={overview.monthJobs}
+              monthParam={month}
+            />
           </div>
         </>
       )}
