@@ -5,8 +5,15 @@ export type CalendarJob = {
   id: string;
   status: string;
   scheduled_date: string | null;
+  scheduled_end_date?: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
+};
+
+const STATUS_BAR: Record<string, string> = {
+  new: "bg-blue-500/25 border-blue-400/50 text-blue-100 hover:bg-blue-500/35",
+  in_progress: "bg-amber-500/25 border-amber-400/50 text-amber-100 hover:bg-amber-500/35",
+  completed: "bg-emerald-500/25 border-emerald-400/50 text-emerald-100 hover:bg-emerald-500/35",
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -15,14 +22,26 @@ const STATUS_DOT: Record<string, string> = {
   completed: "bg-emerald-400",
 };
 
-const STATUS_TINT: Record<string, string> = {
-  new: "border-blue-400/30 bg-blue-500/10 text-blue-200 hover:bg-blue-500/15",
-  in_progress: "border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15",
-  completed: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15",
-};
-
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function parseISODate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function daysBetween(a: Date, b: Date): number {
+  const ms = b.getTime() - a.getTime();
+  return Math.round(ms / 86400000);
+}
 
 function parseMonth(value: string | undefined): { year: number; month0: number } {
   if (value && /^\d{4}-\d{2}$/.test(value)) {
@@ -34,7 +53,7 @@ function parseMonth(value: string | undefined): { year: number; month0: number }
 }
 
 function formatMonth(year: number, month0: number): string {
-  return `${year}-${String(month0 + 1).padStart(2, "0")}`;
+  return `${year}-${pad2(month0 + 1)}`;
 }
 
 function shiftMonth(year: number, month0: number, delta: number) {
@@ -54,19 +73,74 @@ function boatLabel(j: CalendarJob): string {
 export function buildMonthRange(value: string | undefined): {
   start: string;
   end: string;
+  gridStart: string;
+  gridEnd: string;
   year: number;
   month0: number;
 } {
   const { year, month0 } = parseMonth(value);
-  const start = new Date(year, month0, 1);
-  const end = new Date(year, month0 + 1, 0);
-  const pad = (n: number) => String(n).padStart(2, "0");
+  const first = new Date(year, month0, 1);
+  const last = new Date(year, month0 + 1, 0);
+  const gridStart = new Date(year, month0, 1 - first.getDay());
+  const gridEnd = new Date(gridStart);
+  gridEnd.setDate(gridStart.getDate() + 41);
   return {
-    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
-    end: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+    start: toISODate(first),
+    end: toISODate(last),
+    gridStart: toISODate(gridStart),
+    gridEnd: toISODate(gridEnd),
     year,
     month0,
   };
+}
+
+type Segment = {
+  job: CalendarJob;
+  colStart: number;
+  colSpan: number;
+  startsHere: boolean;
+  endsHere: boolean;
+  lane: number;
+};
+
+function buildWeekSegments(week: Date[], jobs: CalendarJob[]): Segment[] {
+  const weekStart = week[0];
+  const weekEnd = week[6];
+  const segments: Omit<Segment, "lane">[] = [];
+
+  for (const j of jobs) {
+    if (!j.scheduled_date) continue;
+    const start = parseISODate(j.scheduled_date);
+    const end = j.scheduled_end_date
+      ? parseISODate(j.scheduled_end_date)
+      : start;
+    if (end < weekStart || start > weekEnd) continue;
+
+    const segStart = start < weekStart ? weekStart : start;
+    const segEnd = end > weekEnd ? weekEnd : end;
+    segments.push({
+      job: j,
+      colStart: daysBetween(weekStart, segStart) + 1,
+      colSpan: daysBetween(segStart, segEnd) + 1,
+      startsHere: start >= weekStart,
+      endsHere: end <= weekEnd,
+    });
+  }
+
+  segments.sort((a, b) =>
+    a.colStart - b.colStart || b.colSpan - a.colSpan
+  );
+
+  const lanes: number[] = [];
+  const placed: Segment[] = [];
+  for (const seg of segments) {
+    let lane = 0;
+    while (lane < lanes.length && lanes[lane] >= seg.colStart) lane++;
+    if (lane === lanes.length) lanes.push(0);
+    lanes[lane] = seg.colStart + seg.colSpan - 1;
+    placed.push({ ...seg, lane });
+  }
+  return placed;
 }
 
 export function MarineTechCalendar({
@@ -77,50 +151,35 @@ export function MarineTechCalendar({
   monthParam: string | undefined;
 }) {
   const { year, month0 } = parseMonth(monthParam);
+  const monthKey = formatMonth(year, month0);
 
-  const byDate = new Map<string, CalendarJob[]>();
-  for (const j of jobs) {
-    if (!j.scheduled_date) continue;
-    const arr = byDate.get(j.scheduled_date) ?? [];
-    arr.push(j);
-    byDate.set(j.scheduled_date, arr);
+  const { gridStart } = buildMonthRange(monthParam);
+  const gridStartDate = parseISODate(gridStart);
+
+  const weeks: Date[][] = [];
+  for (let w = 0; w < 6; w++) {
+    const row: Date[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(gridStartDate);
+      day.setDate(gridStartDate.getDate() + w * 7 + d);
+      row.push(day);
+    }
+    weeks.push(row);
   }
 
-  const firstOfMonth = new Date(year, month0, 1);
-  const startOffset = firstOfMonth.getDay();
-  const daysInMonth = new Date(year, month0 + 1, 0).getDate();
-  const cells: { date: Date; inMonth: boolean }[] = [];
-  for (let i = 0; i < startOffset; i++) {
-    cells.push({ date: new Date(year, month0, -startOffset + i + 1), inMonth: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ date: new Date(year, month0, d), inMonth: true });
-  }
-  while (cells.length % 7 !== 0 || cells.length < 42) {
-    const last = cells[cells.length - 1].date;
-    const next = new Date(last);
-    next.setDate(last.getDate() + 1);
-    cells.push({ date: next, inMonth: next.getMonth() === month0 });
-  }
-
-  const todayISO = (() => {
-    const t = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
-  })();
-
+  const todayISO = toISODate(new Date());
   const prev = shiftMonth(year, month0, -1);
   const next = shiftMonth(year, month0, +1);
 
   return (
     <div className="rounded-xl border border-border bg-bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-border p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
         <div>
           <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
             Schedule
           </h2>
           <p className="text-xs text-text-secondary">
-            {jobs.length} job{jobs.length === 1 ? "" : "s"} scheduled this month
+            {jobs.length} job{jobs.length === 1 ? "" : "s"} scheduled in {MONTHS[month0]} {year} · click a job to reschedule
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -161,58 +220,88 @@ export function MarineTechCalendar({
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
-        {cells.map((cell, i) => {
-          const iso = (() => {
-            const pad = (n: number) => String(n).padStart(2, "0");
-            return `${cell.date.getFullYear()}-${pad(cell.date.getMonth() + 1)}-${pad(cell.date.getDate())}`;
-          })();
-          const dayJobs = byDate.get(iso) ?? [];
-          const isToday = iso === todayISO;
+      <div>
+        {weeks.map((week, wi) => {
+          const segments = buildWeekSegments(week, jobs);
+          const laneCount = segments.reduce(
+            (max, s) => Math.max(max, s.lane + 1),
+            0
+          );
+          const eventsHeight = Math.max(1, laneCount) * 22 + 8;
           return (
             <div
-              key={i}
-              className={`min-h-[88px] border-b border-r border-border p-1.5 ${
-                cell.inMonth ? "" : "bg-bg-primary/40"
-              } ${(i + 1) % 7 === 0 ? "border-r-0" : ""}`}
+              key={wi}
+              className={`relative grid grid-cols-7 ${
+                wi < weeks.length - 1 ? "border-b border-border" : ""
+              }`}
+              style={{ minHeight: `${56 + eventsHeight}px` }}
             >
-              <div className="mb-1 flex items-center justify-between px-1">
-                <span
-                  className={`text-[11px] ${
-                    isToday
-                      ? "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gold px-1.5 font-semibold text-bg-primary"
-                      : cell.inMonth
-                      ? "text-text-secondary"
-                      : "text-text-secondary/40"
-                  }`}
-                >
-                  {cell.date.getDate()}
-                </span>
-                {dayJobs.length > 2 && (
-                  <span className="text-[10px] text-text-secondary">
-                    +{dayJobs.length - 2}
-                  </span>
-                )}
-              </div>
-              <div className="space-y-1">
-                {dayJobs.slice(0, 2).map((j) => (
-                  <Link
-                    key={j.id}
-                    href="/portal/marine-tech/jobs"
-                    className={`flex items-center gap-1 truncate rounded border px-1.5 py-0.5 text-[11px] transition-colors ${
-                      STATUS_TINT[j.status] ??
-                      "border-slate-500/30 bg-slate-500/10 text-slate-200"
-                    }`}
-                    title={`${boatLabel(j)} · ${j.status.replace("_", " ")}`}
+              {week.map((day, di) => {
+                const inMonth = day.getMonth() === month0;
+                const iso = toISODate(day);
+                const isToday = iso === todayISO;
+                return (
+                  <div
+                    key={di}
+                    className={`border-r border-border px-1.5 pb-1.5 pt-1 ${
+                      di === 6 ? "border-r-0" : ""
+                    } ${inMonth ? "" : "bg-bg-primary/40"}`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        STATUS_DOT[j.status] ?? "bg-slate-300"
+                      className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] ${
+                        isToday
+                          ? "bg-gold font-semibold text-bg-primary"
+                          : inMonth
+                          ? "text-text-secondary"
+                          : "text-text-secondary/40"
                       }`}
-                    />
-                    <span className="truncate">{boatLabel(j)}</span>
-                  </Link>
-                ))}
+                    >
+                      {day.getDate()}
+                    </span>
+                  </div>
+                );
+              })}
+
+              <div
+                className="pointer-events-none absolute inset-x-0 grid grid-cols-7 gap-y-1 px-1"
+                style={{ top: "28px" }}
+              >
+                {segments.map((seg, si) => {
+                  const cls = STATUS_BAR[seg.job.status] ?? "bg-slate-500/25 border-slate-400/40 text-slate-100";
+                  const rounded =
+                    (seg.startsHere ? "rounded-l-md " : "") +
+                    (seg.endsHere ? "rounded-r-md " : "");
+                  const label = boatLabel(seg.job);
+                  const customer = seg.job.customers?.name;
+                  return (
+                    <Link
+                      key={si}
+                      href={`/portal/marine-tech?month=${monthKey}&job=${seg.job.id}`}
+                      scroll={false}
+                      style={{
+                        gridColumnStart: seg.colStart,
+                        gridColumnEnd: seg.colStart + seg.colSpan,
+                        gridRow: seg.lane + 1,
+                      }}
+                      className={`pointer-events-auto mx-0.5 flex items-center gap-1 truncate border px-1.5 py-0.5 text-[11px] transition-colors ${cls} ${rounded}`}
+                      title={`${label}${customer ? ` · ${customer}` : ""} · ${seg.job.status.replace(
+                        "_",
+                        " "
+                      )}`}
+                    >
+                      {seg.startsHere && (
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                            STATUS_DOT[seg.job.status] ?? "bg-slate-300"
+                          }`}
+                        />
+                      )}
+                      <span className="truncate">
+                        {seg.startsHere ? label : `↳ ${label}`}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );

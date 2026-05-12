@@ -15,6 +15,10 @@ import {
   buildMonthRange,
   type CalendarJob,
 } from "@/components/portal/MarineTechCalendar";
+import {
+  JobEditDrawer,
+  type EditableJob,
+} from "@/components/portal/JobEditDrawer";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +29,37 @@ type RecentReport = {
   make_model: string | null;
   submitted_at: string | null;
 };
+
+async function loadMonthJobs(
+  db: ReturnType<typeof createMarineTechClient>,
+  start: string,
+  end: string
+): Promise<CalendarJob[]> {
+  // Try with scheduled_end_date (migration 014 applied). Range overlap:
+  //   scheduled_date <= monthEnd AND COALESCE(scheduled_end_date, scheduled_date) >= monthStart
+  const withEnd = await db
+    .from("jobs")
+    .select(
+      "id, status, scheduled_date, scheduled_end_date, customers(name), boats(name, make, model)"
+    )
+    .lte("scheduled_date", end)
+    .or(`scheduled_end_date.gte.${start},scheduled_end_date.is.null`)
+    .order("scheduled_date", { ascending: true })
+    .limit(500);
+  if (!withEnd.error) return (withEnd.data ?? []) as unknown as CalendarJob[];
+
+  // Fallback for pre-migration databases: single-day rendering only.
+  const single = await db
+    .from("jobs")
+    .select(
+      "id, status, scheduled_date, customers(name), boats(name, make, model)"
+    )
+    .gte("scheduled_date", start)
+    .lte("scheduled_date", end)
+    .order("scheduled_date", { ascending: true })
+    .limit(500);
+  return (single.data ?? []) as unknown as CalendarJob[];
+}
 
 async function loadOverview(monthParam: string | undefined) {
   try {
@@ -39,7 +74,7 @@ async function loadOverview(monthParam: string | undefined) {
       { count: totalPDI },
       { count: totalTechs },
       { data: recentReports },
-      { data: monthJobs },
+      monthJobs,
     ] = await Promise.all([
       db.from("jobs").select("*", { count: "exact", head: true }),
       db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "new"),
@@ -53,15 +88,7 @@ async function loadOverview(monthParam: string | undefined) {
         .select("id, boat_name, owner_name, make_model, submitted_at")
         .order("submitted_at", { ascending: false })
         .limit(5),
-      db
-        .from("jobs")
-        .select(
-          "id, status, scheduled_date, customers(name), boats(name, make, model)"
-        )
-        .gte("scheduled_date", start)
-        .lte("scheduled_date", end)
-        .order("scheduled_date", { ascending: true })
-        .limit(500),
+      loadMonthJobs(db, start, end),
     ]);
 
     return {
@@ -76,19 +103,46 @@ async function loadOverview(monthParam: string | undefined) {
         totalTechs: totalTechs ?? 0,
       },
       recentReports: (recentReports ?? []) as RecentReport[],
-      monthJobs: (monthJobs ?? []) as unknown as CalendarJob[],
+      monthJobs,
     };
   } catch {
     return { configured: false as const };
   }
 }
 
+async function loadEditableJob(id: string): Promise<EditableJob | null> {
+  try {
+    const db = createMarineTechClient();
+    const withEnd = await db
+      .from("jobs")
+      .select(
+        "id, status, scheduled_date, scheduled_end_date, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (!withEnd.error && withEnd.data) {
+      return withEnd.data as unknown as EditableJob;
+    }
+    const fallback = await db
+      .from("jobs")
+      .select(
+        "id, status, scheduled_date, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (fallback.error || !fallback.data) return null;
+    return fallback.data as unknown as EditableJob;
+  } catch {
+    return null;
+  }
+}
+
 export default async function MarineTechPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; job?: string }>;
 }) {
-  const { month } = await searchParams;
+  const { month, job: jobId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -97,7 +151,10 @@ export default async function MarineTechPage({
   if (!user) redirect("/login?redirect=/portal/marine-tech");
   if (!isAdmin(user.email)) redirect("/portal/dashboard");
 
-  const overview = await loadOverview(month);
+  const [overview, editableJob] = await Promise.all([
+    loadOverview(month),
+    jobId ? loadEditableJob(jobId) : Promise.resolve(null),
+  ]);
 
   return (
     <div className="p-6 lg:p-10">
@@ -225,6 +282,10 @@ export default async function MarineTechPage({
             />
           </div>
         </>
+      )}
+
+      {editableJob && (
+        <JobEditDrawer job={editableJob} monthParam={month} />
       )}
     </div>
   );
