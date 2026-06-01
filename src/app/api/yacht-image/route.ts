@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { heroImageFor, providerStats } from "@/lib/scrape-providers";
 
 /**
  * Durable yacht image proxy.
  *
- * The Compare Yachts feature stores listing URLs in localStorage and renders
- * a hero image. Originally we hot-linked the Firecrawl screenshot URL —
- * which is a Google Cloud Storage *signed* URL with an `Expires=` query
- * param. After it expires, every cached catalog entry shows a broken image
- * (and the UI falls back to a coloured gradient).
+ * The Compare Yachts feature stores listing URLs in localStorage and
+ * renders a hero image. This endpoint acts as a stable, never-expiring
+ * image URL keyed on the yacht *listing* URL. It runs through the
+ * scrape provider chain (direct fetch → Jina → Firecrawl), pulls the
+ * actual bytes, and re-hosts them under our own URL with a long
+ * Cache-Control window.
  *
- * This endpoint acts as a stable, never-expiring image URL keyed on the
- * yacht *listing* URL. On each cache miss we ask Firecrawl for a fresh
- * screenshot, fetch the bytes, and stream them back with a long
- * Cache-Control window so Cloudflare's edge cache (and the browser) hold on
- * to the image. Old localStorage entries with `imageUrl: null` heal on
- * next render because the frontend builds the proxy URL from `yacht.url`,
- * not from the stored `imageUrl`.
+ * Old localStorage entries with `imageUrl: null` heal on next render
+ * because the frontend builds the proxy URL from `yacht.url`, not from
+ * the stored `imageUrl`.
+ *
+ * Redundancy: see src/lib/scrape-providers.ts. We mirror the
+ * GrayYachts Listing Intake agent's provider failover so this never
+ * goes fully dark when one provider is out of credits.
  */
 
-const FIRECRAWL_TIMEOUT_MS = 30_000;
 const IMAGE_FETCH_TIMEOUT_MS = 15_000;
 // 7 days — listing photos rarely change, and a re-scrape is cheap if they do.
 const CACHE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
-
-const GENERIC_OG_IMAGE_RE = /logo|icon|sprite|placeholder|default|share[-_]?image/i;
 
 function badRequest(msg: string, status = 400): NextResponse {
   return NextResponse.json({ error: msg }, { status });
@@ -44,46 +43,6 @@ function isPrivateHost(hostname: string): boolean {
   );
 }
 
-interface FirecrawlScreenshotResponse {
-  success?: boolean;
-  data?: {
-    screenshot?: string;
-    metadata?: { ogImage?: string };
-  };
-}
-
-async function fetchHeroImageUrl(listingUrl: string, apiKey: string): Promise<string | null> {
-  const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      url: listingUrl,
-      // We want both: og:image is the listing site's canonical hero photo
-      // (set in <meta property="og:image">) and is almost always a clean
-      // product shot of THIS yacht. The screenshot is the visual fallback
-      // when og:image is missing or generic.
-      formats: ["screenshot"],
-    }),
-    signal: AbortSignal.timeout(FIRECRAWL_TIMEOUT_MS),
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as FirecrawlScreenshotResponse;
-  const screenshot = json?.data?.screenshot;
-  const ogImage = json?.data?.metadata?.ogImage;
-  // Prefer og:image — listing sites set this as the share/preview image,
-  // so it's a clean photo of the yacht itself. Screenshots can capture the
-  // page mid-render, with filter sidebars open, or with cookie banners
-  // overlaid; that's what produced the cluttered hero in the previous
-  // version of this proxy. Use the screenshot only when og:image is
-  // missing or obviously a generic share/logo asset.
-  if (ogImage && !GENERIC_OG_IMAGE_RE.test(ogImage)) return ogImage;
-  if (screenshot) return screenshot;
-  return null;
-}
-
 export async function GET(request: NextRequest) {
   const listingUrl = request.nextUrl.searchParams.get("url");
   if (!listingUrl) return badRequest("Missing url parameter");
@@ -101,11 +60,12 @@ export async function GET(request: NextRequest) {
     return badRequest("Invalid URL");
   }
 
-  // Cloudflare Workers edge cache. Same request URL = same cached response.
-  // `caches.default` exists in the Workers runtime; on local dev (Node) it
-  // may be absent — we just skip the cache layer there.
-  const cache: Cache | undefined = (globalThis as unknown as { caches?: { default?: Cache } })
-    .caches?.default;
+  // Cloudflare Workers edge cache. Same request URL = same cached
+  // response. `caches.default` exists in the Workers runtime; on local
+  // dev (Node) it may be absent — we just skip the cache layer there.
+  const cache: Cache | undefined = (
+    globalThis as unknown as { caches?: { default?: Cache } }
+  ).caches?.default;
   const cacheKey = new Request(request.url, { method: "GET" });
 
   if (cache) {
@@ -113,27 +73,26 @@ export async function GET(request: NextRequest) {
     if (cached) return cached;
   }
 
-  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
-  if (!firecrawlKey) {
-    return badRequest("Image service unavailable", 503);
+  // Provider chain: direct → jina → firecrawl. Returns the URL of the
+  // best image we could find, plus which backend served it.
+  const lookup = await heroImageFor(listingUrl);
+  if (!lookup) {
+    return badRequest("No image found", 502);
   }
 
-  let screenshotUrl: string | null = null;
-  try {
-    screenshotUrl = await fetchHeroImageUrl(listingUrl, firecrawlKey);
-  } catch {
-    return badRequest("Upstream screenshot timeout", 504);
-  }
-  if (!screenshotUrl) {
-    return badRequest("No screenshot available", 502);
-  }
-
-  // Pull the actual bytes from the (signed, expiring) upstream URL so we can
-  // re-host them under our stable URL.
+  // Pull the actual bytes from the (possibly signed/expiring) upstream
+  // URL so we can re-host them under our stable URL.
   let imgRes: Response;
   try {
-    imgRes = await fetch(screenshotUrl, {
+    imgRes = await fetch(lookup.imageUrl, {
       signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
+      headers: {
+        // Some CDNs gate hot-linking on a Referer matching their host.
+        // Sending the listing page as Referer is the friendliest hint.
+        Referer: listingUrl,
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
     });
   } catch {
     return badRequest("Image fetch timeout", 504);
@@ -142,26 +101,39 @@ export async function GET(request: NextRequest) {
     return badRequest(`Upstream image returned ${imgRes.status}`, 502);
   }
 
-  const buf = await imgRes.arrayBuffer();
   const contentType = imgRes.headers.get("content-type") || "image/png";
+  // Reject upstream responses that aren't actually images. This happens
+  // when a fallback <img> URL points at an HTML page (some sites serve
+  // a "hot-link not allowed" HTML page on 200) or when the extracted
+  // src was actually a page link the regex picked up incorrectly.
+  if (!/^image\//i.test(contentType)) {
+    return badRequest(
+      `Upstream returned non-image content-type: ${contentType}`,
+      502
+    );
+  }
+
+  const buf = await imgRes.arrayBuffer();
 
   const response = new NextResponse(buf, {
     status: 200,
     headers: {
       "Content-Type": contentType,
       "Cache-Control": `public, max-age=${CACHE_MAX_AGE_SECONDS}, s-maxage=${CACHE_MAX_AGE_SECONDS}, immutable`,
-      // Strip Set-Cookie etc. — none of that is meaningful for images.
       "X-Content-Type-Options": "nosniff",
+      // Surface which provider served the image — useful for debugging
+      // when something looks off in the Compare Yachts UI.
+      "X-Image-Provider": lookup.provider,
+      "X-Image-Provider-Stats": JSON.stringify(providerStats()),
     },
   });
 
   if (cache) {
-    // Clone before returning so we can put a fresh body into the cache.
     try {
       await cache.put(cacheKey, response.clone());
     } catch {
-      // Cache writes are best-effort; never fail the request because of a
-      // cache hiccup.
+      // Cache writes are best-effort; never fail the request because of
+      // a cache hiccup.
     }
   }
 
