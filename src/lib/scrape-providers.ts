@@ -18,7 +18,7 @@
  * provider for every listing in a session. Workers recycle isolates
  * often enough that recovery is automatic.
  */
-import { GENERIC_IMAGE_RE } from "@/lib/scrape-shared";
+import { GENERIC_IMAGE_RE, assertPublicHttpUrl } from "@/lib/scrape-shared";
 
 const EXHAUSTION_MARKERS = [
   "402",
@@ -294,6 +294,102 @@ async function tryFirecrawl(
   };
 }
 
+/* ---------------- SerpApi Google Images ---------------- */
+
+interface SerpApiImageResult {
+  original?: string;
+  thumbnail?: string;
+  source?: string;
+  title?: string;
+  original_width?: number;
+  original_height?: number;
+}
+
+interface SerpApiResponse {
+  images_results?: SerpApiImageResult[];
+  error?: string;
+}
+
+/**
+ * Build a Google Images query out of a yacht listing URL. Pulls the
+ * year + builder + model out of the URL slug (the same approach as
+ * `/api/scrape-yacht`'s URL-slug parser) and tacks "yacht" on the end
+ * so the results skew toward marine photography.
+ *
+ *   https://www.yachtworld.com/yacht/2023-hcb-yachts-42-lujo-9619478/
+ *     → "2023 hcb yachts 42 lujo yacht"
+ */
+function searchQueryFromListingUrl(listingUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(listingUrl);
+  } catch {
+    return null;
+  }
+  // Take the most descriptive path segment — usually the last non-empty
+  // segment ending the listing path.
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (!segments.length) return null;
+  let slug = segments[segments.length - 1];
+  // Strip trailing listing IDs that aren't useful as search terms
+  // (long all-digit tails like "-9619478").
+  slug = slug.replace(/-\d{6,}$/i, "");
+  // Hyphens → spaces, drop common filler words.
+  const cleaned = slug
+    .replace(/-/g, " ")
+    .replace(/\b(for|sale|listing)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length < 4) return null;
+  // Append "yacht" to bias results toward marine photography.
+  return /yacht|boat/i.test(cleaned) ? cleaned : `${cleaned} yacht`;
+}
+
+async function trySerpApi(
+  listingUrl: string,
+  timeoutMs: number
+): Promise<string | null> {
+  const key = process.env.SERPAPI_API_KEY;
+  if (!key) return null;
+  const query = searchQueryFromListingUrl(listingUrl);
+  if (!query) return null;
+  const u = new URL("https://serpapi.com/search.json");
+  u.searchParams.set("engine", "google_images");
+  u.searchParams.set("q", query);
+  u.searchParams.set("api_key", key);
+  u.searchParams.set("num", "20");
+  const res = await fetch(u.toString(), {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (res.status === 401 || res.status === 429) {
+    throw new Error(`serpapi HTTP ${res.status} (quota/auth)`);
+  }
+  if (!res.ok) return null;
+  const json = (await res.json()) as SerpApiResponse;
+  if (json.error && isExhaustion(json.error)) {
+    throw new Error(`serpapi error: ${json.error}`);
+  }
+  const results = json.images_results || [];
+  for (const r of results) {
+    const candidate = r.original || r.thumbnail;
+    if (!candidate) continue;
+    if (GENERIC_IMAGE_RE.test(candidate)) continue;
+    // Prefer landscape (yacht photos are wider than tall). If we have
+    // dimensions, require width/height > 1.1 — otherwise accept and
+    // hope for the best.
+    if (r.original_width && r.original_height) {
+      if (r.original_width / r.original_height < 1.1) continue;
+    }
+    return candidate;
+  }
+  // Last resort: return the first result regardless of orientation.
+  for (const r of results) {
+    const candidate = r.original || r.thumbnail;
+    if (candidate && !GENERIC_IMAGE_RE.test(candidate)) return candidate;
+  }
+  return null;
+}
+
 /* ---------------- public: heroImageFor() ---------------- */
 
 export interface HeroLookup {
@@ -303,7 +399,8 @@ export interface HeroLookup {
     | "jina-html"
     | "jina-markdown"
     | "firecrawl-og"
-    | "firecrawl-screenshot";
+    | "firecrawl-screenshot"
+    | "serpapi-google-images";
 }
 
 /**
@@ -368,8 +465,10 @@ export async function heroImageFor(
     }
   }
 
-  // 3. Firecrawl — paid; last resort. Hands back either og:image or a
-  // full-page screenshot URL.
+  // 4. Firecrawl — paid; their managed browser farm passes Cloudflare
+  //    Turnstile where Jina can't. Hands back either og:image or a
+  //    full-page screenshot URL. Skipped automatically once the
+  //    circuit breaker has marked it dead for the rest of the isolate.
   if (!dead.has("firecrawl")) {
     try {
       const fc = await tryFirecrawl(listingUrl, firecrawlTimeout);
@@ -383,6 +482,24 @@ export async function heroImageFor(
       }
     } catch (err) {
       if (isExhaustion(err)) dead.add("firecrawl");
+    }
+  }
+
+  // 5. SerpApi Google Images — last resort. Queries Google for the
+  //    yacht name/model extracted from the URL slug. Returns *a* photo
+  //    of the model, not necessarily this listing's exact hero shot —
+  //    used only when every site-direct provider above has failed
+  //    (typically on Cloudflare-Turnstile-protected listings with
+  //    Firecrawl out of credits).
+  if (!dead.has("serpapi")) {
+    try {
+      const url = await trySerpApi(listingUrl, jinaTimeout);
+      if (url) {
+        lastUsed = "serpapi-google-images";
+        return { imageUrl: url, provider: "serpapi-google-images" };
+      }
+    } catch (err) {
+      if (isExhaustion(err)) dead.add("serpapi");
     }
   }
 

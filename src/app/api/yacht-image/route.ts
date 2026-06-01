@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { heroImageFor, providerStats } from "@/lib/scrape-providers";
+import { assertPublicHttpUrl, isPrivateHost } from "@/lib/scrape-shared";
 
 /**
  * Durable yacht image proxy.
@@ -28,19 +29,28 @@ function badRequest(msg: string, status = 400): NextResponse {
   return NextResponse.json({ error: msg }, { status });
 }
 
-function isPrivateHost(hostname: string): boolean {
-  const h = hostname.toLowerCase();
-  return (
-    h === "localhost" ||
-    h.endsWith(".local") ||
-    /^127\./.test(h) ||
-    /^10\./.test(h) ||
-    /^192\.168\./.test(h) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-    h === "169.254.169.254" ||
-    h === "[::1]" ||
-    h === "0.0.0.0"
-  );
+/**
+ * Fetch an attacker-influenced URL safely: reject non-HTTP(S) and
+ * private/loopback/link-local hosts up front, then follow up to 4
+ * redirects manually, re-running the same check on every hop. This
+ * stops a malicious og:image pointing at 169.254.169.254 (AWS/GCE
+ * metadata), `localhost`, or RFC1918 ranges via a chained 302.
+ */
+async function safeFetchPublic(
+  rawUrl: string,
+  init: RequestInit,
+  maxRedirects = 4
+): Promise<Response> {
+  let current = rawUrl;
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    assertPublicHttpUrl(current);
+    const res = await fetch(current, { ...init, redirect: "manual" });
+    if (res.status < 300 || res.status >= 400) return res;
+    const location = res.headers.get("location");
+    if (!location) return res;
+    current = new URL(location, current).toString();
+  }
+  throw new Error("Too many redirects");
 }
 
 export async function GET(request: NextRequest) {
@@ -81,10 +91,13 @@ export async function GET(request: NextRequest) {
   }
 
   // Pull the actual bytes from the (possibly signed/expiring) upstream
-  // URL so we can re-host them under our stable URL.
+  // URL so we can re-host them under our stable URL. The `lookup.imageUrl`
+  // came from attacker-controlled HTML (og:image, JSON-LD, etc.), so
+  // we walk redirects manually and re-validate every hop against
+  // private hosts — see safeFetchPublic.
   let imgRes: Response;
   try {
-    imgRes = await fetch(lookup.imageUrl, {
+    imgRes = await safeFetchPublic(lookup.imageUrl, {
       signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
       headers: {
         // Some CDNs gate hot-linking on a Referer matching their host.
@@ -94,7 +107,11 @@ export async function GET(request: NextRequest) {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
     });
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.startsWith("Disallowed")) {
+      return badRequest(`Rejected upstream URL: ${msg}`, 400);
+    }
     return badRequest("Image fetch timeout", 504);
   }
   if (!imgRes.ok) {
