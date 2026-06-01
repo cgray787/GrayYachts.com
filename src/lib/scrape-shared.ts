@@ -38,6 +38,30 @@ export function isPrivateHost(hostname: string): boolean {
  * Validate a URL is safe to fetch from the worker — public HTTP(S)
  * only, no private/loopback/link-local hosts. Returns the parsed URL
  * on success, throws on rejection.
+ *
+ * Residual risk — DNS rebinding (acknowledged, not exploitable here):
+ *
+ *   This is a hostname-string check, not a resolve-then-pin-IP check.
+ *   In a Node.js / VPC-resident service the correct mitigation is
+ *   `dns.promises.lookup()` followed by fetching the resolved IP with
+ *   the original Host header (or a custom HTTP agent's `lookup`
+ *   callback). Neither is available in the Cloudflare Workers
+ *   runtime: there is no `dns` module and `fetch` exposes no DNS
+ *   hook.
+ *
+ *   The exposure is bounded by what the Worker can reach. Cloudflare's
+ *   edge has no VPC, doesn't peer with EC2/GCE metadata IPs
+ *   (169.254.169.254), and can't route RFC1918 — so a rebinding
+ *   attack against `evil.example.com → 192.168.1.1` produces a
+ *   no-route failure, not an internal hit. Upstream services
+ *   (Supabase, Firecrawl, Jina, SerpApi) are public hostnames behind
+ *   auth, not private-IP targets.
+ *
+ *   This string check is therefore defence-in-depth — it catches the
+ *   obvious cases (literal `localhost`, fat-fingered RFC1918
+ *   hostnames) — and the additional DNS-pinning step is omitted
+ *   intentionally because the runtime doesn't permit it AND there
+ *   is no reachable internal surface to defend.
  */
 export function assertPublicHttpUrl(raw: string): URL {
   const url = new URL(raw);
