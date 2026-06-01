@@ -12,14 +12,12 @@ import {
   Ship,
   ShieldCheck,
   Link2,
-  Pencil,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type YachtListing,
   SLOTS_KEY,
-  extractFirstNumber,
   loadCatalog,
   saveCatalog,
   scrapeYachtFromUrl,
@@ -61,92 +59,23 @@ const SPEC_FIELDS: SpecField[] = [
 
 
 /**
- * Inline-editable spec value. The parent always controls the value; on save
- * we hand the new string up so the parent can update the catalog (and any
- * numeric mirror of the field). Falls back to read-only when no `onSave`
- * is provided (used by the mobile comparison table).
+ * Read-only spec row. Compare Yachts is a *reference* surface: every
+ * value here is sourced from the live listing scrape, so we deliberately
+ * don't allow clients (or anyone else) to mutate the displayed specs —
+ * a typo here would silently propagate into shared comparisons.
  */
-function EditableSpec({
-  value,
-  onSave,
-  className,
-  inputWidthClass = "w-44",
-  textAlign = "right",
-}: {
-  value: string;
-  onSave?: (next: string) => void;
-  className?: string;
-  inputWidthClass?: string;
-  textAlign?: "left" | "right" | "center";
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  if (!onSave || !editing) {
-    return (
-      <button
-        type="button"
-        disabled={!onSave}
-        onClick={() => {
-          if (!onSave) return;
-          setDraft(value); // seed the draft from the current value each time we enter edit mode
-          setEditing(true);
-        }}
-        className={cn(
-          "group inline-flex items-center gap-1.5 -mx-1 rounded px-1 transition-colors",
-          onSave && "hover:bg-gold/5 cursor-text",
-          className,
-        )}
-        title={onSave ? "Click to edit" : undefined}
-      >
-        <span>{value}</span>
-        {onSave && <Pencil className="h-3 w-3 text-text-secondary opacity-0 transition-opacity group-hover:opacity-100" />}
-      </button>
-    );
-  }
-
-  return (
-    <input
-      autoFocus
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        if (draft !== value) onSave(draft);
-        setEditing(false);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          if (draft !== value) onSave(draft);
-          setEditing(false);
-        } else if (e.key === "Escape") {
-          setDraft(value);
-          setEditing(false);
-        }
-      }}
-      className={cn(
-        "rounded border border-gold bg-bg-primary px-2 py-0.5 text-sm text-text-primary focus:outline-none",
-        inputWidthClass,
-        textAlign === "right" && "text-right",
-        textAlign === "center" && "text-center",
-      )}
-    />
-  );
-}
-
 function SpecRow({
   label,
   value,
   winner,
   side,
   isLocation,
-  onSave,
 }: {
   label: string;
   value: string;
   winner?: Winner;
   side: "a" | "b";
   isLocation?: boolean;
-  onSave?: (next: string) => void;
 }) {
   const isWinner = winner === side;
   const isLoser = winner !== undefined && winner !== "tie" && winner !== side;
@@ -167,7 +96,7 @@ function SpecRow({
         )}
       >
         {isLocation && <MapPin className="mr-1 inline h-3 w-3" />}
-        <EditableSpec value={value} onSave={onSave} />
+        <span>{value}</span>
         {isWinner && !isLocation && (
           <span className="ml-1.5 text-[10px] text-success">&#9650;</span>
         )}
@@ -397,7 +326,6 @@ function ComparisonCard({
   onDragOver,
   onDragLeave,
   onDrop,
-  onUpdate,
   onMarkVerified,
 }: {
   yacht: YachtListing;
@@ -407,11 +335,6 @@ function ComparisonCard({
   onDragOver: (e: DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: DragEvent) => void;
-  onUpdate: (
-    field: keyof YachtListing,
-    value: string,
-    numField?: keyof YachtListing,
-  ) => void;
   onMarkVerified: (verified: boolean) => void;
 }) {
   const priceWinner = compareSpec(yacht.priceNum, other.priceNum, true);
@@ -458,12 +381,7 @@ function ComparisonCard({
       {/* Content */}
       <div className="p-6">
         <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
-          <EditableSpec
-            value={yacht.name}
-            onSave={(next) => onUpdate("name", next)}
-            inputWidthClass="w-full"
-            textAlign="left"
-          />
+          {yacht.name}
         </h2>
         <p className="mt-1 text-sm text-text-secondary">
           {yacht.builder} &middot; {yacht.type} &middot; {yacht.year}
@@ -481,12 +399,7 @@ function ComparisonCard({
                   : "text-text-secondary/60"
             )}
           >
-            <EditableSpec
-              value={yacht.price}
-              onSave={(next) => onUpdate("price", next, "priceNum")}
-              inputWidthClass="w-44"
-              textAlign="left"
-            />
+            {yacht.price}
           </span>
           <span className="ml-2 text-xs text-text-secondary">
             asking price
@@ -519,13 +432,6 @@ function ComparisonCard({
                 winner={winner}
                 side={side}
                 isLocation={field.isLocation}
-                onSave={(next) =>
-                  onUpdate(
-                    field.key,
-                    next,
-                    typeof yacht[field.numKey] === "number" ? field.numKey : undefined,
-                  )
-                }
               />
             );
           })}
@@ -811,43 +717,6 @@ export default function CompareYachtsPage() {
     setLeftId(rightId);
     setRightId(leftId);
   };
-
-  /**
-   * Apply a single-field edit from a comparison card. We update both the
-   * display string and (when present) the numeric mirror so winner-comparison
-   * still works. Manual edits dismiss any sanity-check flags that mention
-   * the field, since the user has now overridden the questionable value.
-   * The field path is recorded in `edited[]` so future logic can avoid
-   * clobbering it.
-   */
-  const handleFieldUpdate = useCallback(
-    (
-      yachtId: string,
-      field: keyof YachtListing,
-      value: string,
-      numField?: keyof YachtListing,
-    ) => {
-      setCatalog((prev) =>
-        prev.map((y) => {
-          if (y.id !== yachtId) return y;
-          const numericPart = numField ? extractFirstNumber(value) : null;
-          const fieldKeyLower = String(field).toLowerCase();
-          const remainingFlags = (y.flags ?? []).filter(
-            (f) => !f.toLowerCase().startsWith(fieldKeyLower + ":"),
-          );
-          const editedSet = new Set([...(y.edited ?? []), String(field)]);
-          return {
-            ...y,
-            [field]: value,
-            ...(numField && numericPart !== null ? { [numField]: numericPart } : {}),
-            flags: remainingFlags,
-            edited: Array.from(editedSet),
-          } as YachtListing;
-        }),
-      );
-    },
-    [],
-  );
 
   const handleMarkVerified = useCallback(
     (yachtId: string, verified: boolean) => {
@@ -1170,9 +1039,6 @@ export default function CompareYachtsPage() {
             onDragOver={handleDragOver("a")}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop("a")}
-            onUpdate={(field, value, numField) =>
-              handleFieldUpdate(leftYacht.id, field, value, numField)
-            }
             onMarkVerified={(v) => handleMarkVerified(leftYacht.id, v)}
           />
           <ComparisonCard
@@ -1183,9 +1049,6 @@ export default function CompareYachtsPage() {
             onDragOver={handleDragOver("b")}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop("b")}
-            onUpdate={(field, value, numField) =>
-              handleFieldUpdate(rightYacht.id, field, value, numField)
-            }
             onMarkVerified={(v) => handleMarkVerified(rightYacht.id, v)}
           />
         </div>
