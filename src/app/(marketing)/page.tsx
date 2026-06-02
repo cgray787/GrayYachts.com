@@ -67,22 +67,44 @@ const services = [
 
 const vessels = [
   {
-    name: "M/Y Endeavour",
-    price: "$4.2M",
-    spec: "72' Viking",
+    name: "S/Y Playa Linda",
+    price: "$110,000",
+    spec: "42' Hunter Passage · 1994 · Seattle, WA",
     gradient: "from-[#0c1a2e] via-[#162a45] to-[#0c1220]",
+    image: "/listings/playa-linda/hero.jpg",
+    badge: "NEW LISTING",
   },
   {
-    name: "S/Y Pacific Grace",
-    price: "$2.8M",
-    spec: "56' Beneteau",
+    name: "S/V Seawulff",
+    price: "$35,000 OBO",
+    spec: "34.5' Wood Sloop · 1981 · Port Townsend, WA",
+    gradient: "from-[#1a2a3d] via-[#2a3b52] to-[#0c1220]",
+    image: "/listings/seawulff/hero.jpg",
+    href: "/listings/seawulff.pdf",
+    badge: "NEW LISTING",
+  },
+  {
+    name: "M/Y Dub Sea",
+    price: "$30,000",
+    spec: "29' Cobalt 293 · 1998 · Seattle, WA",
     gradient: "from-[#111827] via-[#1a2a3d] to-[#0c1220]",
+    image: "/listings/dub-sea/hero.jpg",
+    badge: "NEW LISTING",
   },
   {
-    name: "M/Y White Wind",
-    price: "$5.1M",
-    spec: "84' Westport",
-    gradient: "from-[#0c1220] via-[#142235] to-[#060a12]",
+    name: "2022 Yamaha 252SE",
+    price: "$100,000",
+    spec: "25' Yamaha 252SE · 2022 · Renton, WA",
+    gradient: "from-[#0c1a2e] via-[#162a45] to-[#0c1220]",
+    image: "/listings/yamaha-252se/hero.jpg",
+    badge: "NEW LISTING",
+  },
+  {
+    name: "M/Y Moby Dick",
+    price: "$68,000",
+    spec: "23' Quicksilver 675 Weekend · 2023 · Seattle, WA",
+    gradient: "from-[#111827] via-[#1a2a3d] to-[#0c1220]",
+    image: "/listings/moby-dick/hero.jpg",
   },
 ];
 
@@ -384,30 +406,58 @@ export default function HomePage() {
             variants={stagger}
             className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {vessels.map((vessel, i) => (
-              <motion.div
-                key={vessel.name}
-                variants={fadeUp}
-                custom={i}
-                className="group relative overflow-hidden rounded-lg border border-border transition-all duration-500 hover:border-border-light"
-              >
-                {/* Image placeholder */}
-                <div
-                  className={`aspect-[4/3] bg-gradient-to-br ${vessel.gradient}`}
-                />
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/90 via-transparent to-transparent" />
-                {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
-                    {vessel.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    {vessel.price} &middot; {vessel.spec}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+            {vessels.map((vessel, i) => {
+              const Wrapper = vessel.href ? motion.a : motion.div;
+              const wrapperProps = vessel.href
+                ? { href: vessel.href, target: "_blank", rel: "noopener noreferrer" }
+                : {};
+              return (
+                <Wrapper
+                  key={vessel.name}
+                  variants={fadeUp}
+                  custom={i}
+                  {...wrapperProps}
+                  className="group relative block overflow-hidden rounded-lg border border-border transition-all duration-500 hover:border-gold"
+                >
+                  {/* Image (photo if available, otherwise gradient) */}
+                  {vessel.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={vessel.image}
+                      alt={vessel.name}
+                      loading="lazy"
+                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div
+                      className={`aspect-[4/3] bg-gradient-to-br ${vessel.gradient}`}
+                    />
+                  )}
+                  {/* Badge */}
+                  {vessel.badge && (
+                    <span className="absolute top-4 right-4 rounded-full bg-gold px-3 py-1 text-[10px] font-bold tracking-[0.2em] text-bg-primary">
+                      {vessel.badge}
+                    </span>
+                  )}
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/90 via-transparent to-transparent" />
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
+                      {vessel.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {vessel.price} &middot; {vessel.spec}
+                    </p>
+                    {vessel.href && (
+                      <p className="mt-2 text-[11px] tracking-[0.25em] text-gold opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        VIEW LISTING →
+                      </p>
+                    )}
+                  </div>
+                </Wrapper>
+              );
+            })}
           </motion.div>
         </motion.div>
       </section>
