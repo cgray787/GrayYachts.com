@@ -13,11 +13,12 @@ import {
   Instagram,
   ArrowRight,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+
+import { FleetGallery } from "@/components/marketing/fleet-gallery";
+import { FleetGrid } from "@/components/marketing/fleet-grid";
+import { heroSlides, vessels } from "@/lib/fleet";
 
 /* ------------------------------------------------------------------ */
 /*  Animation helpers                                                  */
@@ -68,286 +69,15 @@ const services = [
   },
 ];
 
-type GalleryPhoto = { src: string; caption: string };
-
-type Vessel = {
-  name: string;
-  year: number;
-  make: string;
-  length: string;
-  location: string;
-  price: string;
-  image: string;
-  gallery: GalleryPhoto[];
-  href?: string;
-  badge?: string;
-};
-
-const vessels: Vessel[] = [
-  {
-    name: "S/Y Playa Linda",
-    year: 1994,
-    make: "Hunter Passage",
-    length: "42'",
-    location: "Seattle, WA",
-    price: "$110,000",
-    image: "/listings/playa-linda/hero.jpg",
-    gallery: [
-      { src: "/listings/playa-linda/hero.jpg", caption: "At Her Berth" },
-      { src: "/listings/playa-linda/g1.jpg", caption: "Main Salon" },
-      { src: "/listings/playa-linda/g2.jpg", caption: "Nav Station" },
-      { src: "/listings/playa-linda/g3.jpg", caption: "Cockpit & Tender" },
-    ],
-    badge: "NEW LISTING",
-  },
-  {
-    name: "S/V Seawulff",
-    year: 1981,
-    make: "Wood Sloop",
-    length: "34.5'",
-    location: "Port Townsend, WA",
-    price: "$35,000 OBO",
-    image: "/listings/seawulff/hero.jpg",
-    gallery: [
-      { src: "/listings/seawulff/hero.jpg", caption: "Boat Haven Marina" },
-    ],
-    href: "/listings/seawulff.pdf",
-    badge: "NEW LISTING",
-  },
-  {
-    name: "M/Y Dub Sea",
-    year: 1998,
-    make: "Cobalt 293",
-    length: "29'",
-    location: "Seattle, WA",
-    price: "$30,000",
-    image: "/listings/dub-sea/hero.jpg",
-    gallery: [
-      { src: "/listings/dub-sea/hero.jpg", caption: "Dockside" },
-      { src: "/listings/dub-sea/g1.jpg", caption: "At Sunset" },
-      { src: "/listings/dub-sea/g2.jpg", caption: "Cockpit" },
-      { src: "/listings/dub-sea/g3.jpg", caption: "Stern at Marina" },
-    ],
-    badge: "NEW LISTING",
-  },
-  {
-    name: "Yamaha 252SE",
-    year: 2022,
-    make: "Yamaha 252SE",
-    length: "25'",
-    location: "Renton, WA",
-    price: "$100,000",
-    image: "/listings/yamaha-252se/hero.jpg",
-    gallery: [
-      { src: "/listings/yamaha-252se/hero.jpg", caption: "Profile View" },
-      { src: "/listings/yamaha-252se/g1.jpg", caption: "Helm Seats" },
-      { src: "/listings/yamaha-252se/g2.jpg", caption: "Helm Detail" },
-      { src: "/listings/yamaha-252se/g3.jpg", caption: "Stern Quarter" },
-    ],
-    badge: "NEW LISTING",
-  },
-  {
-    name: "M/Y Moby Dick",
-    year: 2023,
-    make: "Quicksilver 675 Weekend",
-    length: "23'",
-    location: "Seattle, WA",
-    price: "$68,000",
-    image: "/listings/moby-dick/hero.jpg",
-    gallery: [
-      { src: "/listings/moby-dick/hero.jpg", caption: "Underway" },
-      { src: "/listings/moby-dick/g1.jpg", caption: "Pilothouse" },
-      { src: "/listings/moby-dick/g2.jpg", caption: "V-Berth" },
-      { src: "/listings/moby-dick/g3.jpg", caption: "From Above" },
-    ],
-  },
-];
-
-// Round-robin interleave: take one photo from each vessel in turn until all
-// galleries are exhausted. This puts a different yacht next to each card so
-// adjacent slides never repeat the same vessel caption.
-//   tier 0 → all heroes in vessel order
-//   tier 1 → all g1s (skipping vessels with only a hero)
-//   tier 2 → all g2s
-//   …
-const gallerySlides = (() => {
-  const maxLen = Math.max(...vessels.map((v) => v.gallery.length));
-  const out: { src: string; caption: string; vessel: Vessel }[] = [];
-  for (let tier = 0; tier < maxLen; tier++) {
-    for (const v of vessels) {
-      const photo = v.gallery[tier];
-      if (photo) out.push({ src: photo.src, caption: photo.caption, vessel: v });
-    }
-  }
-  return out;
-})();
-
 const stats = [
   { value: "$250M+", label: "VESSELS REPRESENTED" },
   { value: "15+", label: "YEARS EXPERIENCE" },
   { value: "PNW", label: "EXCLUSIVE TERRITORY" },
 ];
 
-/* ------------------------------------------------------------------ */
-/*  FleetGallery                                                       */
-/*  Horizontal scroll-snap carousel with arrow controls + dots.        */
-/*  Pure native scroll — keyboard L/R, touch swipe, and the arrow      */
-/*  buttons all drive the same scrollLeft, snapped to each slide.      */
-/* ------------------------------------------------------------------ */
-
-type GallerySlide = { src: string; caption: string; vessel: Vessel };
-
-function FleetGallery({ slides }: { slides: GallerySlide[] }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(true);
-
-  // Compute which slide is centered in the viewport.
-  const updateProgress = () => {
-    const track = trackRef.current;
-    if (!track) return;
-    const slideWidth = track.firstElementChild
-      ? (track.firstElementChild as HTMLElement).offsetWidth + 16 /* gap */
-      : 1;
-    const idx = Math.round(track.scrollLeft / slideWidth);
-    setActiveIdx(Math.min(idx, slides.length - 1));
-    setCanPrev(track.scrollLeft > 8);
-    setCanNext(
-      track.scrollLeft + track.clientWidth < track.scrollWidth - 8,
-    );
-  };
-
-  const scrollBy = (dir: -1 | 1) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const slideWidth = track.firstElementChild
-      ? (track.firstElementChild as HTMLElement).offsetWidth + 16
-      : 0;
-    track.scrollBy({ left: dir * slideWidth, behavior: "smooth" });
-  };
-
-  // Keyboard navigation when the carousel region is focused/hovered.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const track = trackRef.current;
-      if (!track) return;
-      const rect = track.getBoundingClientRect();
-      const visible = rect.top < window.innerHeight && rect.bottom > 0;
-      if (!visible) return;
-      if (e.key === "ArrowLeft") scrollBy(-1);
-      if (e.key === "ArrowRight") scrollBy(1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Initial progress calc.
-  useEffect(() => {
-    updateProgress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className="mt-24">
-      <div className="text-center">
-        <p className="text-[10px] tracking-[0.35em] text-gold">
-          ABOARD THE FLEET
-        </p>
-        <h3 className="mt-4 font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl">
-          Step Inside
-        </h3>
-      </div>
-
-      {/* Track */}
-      <div
-        ref={trackRef}
-        onScroll={updateProgress}
-        className="mt-10 flex gap-4 overflow-x-auto scroll-smooth pb-4 [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        role="region"
-        aria-label="Vessel photo gallery"
-      >
-        {slides.map((slide, i) => (
-          <figure
-            key={`${slide.vessel.name}-${i}`}
-            className="group relative shrink-0 overflow-hidden rounded-2xl border border-border bg-bg-card [scroll-snap-align:center] w-[82%] sm:w-[55%] lg:w-[40%]"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={slide.src}
-              alt={`${slide.vessel.name} — ${slide.caption}`}
-              loading="lazy"
-              className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/95 via-bg-primary/20 to-transparent" />
-            <figcaption className="absolute bottom-0 left-0 right-0 p-6">
-              <p className="text-[10px] font-medium tracking-[0.3em] text-gold">
-                {slide.vessel.year} &middot; {slide.vessel.make.toUpperCase()}
-              </p>
-              <p className="mt-2 font-[family-name:var(--font-cormorant)] text-2xl font-light leading-tight text-text-primary">
-                {slide.vessel.name}
-              </p>
-              <p className="mt-1 font-[family-name:var(--font-cormorant)] text-base italic text-gold/80">
-                {slide.caption}
-              </p>
-              <p className="mt-1 text-xs text-text-secondary">
-                {slide.vessel.length} &middot; {slide.vessel.location} &middot;{" "}
-                <span className="text-text-primary">{slide.vessel.price}</span>
-              </p>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-
-      {/* Controls — arrows + dots */}
-      <div className="mt-8 flex items-center justify-center gap-6">
-        <button
-          type="button"
-          onClick={() => scrollBy(-1)}
-          disabled={!canPrev}
-          aria-label="Previous yacht"
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/60 text-gold transition-all duration-300 hover:border-gold hover:bg-gold hover:text-bg-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gold"
-        >
-          <ChevronLeft size={18} strokeWidth={1.5} />
-        </button>
-
-        <div className="flex items-center gap-2">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => {
-                const track = trackRef.current;
-                if (!track) return;
-                const slideWidth = track.firstElementChild
-                  ? (track.firstElementChild as HTMLElement).offsetWidth + 16
-                  : 0;
-                track.scrollTo({ left: i * slideWidth, behavior: "smooth" });
-              }}
-              aria-label={`Go to slide ${i + 1}`}
-              aria-current={i === activeIdx}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === activeIdx
-                  ? "w-8 bg-gold"
-                  : "w-1.5 bg-border-light hover:bg-text-secondary"
-              }`}
-            />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => scrollBy(1)}
-          disabled={!canNext}
-          aria-label="Next yacht"
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/60 text-gold transition-all duration-300 hover:border-gold hover:bg-gold hover:text-bg-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gold"
-        >
-          <ChevronRight size={18} strokeWidth={1.5} />
-        </button>
-      </div>
-    </div>
-  );
-}
+/* ================================================================== */
+/*  PAGE                                                               */
+/* ================================================================== */
 
 /* ================================================================== */
 /*  PAGE                                                               */
@@ -642,72 +372,29 @@ export default function HomePage() {
             Hand-picked Pacific Northwest listings ready for immediate viewing.
           </motion.p>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.05 }}
-            variants={stagger}
-            className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {vessels.map((vessel, i) => {
-              const Wrapper = vessel.href ? motion.a : motion.div;
-              const wrapperProps = vessel.href
-                ? { href: vessel.href, target: "_blank", rel: "noopener noreferrer" }
-                : {};
-              return (
-                <Wrapper
-                  key={vessel.name}
-                  variants={fadeUp}
-                  custom={i}
-                  {...wrapperProps}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-bg-card transition-all duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_24px_60px_-24px_rgba(201,169,110,0.35)]"
-                >
-                  {/* Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={vessel.image}
-                      alt={vessel.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    {vessel.badge && (
-                      <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-bg-primary shadow-md">
-                        {vessel.badge}
-                      </span>
-                    )}
-                  </div>
-                  {/* Info stack */}
-                  <div className="flex flex-1 flex-col gap-2 p-6">
-                    <p className="text-[10px] font-medium tracking-[0.3em] text-gold">
-                      {vessel.year} &middot; {vessel.make.toUpperCase()}
-                    </p>
-                    <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-light leading-tight text-text-primary">
-                      {vessel.name}
-                    </h3>
-                    <p className="text-sm text-text-secondary">
-                      {vessel.length} &middot; {vessel.location}
-                    </p>
-                    <div className="mt-auto flex items-end justify-between pt-3">
-                      <p className="font-[family-name:var(--font-cormorant)] text-xl font-medium text-text-primary">
-                        {vessel.price}
-                      </p>
-                      {vessel.href && (
-                        <span className="text-[10px] tracking-[0.25em] text-gold opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                          VIEW &rarr;
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Wrapper>
-              );
-            })}
-          </motion.div>
+          <FleetGrid vessels={vessels} />
 
-          {/* ------------------------------------------------------------ */}
-          {/*  Gallery carousel — arrow-controlled photo strip            */}
-          {/* ------------------------------------------------------------ */}
-          <FleetGallery slides={gallerySlides} />
+          {/* Hero-only scroller — one card per vessel, no interior shots. */}
+          {/* The full Step Inside gallery lives on /fleet.                */}
+          <FleetGallery
+            slides={heroSlides}
+            eyebrow="BROWSE THE FLEET"
+            heading="Swipe Through Listings"
+            showCaption={false}
+          />
+
+          <motion.div
+            variants={fadeUp}
+            custom={3}
+            className="mt-12 text-center"
+          >
+            <Link
+              href="/fleet"
+              className="inline-flex items-center gap-2.5 border border-gold/60 px-10 py-3.5 text-[11px] font-semibold tracking-[0.25em] text-gold transition-all duration-300 hover:bg-gold hover:text-bg-primary"
+            >
+              EXPLORE FULL FLEET <ArrowRight size={14} />
+            </Link>
+          </motion.div>
         </motion.div>
       </section>
 
