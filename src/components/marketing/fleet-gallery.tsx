@@ -97,14 +97,25 @@ export function FleetGallery({
       <div
         ref={trackRef}
         onScroll={updateProgress}
-        className="mt-10 flex gap-4 overflow-x-auto scroll-smooth pb-4 [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mt-10 flex gap-4 overflow-x-auto scroll-smooth pb-4 [scroll-padding-inline:8%] [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="region"
         aria-label="Vessel gallery"
       >
-        {slides.map((slide, i) => (
+        {slides.map((slide, i) => {
+          // First slide snaps flush to start, last to end, everything else
+          // to centre. Combined with the 8% scroll-padding-inline above,
+          // this gives the first/last slides a natural peek inset on the
+          // outer edge instead of clipping against the container.
+          const snapAlign =
+            i === 0
+              ? "[scroll-snap-align:start]"
+              : i === slides.length - 1
+                ? "[scroll-snap-align:end]"
+                : "[scroll-snap-align:center]";
+          return (
           <figure
             key={`${slide.vessel.name}-${i}`}
-            className="group relative shrink-0 overflow-hidden rounded-2xl border border-border bg-bg-card [scroll-snap-align:center] w-[82%] sm:w-[55%] lg:w-[40%]"
+            className={`group relative shrink-0 overflow-hidden rounded-2xl border border-border bg-bg-card ${snapAlign} w-[82%] sm:w-[55%] lg:w-[40%]`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -132,7 +143,8 @@ export function FleetGallery({
               </p>
             </figcaption>
           </figure>
-        ))}
+          );
+        })}
       </div>
 
       {/* Controls */}
