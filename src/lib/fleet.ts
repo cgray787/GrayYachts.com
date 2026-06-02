@@ -1,8 +1,17 @@
 // Shared fleet data + slide-list helpers.
 // Used by the homepage (#fleet section, hero-only carousel) and the
-// dedicated /fleet page (full Step Inside gallery).
+// dedicated /fleet page (full grid + interior-only Step Inside gallery).
 
-export type GalleryPhoto = { src: string; caption: string };
+export type GalleryPhoto = {
+  src: string;
+  caption: string;
+  /**
+   * true = cabin / pilothouse / nav station / engine room — anywhere
+   * you'd be after stepping aboard and into the boat. The Step Inside
+   * carousel on /fleet filters to these. Defaults to false.
+   */
+  interior?: boolean;
+};
 
 export type Vessel = {
   name: string;
@@ -28,9 +37,12 @@ export const vessels: Vessel[] = [
     image: "/listings/playa-linda/hero.jpg",
     gallery: [
       { src: "/listings/playa-linda/hero.jpg", caption: "At Her Berth" },
-      { src: "/listings/playa-linda/g1.jpg", caption: "Main Salon" },
-      { src: "/listings/playa-linda/g2.jpg", caption: "Nav Station" },
+      { src: "/listings/playa-linda/g1.jpg", caption: "Main Salon", interior: true },
+      { src: "/listings/playa-linda/g2.jpg", caption: "Nav Station", interior: true },
       { src: "/listings/playa-linda/g3.jpg", caption: "Cockpit & Tender" },
+      { src: "/listings/playa-linda/i1.jpg", caption: "Master Cabin", interior: true },
+      { src: "/listings/playa-linda/i2.jpg", caption: "Galley Storage", interior: true },
+      { src: "/listings/playa-linda/i3.jpg", caption: "Engine Room", interior: true },
     ],
     badge: "NEW LISTING",
   },
@@ -90,9 +102,11 @@ export const vessels: Vessel[] = [
     image: "/listings/moby-dick/hero.jpg",
     gallery: [
       { src: "/listings/moby-dick/hero.jpg", caption: "Underway" },
-      { src: "/listings/moby-dick/g1.jpg", caption: "Pilothouse" },
-      { src: "/listings/moby-dick/g2.jpg", caption: "V-Berth" },
+      { src: "/listings/moby-dick/g1.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/moby-dick/g2.jpg", caption: "V-Berth", interior: true },
       { src: "/listings/moby-dick/g3.jpg", caption: "From Above" },
+      { src: "/listings/moby-dick/i1.jpg", caption: "Pilothouse Lounge", interior: true },
+      { src: "/listings/moby-dick/i2.jpg", caption: "Helm View", interior: true },
     ],
   },
 ];
@@ -104,28 +118,38 @@ export type GallerySlide = {
 };
 
 // Hero-only slide list — used by the homepage carousel.
-// One card per vessel, exterior shots only, no interiors.
+// One card per vessel, exterior shots only.
 export const heroSlides: GallerySlide[] = vessels.map((v) => ({
   src: v.gallery[0].src,
   caption: v.gallery[0].caption,
   vessel: v,
 }));
 
-// Full round-robin interleaved slide list — used by the /fleet page's
-// Step Inside section. Tier 0 = every vessel's hero, tier 1 = every g1,
-// tier 2 = g2, tier 3 = g3. Vessels with fewer photos drop out of later
-// tiers (Seawulff only appears in tier 0). Result: adjacent slides
-// always come from different yachts.
-export const gallerySlides: GallerySlide[] = (() => {
-  const maxLen = Math.max(...vessels.map((v) => v.gallery.length));
+// Interior-only slide list, round-robin interleaved across vessels.
+// Used by the /fleet page's Step Inside carousel.
+// Tier 0 = every vessel's first interior shot, tier 1 = second, etc.
+// Vessels with no interior photos (Seawulff, Dub Sea, Yamaha 252SE —
+// either open boats or no cabin shots in the source folder) are
+// silently skipped so the carousel stays on theme.
+export const interiorSlides: GallerySlide[] = (() => {
+  const buckets = vessels.map((v) => ({
+    vessel: v,
+    photos: v.gallery.filter((p) => p.interior),
+  }));
+  const maxLen = Math.max(...buckets.map((b) => b.photos.length));
   const out: GallerySlide[] = [];
   for (let tier = 0; tier < maxLen; tier++) {
-    for (const v of vessels) {
-      const photo = v.gallery[tier];
+    for (const { vessel, photos } of buckets) {
+      const photo = photos[tier];
       if (photo) {
-        out.push({ src: photo.src, caption: photo.caption, vessel: v });
+        out.push({ src: photo.src, caption: photo.caption, vessel });
       }
     }
   }
   return out;
 })();
+
+// Legacy export kept so a stale import wouldn't break the build.
+// /fleet now uses interiorSlides instead. Remove once nothing else
+// references it.
+export const gallerySlides = interiorSlides;

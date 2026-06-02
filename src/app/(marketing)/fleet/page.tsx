@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { FleetGallery } from "@/components/marketing/fleet-gallery";
 import { FleetGrid } from "@/components/marketing/fleet-grid";
-import { gallerySlides, vessels } from "@/lib/fleet";
+import { interiorSlides, vessels } from "@/lib/fleet";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -79,7 +79,7 @@ export default function FleetPage() {
       <section className="bg-bg-secondary px-6 py-24 lg:px-12">
         <div className="mx-auto max-w-6xl">
           <FleetGallery
-            slides={gallerySlides}
+            slides={interiorSlides}
             eyebrow="ABOARD THE FLEET"
             heading="Step Inside"
           />
