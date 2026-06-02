@@ -68,6 +68,8 @@ const services = [
   },
 ];
 
+type GalleryPhoto = { src: string; caption: string };
+
 type Vessel = {
   name: string;
   year: number;
@@ -76,7 +78,7 @@ type Vessel = {
   location: string;
   price: string;
   image: string;
-  gallery: string[];
+  gallery: GalleryPhoto[];
   href?: string;
   badge?: string;
 };
@@ -91,10 +93,10 @@ const vessels: Vessel[] = [
     price: "$110,000",
     image: "/listings/playa-linda/hero.jpg",
     gallery: [
-      "/listings/playa-linda/hero.jpg",
-      "/listings/playa-linda/g1.jpg",
-      "/listings/playa-linda/g2.jpg",
-      "/listings/playa-linda/g3.jpg",
+      { src: "/listings/playa-linda/hero.jpg", caption: "At Her Berth" },
+      { src: "/listings/playa-linda/g1.jpg", caption: "Main Salon" },
+      { src: "/listings/playa-linda/g2.jpg", caption: "Nav Station" },
+      { src: "/listings/playa-linda/g3.jpg", caption: "Cockpit & Tender" },
     ],
     badge: "NEW LISTING",
   },
@@ -106,7 +108,9 @@ const vessels: Vessel[] = [
     location: "Port Townsend, WA",
     price: "$35,000 OBO",
     image: "/listings/seawulff/hero.jpg",
-    gallery: ["/listings/seawulff/hero.jpg"],
+    gallery: [
+      { src: "/listings/seawulff/hero.jpg", caption: "Boat Haven Marina" },
+    ],
     href: "/listings/seawulff.pdf",
     badge: "NEW LISTING",
   },
@@ -119,10 +123,10 @@ const vessels: Vessel[] = [
     price: "$30,000",
     image: "/listings/dub-sea/hero.jpg",
     gallery: [
-      "/listings/dub-sea/hero.jpg",
-      "/listings/dub-sea/g1.jpg",
-      "/listings/dub-sea/g2.jpg",
-      "/listings/dub-sea/g3.jpg",
+      { src: "/listings/dub-sea/hero.jpg", caption: "Dockside" },
+      { src: "/listings/dub-sea/g1.jpg", caption: "At Sunset" },
+      { src: "/listings/dub-sea/g2.jpg", caption: "Cockpit" },
+      { src: "/listings/dub-sea/g3.jpg", caption: "Stern at Marina" },
     ],
     badge: "NEW LISTING",
   },
@@ -135,10 +139,10 @@ const vessels: Vessel[] = [
     price: "$100,000",
     image: "/listings/yamaha-252se/hero.jpg",
     gallery: [
-      "/listings/yamaha-252se/hero.jpg",
-      "/listings/yamaha-252se/g1.jpg",
-      "/listings/yamaha-252se/g2.jpg",
-      "/listings/yamaha-252se/g3.jpg",
+      { src: "/listings/yamaha-252se/hero.jpg", caption: "Profile View" },
+      { src: "/listings/yamaha-252se/g1.jpg", caption: "Helm Seats" },
+      { src: "/listings/yamaha-252se/g2.jpg", caption: "Helm Detail" },
+      { src: "/listings/yamaha-252se/g3.jpg", caption: "Stern Quarter" },
     ],
     badge: "NEW LISTING",
   },
@@ -151,23 +155,32 @@ const vessels: Vessel[] = [
     price: "$68,000",
     image: "/listings/moby-dick/hero.jpg",
     gallery: [
-      "/listings/moby-dick/hero.jpg",
-      "/listings/moby-dick/g1.jpg",
-      "/listings/moby-dick/g2.jpg",
-      "/listings/moby-dick/g3.jpg",
+      { src: "/listings/moby-dick/hero.jpg", caption: "Underway" },
+      { src: "/listings/moby-dick/g1.jpg", caption: "Pilothouse" },
+      { src: "/listings/moby-dick/g2.jpg", caption: "V-Berth" },
+      { src: "/listings/moby-dick/g3.jpg", caption: "From Above" },
     ],
   },
 ];
 
-// Flatten all gallery photos into a single list of slides for the carousel,
-// tagged with their owning vessel so each slide can show the vessel name + spec.
-const gallerySlides = vessels.flatMap((v) =>
-  v.gallery.map((src, i) => ({
-    src,
-    vessel: v,
-    isHero: i === 0,
-  })),
-);
+// Round-robin interleave: take one photo from each vessel in turn until all
+// galleries are exhausted. This puts a different yacht next to each card so
+// adjacent slides never repeat the same vessel caption.
+//   tier 0 → all heroes in vessel order
+//   tier 1 → all g1s (skipping vessels with only a hero)
+//   tier 2 → all g2s
+//   …
+const gallerySlides = (() => {
+  const maxLen = Math.max(...vessels.map((v) => v.gallery.length));
+  const out: { src: string; caption: string; vessel: Vessel }[] = [];
+  for (let tier = 0; tier < maxLen; tier++) {
+    for (const v of vessels) {
+      const photo = v.gallery[tier];
+      if (photo) out.push({ src: photo.src, caption: photo.caption, vessel: v });
+    }
+  }
+  return out;
+})();
 
 const stats = [
   { value: "$250M+", label: "VESSELS REPRESENTED" },
@@ -182,7 +195,7 @@ const stats = [
 /*  buttons all drive the same scrollLeft, snapped to each slide.      */
 /* ------------------------------------------------------------------ */
 
-type GallerySlide = { src: string; vessel: Vessel; isHero: boolean };
+type GallerySlide = { src: string; caption: string; vessel: Vessel };
 
 function FleetGallery({ slides }: { slides: GallerySlide[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -262,7 +275,7 @@ function FleetGallery({ slides }: { slides: GallerySlide[] }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slide.src}
-              alt={`${slide.vessel.name} — ${slide.vessel.make}`}
+              alt={`${slide.vessel.name} — ${slide.caption}`}
               loading="lazy"
               className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
@@ -271,8 +284,11 @@ function FleetGallery({ slides }: { slides: GallerySlide[] }) {
               <p className="text-[10px] font-medium tracking-[0.3em] text-gold">
                 {slide.vessel.year} &middot; {slide.vessel.make.toUpperCase()}
               </p>
-              <p className="mt-2 font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
+              <p className="mt-2 font-[family-name:var(--font-cormorant)] text-2xl font-light leading-tight text-text-primary">
                 {slide.vessel.name}
+              </p>
+              <p className="mt-1 font-[family-name:var(--font-cormorant)] text-base italic text-gold/80">
+                {slide.caption}
               </p>
               <p className="mt-1 text-xs text-text-secondary">
                 {slide.vessel.length} &middot; {slide.vessel.location} &middot;{" "}
