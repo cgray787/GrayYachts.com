@@ -94,28 +94,39 @@ export function FleetGallery({
       )}
 
       {/* Track */}
+      {/*
+        Real padding-inline on the track gives the first/last slides
+        room to sit inset from the container edge instead of clipping
+        against it. The scroll-padding-inline on the snap port matches
+        so snap math agrees with the visual layout. The trailing 8%
+        margin on the last slide compensates for the well-known
+        WebKit/Chromium quirk where end padding on a horizontal scroll
+        container is not always included in scrollWidth.
+      */}
       <div
         ref={trackRef}
         onScroll={updateProgress}
-        className="mt-10 flex gap-4 overflow-x-auto scroll-smooth pb-4 [scroll-padding-inline:8%] [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mt-10 flex gap-4 overflow-x-auto scroll-smooth pb-4 [padding-inline:8%] [scroll-padding-inline:8%] [scroll-snap-type:x_mandatory] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="region"
         aria-label="Vessel gallery"
       >
         {slides.map((slide, i) => {
           // First slide snaps flush to start, last to end, everything else
-          // to centre. Combined with the 8% scroll-padding-inline above,
-          // this gives the first/last slides a natural peek inset on the
-          // outer edge instead of clipping against the container.
+          // to centre. Combined with the 8% padding above, the first slide
+          // sits 8% in from the container edge at scrollLeft=0 instead of
+          // clipping against it.
           const snapAlign =
             i === 0
               ? "[scroll-snap-align:start]"
               : i === slides.length - 1
                 ? "[scroll-snap-align:end]"
                 : "[scroll-snap-align:center]";
+          const edgeMargin =
+            i === slides.length - 1 ? "[margin-inline-end:8%]" : "";
           return (
           <figure
             key={`${slide.vessel.name}-${i}`}
-            className={`group relative shrink-0 overflow-hidden rounded-2xl border border-border bg-bg-card ${snapAlign} w-[82%] sm:w-[55%] lg:w-[40%]`}
+            className={`group relative shrink-0 overflow-hidden rounded-2xl border border-border bg-bg-card ${snapAlign} ${edgeMargin} w-[82%] sm:w-[55%] lg:w-[40%]`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
