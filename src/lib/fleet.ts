@@ -15,6 +15,7 @@ export type GalleryPhoto = {
 
 export type Vessel = {
   name: string;
+  slug?: string;        // links a vessel to its BrochureContent + /listings/<slug>.pdf
   year: number;
   make: string;
   length: string;
@@ -48,6 +49,7 @@ export const vessels: Vessel[] = [
   },
   {
     name: "S/V Seawulff",
+    slug: "seawulff",
     year: 1981,
     make: "Wood Sloop",
     length: "34.5'",
