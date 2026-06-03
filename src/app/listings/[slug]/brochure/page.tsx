@@ -17,7 +17,7 @@ export default async function BrochurePage({
   const b = getBrochure(slug);
   if (!vessel || !b) notFound();
 
-  const [priceMain, ...priceRest] = vessel.price.split(/\s+(?=or\b)/i);
+  const [priceMain, ...priceRest] = vessel.price.split(/\s+(?=(?:or\b|OBO\b))/i);
   const obo = priceRest.join(" ");
   const heroCaption = vessel.gallery[0]?.caption ?? vessel.name;
 
@@ -103,7 +103,8 @@ export default async function BrochurePage({
           <div style={{ color: "var(--muted)", fontSize: "13px" }}>
             Full documentation, survey history, and spec sheet on file. Talk soon.
           </div>
-          <span className="btn">Message Gray Yachts</span>
+          <div className="bx-eyebrow" style={{ marginTop: "0.18in" }}>Message Gray Yachts</div>
+          <span className="btn">View Full Spec Sheet</span>
         </div>
         <div className="bx-footer">
           <span className="bx-serif" style={{ fontSize: "14px", letterSpacing: 0, textTransform: "none" }}>
