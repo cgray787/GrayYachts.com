@@ -10,7 +10,8 @@
     "preview": "npx opennextjs-cloudflare build && npx wrangler dev",
     "start": "next start",
     "lint": "eslint",
-    "check:brochures": "tsx scripts/check-brochures.ts"
+    "check:brochures": "tsx scripts/check-brochures.ts",
+    "brochure": "tsx scripts/generate-brochure.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.17.1",
@@ -31,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"
