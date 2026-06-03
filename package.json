@@ -9,7 +9,8 @@
     "deploy": "npx opennextjs-cloudflare deploy",
     "preview": "npx opennextjs-cloudflare build && npx wrangler dev",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:brochures": "tsx scripts/check-brochures.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.17.1",
@@ -31,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
