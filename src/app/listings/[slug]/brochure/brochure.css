@@ -1,0 +1,47 @@
+/* Print brochure — white editorial sheet, gold accent, Cormorant headlines.
+   Letter pages with explicit breaks so Playwright prints exactly 3 pages. */
+.bx { --gold: #C9A96E; --ink: #1a1a1a; --muted: #8a7f6d; --rule: #d8cfbf;
+  background:#fff; color:var(--ink);
+  font-family: var(--font-geist-sans), Georgia, serif;
+  width: 8.5in; margin: 0 auto; }
+.bx * { box-sizing: border-box; }
+.bx-page { width: 8.5in; min-height: 11in; padding: 0.7in 0.85in; position: relative; }
+.bx-page + .bx-page { break-before: page; }
+.bx-serif { font-family: var(--font-cormorant), Georgia, serif; }
+
+.bx-topbar { display:flex; justify-content:space-between; align-items:baseline;
+  letter-spacing:.22em; font-size:9px; color:var(--muted); text-transform:uppercase; }
+.bx-topbar .badge { color:var(--ink); font-weight:600; }
+.bx-hero { width:100%; height:4.4in; object-fit:cover; margin:.35in 0 .3in; }
+
+.bx-specs { display:grid; grid-template-columns:repeat(5,1fr); gap:.1in; text-align:center; margin:.1in 0; }
+.bx-spec .v { font-family:var(--font-cormorant); font-size:24px; color:var(--gold); font-weight:600; line-height:1; }
+.bx-spec .l { font-size:8px; letter-spacing:.18em; color:var(--muted); text-transform:uppercase; margin-top:6px; }
+
+.bx-pricerow { display:flex; justify-content:space-between; align-items:flex-end; margin-top:.25in; }
+.bx-price { font-family:var(--font-cormorant); font-size:46px; font-weight:600; line-height:.9; }
+.bx-price .obo { font-size:14px; font-style:italic; color:var(--muted); margin-left:8px; }
+.bx-port { text-align:right; font-size:11px; color:var(--muted); line-height:1.5; }
+.bx-port .h { letter-spacing:.2em; font-size:9px; text-transform:uppercase; }
+
+.bx-rule { border:0; border-top:1px solid var(--rule); margin:.28in 0; }
+.bx-eyebrow { letter-spacing:.24em; font-size:9px; color:var(--gold); text-transform:uppercase; }
+.bx-headline { font-family:var(--font-cormorant); font-size:34px; line-height:1.12; font-weight:600; margin:.12in 0 .2in; }
+.bx-headline em { color:var(--gold); font-style:italic; }
+.bx-body p { font-size:13px; line-height:1.7; margin:0 0 .16in; }
+
+.bx-highlights { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--rule); margin-top:.12in; }
+.bx-hl { padding:.12in .16in; border-bottom:1px solid var(--rule); font-size:12px; line-height:1.45; }
+.bx-hl:nth-child(odd){ border-right:1px solid var(--rule); }
+.bx-hl::before { content:"— "; color:var(--gold); }
+
+.bx-doc { display:flex; gap:.18in; }
+.bx-doc .anchor { color:var(--gold); font-size:22px; line-height:1; }
+.bx-cta { border:1px solid var(--rule); padding:.4in; text-align:center; margin-top:.3in; }
+.bx-cta .ci { font-family:var(--font-cormorant); font-size:26px; font-style:italic; margin:.1in 0; }
+.bx-cta .btn { display:inline-block; border:1px solid var(--gold); color:var(--gold);
+  letter-spacing:.18em; font-size:11px; padding:.14in .4in; text-transform:uppercase; margin-top:.18in; }
+.bx-footer { display:flex; justify-content:space-between; color:var(--muted);
+  letter-spacing:.14em; font-size:9px; text-transform:uppercase; margin-top:.5in; }
+
+@media print { @page { size: Letter; margin: 0; } .bx { width:100%; } .bx-page{ margin:0; } }
