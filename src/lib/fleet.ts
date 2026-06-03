@@ -66,6 +66,7 @@ export const vessels: Vessel[] = [
   },
   {
     name: "M/Y Dub Sea",
+    slug: "dub-sea",
     year: 1998,
     make: "Cobalt 293",
     length: "29'",
@@ -78,6 +79,7 @@ export const vessels: Vessel[] = [
       { src: "/listings/dub-sea/g2.jpg", caption: "Cockpit" },
       { src: "/listings/dub-sea/g3.jpg", caption: "Stern at Marina" },
     ],
+    href: "/listings/dub-sea.pdf",
     badge: "NEW LISTING",
   },
   {
@@ -98,6 +100,7 @@ export const vessels: Vessel[] = [
   },
   {
     name: "M/Y Moby Dick",
+    slug: "moby-dick",
     year: 2023,
     make: "Quicksilver 675 Weekend",
     length: "23'",
@@ -112,6 +115,7 @@ export const vessels: Vessel[] = [
       { src: "/listings/moby-dick/i1.jpg", caption: "Pilothouse Lounge", interior: true },
       { src: "/listings/moby-dick/i2.jpg", caption: "Helm View", interior: true },
     ],
+    href: "/listings/moby-dick.pdf",
   },
 ];
 
