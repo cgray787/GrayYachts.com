@@ -17,6 +17,41 @@ export type BrochureContent = {
 };
 
 export const brochures: Record<string, BrochureContent> = {
+  "playa-linda": {
+    slug: "playa-linda",
+    tagline: {
+      lead: "A",
+      emphasis: "capable center cockpit",
+      tail: "cruiser — built for short-handed bluewater passages.",
+    },
+    specStrip: [
+      { value: "42.5'", label: "Length" },
+      { value: "1994", label: "Year Built" },
+      { value: "Yanmar", label: "62hp Diesel" },
+      { value: "14'", label: "Beam" },
+      { value: "Sloop", label: "B&R Rig" },
+    ],
+    narrative: [
+      "The Hunter Passage 42 is one of the most capable center cockpit cruisers ever produced — two private staterooms, two heads, a 14-foot beam, and a B&R masthead rig designed for short-handed sailing. This 1994 example, Playa Linda, has been actively cruised on Pacific Northwest waters and is ready for her next passage.",
+      "Below, warm teak and holly soles run throughout with 6'6\" headroom. A spacious salon with an L-shaped settee and convertible dining opens to a fully equipped galley with refrigerator and stove. The forward stateroom carries a V-berth and private head with shower; the aft owner's cabin a queen berth with en-suite head, tub, and shower.",
+      "On deck, a protected center cockpit under dodger and bimini keeps the crew comfortable, with all lines led aft, a roller-furling jib, and self-tailing winches for easy handling. Solar panels on the arch cut shore-power dependence, and a walk-through transom with swim platform makes boarding effortless. Service records available; sea trial welcome.",
+    ],
+    highlights: [
+      "Two private staterooms, two heads",
+      "Yanmar 4JH2TE, 62hp diesel — direct drive",
+      "B&R masthead sloop — 949 sq ft sail area",
+      "14' beam, wing keel, 4.9' draft",
+      "Roller-furling jib, all lines led aft",
+      "Self-tailing winches, dodger & bimini",
+      "Solar array on stern arch",
+      "Teak & holly soles, 6'6\" headroom",
+      "Fully equipped galley — fridge & stove",
+      "Aft owner's cabin — queen, en-suite tub & shower",
+      "Walk-through transom, swim platform",
+      "70 gal fuel · 150 gal water · ~900 engine hours",
+    ],
+    photoCredit: "the San Juan Islands, WA",
+  },
   seawulff: {
     slug: "seawulff",
     tagline: {

@@ -30,12 +30,14 @@ export type Vessel = {
 export const vessels: Vessel[] = [
   {
     name: "S/Y Playa Linda",
+    slug: "playa-linda",
     year: 1994,
     make: "Hunter Passage",
     length: "42'",
     location: "Seattle, WA",
     price: "$110,000",
     image: "/listings/playa-linda/hero.jpg",
+    href: "/listings/playa-linda.pdf",
     gallery: [
       { src: "/listings/playa-linda/hero.jpg", caption: "At Her Berth" },
       { src: "/listings/playa-linda/g1.jpg", caption: "Main Salon", interior: true },
