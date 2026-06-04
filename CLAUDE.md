@@ -164,3 +164,15 @@ Scrapes yacht specifications from listing URLs. Multi-strategy pipeline:
   - Repo: `https://github.com/cgray787/grayyachts.media.git`
   - Live: https://grayyachts.media
   - Workers.dev: `https://grayyachts-media.connorgray41.workers.dev`
+
+## Listing Brochures (hard rule)
+
+Every boat in `src/lib/fleet.ts` that is publicly listed MUST have a Gray Yachts–branded
+3-page PDF brochure at `public/listings/<slug>.pdf`, modeled on `seawulff.pdf`.
+
+- Content: `src/lib/brochures.ts` (`BrochureContent` keyed by slug).
+- Template: `src/app/listings/[slug]/brochure` (noindex, print-only Next route).
+- Generate: `npm run brochure <slug>` (or `--all`). The script spawns its own `next dev`.
+- Enforce: `npm run check:brochures` — fails if a PDF-linked vessel lacks brochure content/hero.
+- One-command workflow: the `gy-listing-brochure` skill. Never invent specs — get them from
+  a broker sheet or confirm with Connor; flag YachtWorld auto-field conflicts before publishing.
