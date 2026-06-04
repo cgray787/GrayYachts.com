@@ -101,7 +101,7 @@ export const brochures: Record<string, BrochureContent> = {
     },
     specStrip: [
       { value: "29'", label: "Length" },
-      { value: "1998", label: "Year Built" },
+      { value: "2016", label: "Year Built" },
       { value: "Twin", label: "MerCruiser 600hp" },
       { value: "9.5'", label: "Beam" },
       { value: "Deep Vee", label: "Fiberglass Hull" },
@@ -159,6 +159,39 @@ export const brochures: Record<string, BrochureContent> = {
       "Stainless railings, nav & exterior lighting",
     ],
     photoCredit: "Puget Sound, WA",
+  },
+  "yamaha-252se": {
+    slug: "yamaha-252se",
+    tagline: {
+      lead: "A",
+      emphasis: "turn-key Yamaha jet boat",
+      tail: "— twin-engine performance and effortless day-boat versatility.",
+    },
+    specStrip: [
+      { value: "25'", label: "Length" },
+      { value: "2022", label: "Year Built" },
+      { value: "Twin 1.8L", label: "Yamaha HO Jet" },
+      { value: "8'6\"", label: "Beam" },
+      { value: "12", label: "Capacity" },
+    ],
+    narrative: [
+      "The Yamaha 252SE is the do-everything Pacific Northwest day boat — twin Yamaha 1.8-liter High Output jet engines deliver quick, confident performance with no outboard to clutter the swim platform. This 2022 example is presented in turn-key condition, ready for summer on the water.",
+      "Jet propulsion means a shallow draft, easy beaching, and a wide-open swim platform with integrated sundeck and reboarding ladder — ideal for swimming, watersports, and rafting up. The helm centers on Yamaha's Connext touchscreen with cruise assist and No Wake Mode for low-speed control.",
+      "Seating wraps the cockpit and bow for a full crew, with a filler cushion to convert the bow to a sun lounge. A premium audio system, bimini top, and ample stowage round out a boat built to make the most of short Northwest seasons.",
+    ],
+    highlights: [
+      "Twin Yamaha 1.8L High Output jet engines",
+      "Yamaha Connext touchscreen helm",
+      "No Wake Mode & cruise assist",
+      "Integrated swim platform with sundeck",
+      "Reboarding ladder & transom shower",
+      "Bow filler cushion — converts to sun lounge",
+      "Premium audio system",
+      "Bimini top & full canvas",
+      "Shallow-draft jet propulsion",
+      "Wraparound cockpit & bow seating",
+    ],
+    photoCredit: "Lake Washington, WA",
   },
 };
 

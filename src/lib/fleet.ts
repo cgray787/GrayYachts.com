@@ -67,7 +67,7 @@ export const vessels: Vessel[] = [
   {
     name: "M/Y Dub Sea",
     slug: "dub-sea",
-    year: 1998,
+    year: 2016,
     make: "Cobalt 293",
     length: "29'",
     location: "Seattle, WA",
@@ -84,11 +84,13 @@ export const vessels: Vessel[] = [
   },
   {
     name: "Yamaha 252SE",
+    slug: "yamaha-252se",
     year: 2022,
     make: "Yamaha 252SE",
     length: "25'",
     location: "Renton, WA",
     price: "$100,000",
+    href: "/listings/yamaha-252se.pdf",
     image: "/listings/yamaha-252se/hero.jpg",
     gallery: [
       { src: "/listings/yamaha-252se/hero.jpg", caption: "Profile View" },
