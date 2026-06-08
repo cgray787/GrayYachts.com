@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 type Job = {
   id: string;
   status: string;
-  scheduled_date: string | null;
+  scheduled_date: string | null;          // legacy date column
+  scheduled_start: string | null;         // new timestamptz column (Marine Tech App writes)
   created_at: string;
   service_types: string[] | null;
   notes: string | null;
@@ -18,6 +19,13 @@ type Job = {
   boats: { name: string | null; make: string | null; model: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
+
+// "When was this job scheduled?" — prefer the new timestamptz; fall back to
+// the legacy date column. Returns 'YYYY-MM-DD' or null.
+function jobScheduledDate(j: { scheduled_start: string | null; scheduled_date: string | null }): string | null {
+  if (j.scheduled_start) return j.scheduled_start.slice(0, 10);
+  return j.scheduled_date;
+}
 
 const STATUS_STYLES: Record<string, string> = {
   new: "bg-blue-500/15 text-blue-300",
@@ -46,7 +54,7 @@ export default async function JobsPage({
     let query = db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, created_at, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, scheduled_start, created_at, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .order("created_at", { ascending: false })
       .limit(100);

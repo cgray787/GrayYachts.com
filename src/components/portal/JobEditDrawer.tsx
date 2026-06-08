@@ -7,6 +7,8 @@ export type EditableJob = {
   status: string;
   scheduled_date: string | null;
   scheduled_end_date?: string | null;
+  scheduled_start?: string | null;
+  scheduled_end?: string | null;
   service_types: string[] | null;
   notes: string | null;
   customers: { name: string | null } | null;
@@ -22,8 +24,10 @@ export function JobEditDrawer({
   monthParam: string | undefined;
 }) {
   const monthQs = monthParam ? `?month=${monthParam}` : "";
-  const startVal = job.scheduled_date ?? "";
-  const endVal = job.scheduled_end_date ?? job.scheduled_date ?? "";
+  // Show what's actually scheduled, preferring the new timestamptz columns
+  // (which the Marine Tech App writes) and falling back to legacy date columns.
+  const startVal = (job.scheduled_start ? job.scheduled_start.slice(0, 10) : job.scheduled_date) ?? "";
+  const endVal = (job.scheduled_end ? job.scheduled_end.slice(0, 10) : job.scheduled_end_date ?? job.scheduled_date) ?? "";
   const boatLine =
     job.boats?.name ||
     [job.boats?.make, job.boats?.model].filter(Boolean).join(" ") ||

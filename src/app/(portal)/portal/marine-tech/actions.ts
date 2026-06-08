@@ -45,10 +45,19 @@ export async function updateJobSchedule(formData: FormData) {
 
   const end = endRaw ?? start;
 
+  // Also write scheduled_start / scheduled_end (timestamptz) at top-of-day so
+  // the Marine Tech App's calendar — which only reads scheduled_start — sees
+  // edits made here. Default to noon UTC so the date renders consistently in
+  // every browser's local TZ.
+  const startTs = start ? `${start}T12:00:00.000Z` : null;
+  const endTs = end ? `${end}T13:00:00.000Z` : null;
+
   const db = createMarineTechClient();
 
   const update: Record<string, string | null> = {
     scheduled_date: start,
+    scheduled_start: startTs,
+    scheduled_end: endTs,
     status: status || "new",
   };
 
