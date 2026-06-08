@@ -35,20 +35,29 @@ async function loadMonthJobs(
   start: string,
   end: string
 ): Promise<CalendarJob[]> {
-  // Try with scheduled_end_date (migration 014 applied). Range overlap:
-  //   scheduled_date <= monthEnd AND COALESCE(scheduled_end_date, scheduled_date) >= monthStart
+  // Two write paths land jobs on a date:
+  //   (a) scheduled_date (date) — legacy + the portal's own edit drawer
+  //   (b) scheduled_start (timestamptz) — what the Marine Tech App's calendar
+  //       writes when an operator uses the inline Schedule picker
+  // Either may be NULL on a given row. We pull both columns + the matching
+  // _end fields, then OR-filter so a row in either world is found:
+  //   scheduled_start in [startTs, endTs]  OR  scheduled_date in [start, end]
+  // The PostgREST `or` operator wraps the two `and` clauses below.
+  const startTs = `${start}T00:00:00.000Z`;
+  const endTs = `${end}T23:59:59.999Z`;
   const withEnd = await db
     .from("jobs")
     .select(
-      "id, status, scheduled_date, scheduled_end_date, customers(name), boats(name, make, model)"
+      "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, customers(name), boats(name, make, model)"
     )
-    .lte("scheduled_date", end)
-    .or(`scheduled_end_date.gte.${start},scheduled_end_date.is.null`)
-    .order("scheduled_date", { ascending: true })
+    .or(
+      `and(scheduled_start.gte.${startTs},scheduled_start.lte.${endTs}),and(scheduled_date.gte.${start},scheduled_date.lte.${end})`
+    )
+    .order("scheduled_start", { ascending: true, nullsFirst: false })
     .limit(500);
   if (!withEnd.error) return (withEnd.data ?? []) as unknown as CalendarJob[];
 
-  // Fallback for pre-migration databases: single-day rendering only.
+  // Fallback for projects where scheduled_start hasn't been added yet.
   const single = await db
     .from("jobs")
     .select(
@@ -116,7 +125,7 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
     const withEnd = await db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, scheduled_end_date, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .eq("id", id)
       .maybeSingle();

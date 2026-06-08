@@ -4,11 +4,25 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export type CalendarJob = {
   id: string;
   status: string;
-  scheduled_date: string | null;
-  scheduled_end_date?: string | null;
+  scheduled_date: string | null;          // legacy 'date' column
+  scheduled_end_date?: string | null;     // legacy multi-day end
+  scheduled_start?: string | null;        // new 'timestamptz' column written by Marine Tech App
+  scheduled_end?: string | null;          // new 'timestamptz' end
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
 };
+
+// Prefer the new timestamptz columns when present; fall back to the legacy
+// date columns. The portal calendar grid is date-resolution so we just need
+// 'YYYY-MM-DD' for whichever column was populated.
+function dateFromJob(j: CalendarJob, kind: "start" | "end"): string | null {
+  if (kind === "start") {
+    if (j.scheduled_start) return j.scheduled_start.slice(0, 10);
+    return j.scheduled_date ?? null;
+  }
+  if (j.scheduled_end) return j.scheduled_end.slice(0, 10);
+  return j.scheduled_end_date ?? null;
+}
 
 const STATUS_BAR: Record<string, string> = {
   new: "bg-blue-500/25 border-blue-400/50 text-blue-100 hover:bg-blue-500/35",
@@ -109,11 +123,11 @@ function buildWeekSegments(week: Date[], jobs: CalendarJob[]): Segment[] {
   const segments: Omit<Segment, "lane">[] = [];
 
   for (const j of jobs) {
-    if (!j.scheduled_date) continue;
-    const start = parseISODate(j.scheduled_date);
-    const end = j.scheduled_end_date
-      ? parseISODate(j.scheduled_end_date)
-      : start;
+    const startStr = dateFromJob(j, "start");
+    if (!startStr) continue;
+    const start = parseISODate(startStr);
+    const endStr = dateFromJob(j, "end");
+    const end = endStr ? parseISODate(endStr) : start;
     if (end < weekStart || start > weekEnd) continue;
 
     const segStart = start < weekStart ? weekStart : start;
