@@ -360,10 +360,10 @@ export default async function MarineTechPage({
                         >
                           <div className="min-w-0">
                             <p className="truncate font-medium text-text-primary">
-                              {r.boat_name ?? "Unnamed vessel"}
+                              {r.owner_name ?? "Unknown client"}
                             </p>
                             <p className="mt-0.5 truncate text-sm text-text-secondary">
-                              {[r.make_model, r.owner_name].filter(Boolean).join(" · ")}
+                              {[r.boat_name, r.make_model].filter(Boolean).join(" · ")}
                             </p>
                           </div>
                           <time className="shrink-0 text-xs text-text-secondary">
