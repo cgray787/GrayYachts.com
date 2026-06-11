@@ -30,9 +30,9 @@ export default function PrivacyPolicyPage() {
           (&ldquo;the App&rdquo;).
         </p>
         <p>
-          JBY-Marine Tech is an invite-only, field-service application for
-          marine technicians. Tech accounts are provisioned by your employer or
-          shop owner. We do not sell or rent your information, and we do not
+          JBY-Marine Tech is a free, field-service application for marine
+          mechanics and boat owners. Anyone can create a free account directly
+          in the App. We do not sell or rent your information, and we do not
           use your data for advertising or cross-app tracking.
         </p>
 
@@ -50,8 +50,9 @@ export default function PrivacyPolicyPage() {
               reports you submit.
             </li>
             <li>
-              <strong>Role</strong> (admin or tech) and account status — used
-              to determine what you can see and do in the App.
+              <strong>Account type</strong> — selected at signup (Marine
+              Mechanic or Boat Owner). Determines which features and tabs you
+              see in the App.
             </li>
             <li>
               <strong>Phone number</strong> (optional) — collected only if you
@@ -182,10 +183,11 @@ export default function PrivacyPolicyPage() {
           <p>We share information only as needed to operate the service:</p>
           <ul className="ml-5 mt-2 list-disc space-y-1">
             <li>
-              <strong>With your employer / shop owner.</strong> Records you
-              create in the App are visible to admin users of your shop&rsquo;s
-              instance (e.g., job reports, customer notes, and photos appear in
-              the admin dashboard).
+              <strong>Within a shop you have joined.</strong> If a shop owner
+              invites you onto their team and you accept, the records you
+              create as a member of that shop (job reports, customer notes,
+              photos) are visible to admin users of that shop. Records created
+              in your personal account are not shared with any shop.
             </li>
             <li>
               <strong>With our infrastructure providers.</strong> We use

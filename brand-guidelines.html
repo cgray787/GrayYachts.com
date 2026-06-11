@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gray Yachts — Brand Guidelines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #060a12;
+    --bg-secondary: #0c1220;
+    --bg-card: #111827;
+    --bg-card-hover: #1a2332;
+    --border: #1e293b;
+    --border-light: #334155;
+    --gold: #C9A96E;
+    --gold-hover: #d4b87e;
+    --gold-muted: rgba(201, 169, 110, 0.15);
+    --text-primary: #f1f5f9;
+    --text-secondary: #8892A5;
+    --success: #22c55e;
+    --error: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body {
+    background:
+      radial-gradient(ellipse at top right, rgba(201,169,110,0.06), transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(201,169,110,0.04), transparent 50%),
+      var(--bg-primary);
+    min-height: 100vh;
+    padding: 64px 48px;
+  }
+  .page { max-width: 1280px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 80px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .header h1 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 64px; line-height: 1; letter-spacing: 0.04em; }
+  .header h1 .accent { color: var(--gold); display: block; font-style: italic; font-weight: 400; }
+  .header .wordmark { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 28px; letter-spacing: 0.35em; color: var(--text-primary); padding-top: 12px; }
+  .header .wordmark small { display: block; font-family: 'Geist', sans-serif; font-size: 9px; letter-spacing: 0.4em; color: var(--gold); margin-top: 8px; }
+
+  /* Section */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+  .section { margin-bottom: 64px; }
+  .section-label { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 0.3em; font-weight: 500; color: var(--text-primary); text-transform: uppercase; margin-bottom: 24px; }
+  .section-label::before { content: ''; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; }
+
+  /* Logo Hero */
+  .logo-hero { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 48px 32px; text-align: center; }
+  .logo-hero .mark { width: 220px; height: 220px; margin: 0 auto 16px; display: block; }
+  .logo-hero .tagline { margin-top: 18px; font-size: 9px; letter-spacing: 0.45em; color: var(--gold); font-weight: 500; }
+  .logo-hero .meta { margin-top: 24px; font-size: 9px; letter-spacing: 0.3em; color: var(--text-secondary); }
+
+  /* Logo variations */
+  .logo-variations { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .logo-chip { aspect-ratio: 1.4 / 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; padding: 16px; }
+  .logo-chip img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .logo-chip.dark { background: var(--bg-primary); border: 1px solid var(--border); }
+  .logo-chip.light { background: #f1f5f9; }
+  .logo-chip.gold { background: var(--gold); }
+  .logo-caption { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
+  .logo-caption span { font-size: 9px; letter-spacing: 0.18em; color: var(--text-secondary); text-align: center; text-transform: uppercase; }
+
+  /* Clearspace */
+  .clearspace { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 32px; position: relative; }
+  .clearspace-frame { border: 1px dashed rgba(201,169,110,0.4); border-radius: 4px; padding: 32px 16px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .clearspace-frame::before, .clearspace-frame::after,
+  .clearspace-frame .vline-l, .clearspace-frame .vline-r { content: ''; position: absolute; color: var(--gold); font-size: 10px; }
+  .clearspace-frame .label-x { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: var(--bg-card); padding: 0 6px; font-size: 9px; color: var(--gold); letter-spacing: 0.3em; }
+  .clearspace-frame .label-y { position: absolute; left: -8px; top: 50%; transform: translateY(-50%) rotate(-90deg); background: var(--bg-card); padding: 0 6px; font-size: 9px; color: var(--gold); letter-spacing: 0.3em; }
+  .clearspace-frame img { width: 110px; height: 110px; object-fit: contain; }
+  .clearspace .note { margin-top: 16px; font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
+  .clearspace .note b { color: var(--gold); display: block; font-size: 9px; letter-spacing: 0.3em; margin-bottom: 4px; }
+
+  /* Typography */
+  .type-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 28px; margin-bottom: 12px; display: grid; grid-template-columns: 110px 1fr; gap: 24px; align-items: center; }
+  .type-block .ab-serif { font-family: 'Cormorant Garamond', serif; font-weight: 400; font-size: 92px; line-height: 1; letter-spacing: -0.02em; }
+  .type-block .ab-sans { font-family: 'Geist', sans-serif; font-weight: 400; font-size: 88px; line-height: 1; letter-spacing: -0.04em; }
+  .type-block .name { font-family: 'Cormorant Garamond', serif; font-weight: 500; letter-spacing: 0.18em; font-size: 22px; }
+  .type-block .name.sans { font-family: 'Geist', sans-serif; font-weight: 500; letter-spacing: 0.12em; }
+  .type-block .role { display: inline-block; margin-left: 10px; font-family: 'Geist', sans-serif; font-size: 9px; color: var(--gold); letter-spacing: 0.25em; vertical-align: middle; }
+  .type-block .glyphs { margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--text-secondary); letter-spacing: 0.06em; }
+
+  /* Palette */
+  .palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .swatch { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; gap: 14px; align-items: center; }
+  .swatch .dot { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
+  .swatch .meta { flex: 1; }
+  .swatch .meta b { display: block; font-size: 11px; letter-spacing: 0.18em; font-weight: 600; }
+  .swatch .meta small { display: block; font-size: 9px; line-height: 1.5; color: var(--text-secondary); letter-spacing: 0.05em; margin-top: 4px; }
+  .swatch .meta small span { color: var(--gold); display: inline-block; width: 28px; }
+
+  /* Iconography */
+  .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .icon-tile { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--gold); }
+  .icon-tile.filled { background: var(--gold-muted); border-color: rgba(201,169,110,0.3); }
+  .icon-tile svg { width: 22px; height: 22px; stroke-width: 1.4; }
+
+  /* Buttons */
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { font-family: 'Geist', sans-serif; font-size: 10px; letter-spacing: 0.3em; font-weight: 500; padding: 14px 28px; border-radius: 999px; cursor: default; transition: all 0.3s; text-transform: uppercase; }
+  .btn.primary { background: var(--gold); color: var(--bg-primary); border: 1px solid var(--gold); }
+  .btn.outline { background: transparent; color: var(--text-primary); border: 1px solid var(--border-light); }
+  .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--gold-muted); }
+
+  /* Status row */
+  .status-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .status-pill { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 12px; text-align: center; }
+  .status-pill .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .status-pill span { font-size: 10px; letter-spacing: 0.18em; color: var(--text-secondary); text-transform: uppercase; }
+
+  /* Voice */
+  .voice { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
+  .voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .voice h4 { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 400; font-size: 18px; color: var(--gold); margin-bottom: 8px; }
+  .voice p { font-size: 12px; line-height: 1.7; color: var(--text-secondary); }
+  .voice .yes { color: #94a3b8; }
+  .voice .yes::before { content: '✓ '; color: var(--success); }
+  .voice .no { color: #94a3b8; }
+  .voice .no::before { content: '✗ '; color: var(--error); }
+  .voice ul { list-style: none; font-size: 12px; line-height: 1.9; }
+
+  /* Footer */
+  .footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 0.2em; color: var(--text-secondary); text-transform: uppercase; }
+  .footer a { color: var(--gold); text-decoration: none; }
+
+  @media print {
+    @page { size: A3 portrait; margin: 0; }
+    html, body { background: var(--bg-primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { padding: 36px 32px !important; }
+    .page { max-width: 100% !important; }
+    .header { margin-bottom: 32px; padding-bottom: 16px; }
+    .header h1 { font-size: 48px !important; }
+    .grid { gap: 28px; }
+    .section { margin-bottom: 28px; page-break-inside: avoid; break-inside: avoid; }
+    .swatch, .logo-hero, .clearspace, .type-block, .voice, .icon-tile { page-break-inside: avoid; break-inside: avoid; }
+    .logo-hero { padding: 28px 16px; }
+    .logo-hero .mark { width: 160px; height: 160px; }
+    .footer { margin-top: 24px; }
+  }
+
+  @media (max-width: 900px) {
+    body { padding: 32px 20px; }
+    .grid { grid-template-columns: 1fr; gap: 0; }
+    .header { flex-direction: column; gap: 24px; }
+    .header h1 { font-size: 44px; }
+    .icons { grid-template-columns: repeat(4, 1fr); }
+    .palette { grid-template-columns: 1fr; }
+    .status-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <h1>BRAND<br><span class="accent">guidelines</span></h1>
+    <div class="wordmark" style="display:flex;align-items:center;gap:18px;padding-top:0;">
+      <img src="public/brand/logo-circle-white.png" alt="GRAYACHTS" style="width:84px;height:84px;object-fit:contain;">
+      <div style="text-align:right;">
+        <div style="font-family:'Cormorant Garamond',serif;font-weight:300;font-size:26px;letter-spacing:0.32em;">GRAYACHTS</div>
+        <small>PACIFIC NORTHWEST · EST. 2025</small>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <section class="section">
+        <div class="section-label">Company Logo</div>
+        <div class="logo-hero">
+          <img src="public/brand/logo-circle-white.png" alt="GRAYACHTS — Circular Mark" class="mark">
+          <div class="tagline">PACIFIC NORTHWEST&apos;S PREMIER YACHT EXPERIENCE</div>
+          <div class="meta">CIRCULAR MARK · BOAT SILHOUETTE + GRAYACHTS WORDMARK</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Logo Clearspace</div>
+        <div class="clearspace">
+          <div class="clearspace-frame">
+            <span class="label-x">↔ X</span>
+            <span class="label-y">↕ X</span>
+            <img src="public/brand/logo-circle-white.png" alt="Logo clearspace">
+          </div>
+          <p class="note"><b>Definition</b>Always leave at least 1× the radius of the circular mark (X) as clear space on all sides. Never crop the circle, rotate the mark, or place it over busy imagery without a darkened scrim.</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Typography</div>
+
+        <div class="type-block">
+          <div class="ab-serif">Ab</div>
+          <div>
+            <div class="name">CORMORANT GARAMOND<span class="role">DISPLAY</span></div>
+            <div class="glyphs">ABCDEFGHIJKLM<br>NOPQRSTUVWXYZ<br>abcdefghijklm<br>nopqrstuvwxyz<br>0123456789</div>
+          </div>
+        </div>
+
+        <div class="type-block">
+          <div class="ab-sans">Ab</div>
+          <div>
+            <div class="name sans">GEIST<span class="role">UI · BODY</span></div>
+            <div class="glyphs">ABCDEFGHIJKLM<br>NOPQRSTUVWXYZ<br>abcdefghijklm<br>nopqrstuvwxyz<br>0123456789</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Voice &amp; Tone</div>
+        <div class="voice">
+          <div class="voice-grid">
+            <div>
+              <h4>We Sound Like</h4>
+              <ul>
+                <li class="yes">Cinematic &amp; understated</li>
+                <li class="yes">Confident, never loud</li>
+                <li class="yes">Maritime, regional, specific</li>
+                <li class="yes">Crafted, not corporate</li>
+              </ul>
+            </div>
+            <div>
+              <h4>We Avoid</h4>
+              <ul>
+                <li class="no">Hype words (&ldquo;amazing&rdquo;, &ldquo;ultimate&rdquo;)</li>
+                <li class="no">Emojis in marketing copy</li>
+                <li class="no">Stock-photo cliché</li>
+                <li class="no">All caps body text</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+
+      <section class="section">
+        <div class="section-label">Logo Variations</div>
+        <div class="logo-variations">
+          <div class="logo-chip dark"><img src="public/brand/logo-circle-white.png" alt="White on dark"></div>
+          <div class="logo-chip light"><img src="public/brand/logo-circle-black.png" alt="Black on light"></div>
+          <div class="logo-chip gold"><img src="public/brand/logo-circle-black.png" alt="Black on gold"></div>
+        </div>
+        <div class="logo-caption">
+          <span>Dark BG (Primary)</span>
+          <span>Light BG</span>
+          <span>Gold BG</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Brand Palette</div>
+        <div class="palette">
+
+          <div class="swatch">
+            <div class="dot" style="background:#060a12;border:1px solid var(--border-light)"></div>
+            <div class="meta"><b>ONYX</b><small><span>HEX</span> #060A12<br><span>RGB</span> 6 · 10 · 18<br><span>USE</span> Primary background</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#C9A96E"></div>
+            <div class="meta"><b>CHAMPAGNE GOLD</b><small><span>HEX</span> #C9A96E<br><span>RGB</span> 201 · 169 · 110<br><span>USE</span> Accent · CTA</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#0c1220;border:1px solid var(--border)"></div>
+            <div class="meta"><b>HARBOUR</b><small><span>HEX</span> #0C1220<br><span>RGB</span> 12 · 18 · 32<br><span>USE</span> Secondary BG</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#111827;border:1px solid var(--border)"></div>
+            <div class="meta"><b>CARD</b><small><span>HEX</span> #111827<br><span>RGB</span> 17 · 24 · 39<br><span>USE</span> Card surface</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#f1f5f9"></div>
+            <div class="meta"><b>SAIL WHITE</b><small><span>HEX</span> #F1F5F9<br><span>RGB</span> 241 · 245 · 249<br><span>USE</span> Primary text</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#8892A5"></div>
+            <div class="meta"><b>FOG</b><small><span>HEX</span> #8892A5<br><span>RGB</span> 136 · 146 · 165<br><span>USE</span> Secondary text</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#1e293b"></div>
+            <div class="meta"><b>BORDER</b><small><span>HEX</span> #1E293B<br><span>RGB</span> 30 · 41 · 59<br><span>USE</span> Dividers · outlines</small></div>
+          </div>
+
+          <div class="swatch">
+            <div class="dot" style="background:#d4b87e"></div>
+            <div class="meta"><b>GOLD HOVER</b><small><span>HEX</span> #D4B87E<br><span>RGB</span> 212 · 184 · 126<br><span>USE</span> Gold hover state</small></div>
+          </div>
+
+        </div>
+
+        <div class="status-row">
+          <div class="status-pill"><span class="dot" style="background:#22c55e"></span><span>Success</span></div>
+          <div class="status-pill"><span class="dot" style="background:#3b82f6"></span><span>Info</span></div>
+          <div class="status-pill"><span class="dot" style="background:#f59e0b"></span><span>Warning</span></div>
+          <div class="status-pill"><span class="dot" style="background:#ef4444"></span><span>Error</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Iconography Style</div>
+        <div class="icons">
+          <!-- Anchor -->
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="22"/><path d="M5 12a7 7 0 0 0 14 0"/><line x1="8" y1="10" x2="16" y2="10"/></svg></div>
+          <!-- Compass -->
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>
+          <!-- Wave -->
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg></div>
+          <!-- Document -->
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>
+          <!-- Wrench -->
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+          <!-- Map pin -->
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l4-12h2l4 12"/><path d="M3 14h6"/><path d="M14 18l4-12h2l4 12"/><path d="M14 14h6"/></svg></div>
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div class="icon-tile filled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
+        </div>
+        <p class="note" style="margin-top:14px;font-size:11px;color:var(--text-secondary);line-height:1.6"><b style="color:var(--gold);font-size:9px;letter-spacing:0.3em;display:block;margin-bottom:4px">STYLE</b>Lucide-family · 1.4px stroke · 24px artboard · gold (#C9A96E) on dark surfaces</p>
+      </section>
+
+      <section class="section">
+        <div class="section-label">Button Style</div>
+        <div class="buttons">
+          <button class="btn primary">Schedule a Tour</button>
+          <button class="btn outline">Explore Fleet</button>
+          <button class="btn ghost">Learn More</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>Gray Yachts LLC · v1.0 · 2026</span>
+    <span><a href="https://grayyachts.com">grayyachts.com</a> · <a href="mailto:connor@grayyachts.com">connor@grayyachts.com</a></span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -25,9 +25,10 @@ export default function MarineTechSupportPage() {
       <div className="space-y-10 text-[15px] leading-relaxed text-[#cbd5e1]">
         <section>
           <p>
-            JBY-Marine Tech is an invite-only field-service app for marine
-            technicians. If you don&rsquo;t have an account, contact your shop
-            owner — they provision technician accounts.
+            JBY-Marine Tech is a free field-service app for marine mechanics
+            and boat owners. To create an account, tap{" "}
+            <em>Create a free account</em> on the sign-in screen and pick your
+            account type (Marine Mechanic or Boat Owner).
           </p>
         </section>
 
@@ -36,16 +37,17 @@ export default function MarineTechSupportPage() {
             Common questions
           </h2>
 
-          <FAQ q="I didn't get a TestFlight or invite email.">
-            Ask your shop admin to resend it. Check your spam folder. Invites
-            come from <code className="text-[#C9A96E]">noreply@email.apple.com</code> for
-            TestFlight, and from your shop&rsquo;s email address for the app
-            itself.
+          <FAQ q="How do I create an account?">
+            From the sign-in screen, tap <em>Create a free account</em>. Choose{" "}
+            <em>Marine Mechanic</em> or <em>Boat Owner</em>, enter your email
+            and a password, and you&rsquo;ll land in the app with an empty
+            workspace.
           </FAQ>
 
-          <FAQ q='The app says "Account not active."'>
-            Your account is either pending approval or has been suspended.
-            Contact your shop admin to activate it.
+          <FAQ q="Is the app really free?">
+            Yes — Marine Tech is completely free. There are no paid tiers, no
+            in-app purchases, and no ads. The full feature set is available to
+            every account.
           </FAQ>
 
           <FAQ q="I forgot my password.">
