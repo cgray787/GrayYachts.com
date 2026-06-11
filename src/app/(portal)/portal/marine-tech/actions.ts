@@ -61,12 +61,28 @@ export async function updateJobSchedule(formData: FormData) {
     status: status || "new",
   };
 
+  // Per-service descriptions (migration 031): textareas named
+  // service_desc__<service type> in the drawer → jsonb keyed by type.
+  const serviceDescriptions: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("service_desc__") && typeof value === "string") {
+      const serviceType = key.slice("service_desc__".length);
+      const trimmed = value.trim();
+      if (trimmed) serviceDescriptions[serviceType] = trimmed;
+    }
+  }
+
   const withEnd = await db
     .from("jobs")
-    .update({ ...update, scheduled_end_date: end })
+    .update({
+      ...update,
+      scheduled_end_date: end,
+      service_descriptions: serviceDescriptions,
+    })
     .eq("id", id);
 
   if (withEnd.error) {
+    // Fallback for environments predating scheduled_end_date / migration 031.
     const fallback = await db.from("jobs").update(update).eq("id", id);
     if (fallback.error) throw new Error(fallback.error.message);
   }

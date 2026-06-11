@@ -10,6 +10,7 @@ export type EditableJob = {
   scheduled_start?: string | null;
   scheduled_end?: string | null;
   service_types: string[] | null;
+  service_descriptions?: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
@@ -116,9 +117,20 @@ export function JobEditDrawer({
                 <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
                   Services
                 </label>
-                <p className="mt-1 text-sm text-text-primary">
-                  {job.service_types.join(", ")}
-                </p>
+                <div className="mt-1 space-y-2">
+                  {job.service_types.map((s) => (
+                    <div key={s}>
+                      <p className="text-sm text-text-primary">{s}</p>
+                      <textarea
+                        name={`service_desc__${s}`}
+                        defaultValue={job.service_descriptions?.[s] ?? ""}
+                        placeholder="Details for this service…"
+                        rows={2}
+                        className="mt-1 w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-gold focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {job.notes && (

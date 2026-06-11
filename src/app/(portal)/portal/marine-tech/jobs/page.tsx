@@ -12,8 +12,10 @@ type Job = {
   status: string;
   scheduled_date: string | null;          // legacy date column
   scheduled_start: string | null;         // new timestamptz column (Marine Tech App writes)
+  scheduled_end_date: string | null;
   created_at: string;
   service_types: string[] | null;
+  service_descriptions: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
@@ -54,7 +56,7 @@ export default async function JobsPage({
     let query = db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, scheduled_start, created_at, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, scheduled_start, scheduled_end_date, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .order("created_at", { ascending: false })
       .limit(100);
@@ -157,10 +159,47 @@ export default async function JobsPage({
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
+                    {j.service_descriptions &&
+                      Object.keys(j.service_descriptions).length > 0 && (
+                        <ul className="mt-1 space-y-0.5">
+                          {Object.entries(j.service_descriptions).map(
+                            ([service, desc]) => (
+                              <li
+                                key={service}
+                                className="truncate text-xs text-text-secondary/80"
+                              >
+                                <span className="text-text-secondary">
+                                  {service}:
+                                </span>{" "}
+                                {desc}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      )}
                   </div>
-                  <time className="shrink-0 text-xs text-text-secondary">
-                    {new Date(j.created_at).toLocaleDateString()}
-                  </time>
+                  <div className="shrink-0 text-right text-xs text-text-secondary">
+                    <time className="block">
+                      {new Date(j.created_at).toLocaleDateString()}
+                    </time>
+                    {(() => {
+                      const start = jobScheduledDate(j);
+                      if (!start) return null;
+                      const end = j.scheduled_end_date;
+                      const fmt = (d: string) =>
+                        new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        });
+                      return (
+                        <span className="mt-0.5 block text-gold">
+                          {end && end !== start
+                            ? `${fmt(start)} – ${fmt(end)}`
+                            : fmt(start)}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </li>
               );
             })}

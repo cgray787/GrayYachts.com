@@ -30,6 +30,50 @@ type RecentReport = {
   submitted_at: string | null;
 };
 
+type PendingJob = {
+  id: string;
+  status: string;
+  created_at: string;
+  service_types: string[] | null;
+  service_descriptions: Record<string, string> | null;
+  notes: string | null;
+  customers: { name: string | null } | null;
+  boats: { name: string | null; make: string | null; model: string | null } | null;
+};
+
+async function loadPendingJobs(
+  db: ReturnType<typeof createMarineTechClient>
+): Promise<PendingJob[]> {
+  // Pending = no date in either scheduling world (legacy date or timestamptz)
+  // and not already completed — mirrors the standalone dashboard's
+  // PendingJobsPanel (F8c).
+  const withDescriptions = await db
+    .from("jobs")
+    .select(
+      "id, status, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make, model)"
+    )
+    .is("scheduled_start", null)
+    .is("scheduled_date", null)
+    .neq("status", "completed")
+    .order("created_at", { ascending: true })
+    .limit(50);
+  if (!withDescriptions.error)
+    return (withDescriptions.data ?? []) as unknown as PendingJob[];
+
+  // Fallback for environments predating migration 031 (service_descriptions).
+  const plain = await db
+    .from("jobs")
+    .select(
+      "id, status, created_at, service_types, notes, customers(name), boats(name, make, model)"
+    )
+    .is("scheduled_start", null)
+    .is("scheduled_date", null)
+    .neq("status", "completed")
+    .order("created_at", { ascending: true })
+    .limit(50);
+  return (plain.data ?? []) as unknown as PendingJob[];
+}
+
 async function loadMonthJobs(
   db: ReturnType<typeof createMarineTechClient>,
   start: string,
@@ -84,6 +128,7 @@ async function loadOverview(monthParam: string | undefined) {
       { count: totalTechs },
       { data: recentReports },
       monthJobs,
+      pendingJobs,
     ] = await Promise.all([
       db.from("jobs").select("*", { count: "exact", head: true }),
       db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "new"),
@@ -98,6 +143,7 @@ async function loadOverview(monthParam: string | undefined) {
         .order("submitted_at", { ascending: false })
         .limit(5),
       loadMonthJobs(db, start, end),
+      loadPendingJobs(db),
     ]);
 
     return {
@@ -113,6 +159,7 @@ async function loadOverview(monthParam: string | undefined) {
       },
       recentReports: (recentReports ?? []) as RecentReport[],
       monthJobs,
+      pendingJobs,
     };
   } catch {
     return { configured: false as const };
@@ -125,7 +172,7 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
     const withEnd = await db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, service_types, service_descriptions, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .eq("id", id)
       .maybeSingle();
@@ -196,7 +243,7 @@ export default async function MarineTechPage({
               iconBg="bg-gold-muted"
               value={overview.counts.totalJobs}
               label="Total Jobs"
-              hint={`${overview.counts.newJobs} new · ${overview.counts.inProgressJobs} in progress`}
+              hint={`${overview.counts.newJobs} new · ${overview.counts.inProgressJobs} in progress · ${overview.pendingJobs.length} pending schedule`}
             />
             <StatCard
               href="/portal/marine-tech/jobs?status=completed"
@@ -219,6 +266,71 @@ export default async function MarineTechPage({
               label="Technicians"
             />
           </div>
+
+          {overview.pendingJobs.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-4 flex items-center gap-2">
+                <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
+                  Pending Jobs
+                </h2>
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+                  {overview.pendingJobs.length}
+                </span>
+                <span className="text-xs text-text-secondary">
+                  no date scheduled yet
+                </span>
+              </div>
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/5">
+                <ul className="divide-y divide-border">
+                  {overview.pendingJobs.map((j) => {
+                    const boatLabel =
+                      j.boats?.name ||
+                      [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
+                      "Unknown vessel";
+                    return (
+                      <li
+                        key={j.id}
+                        className="flex items-center justify-between gap-4 p-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-text-primary">
+                            {[j.customers?.name, boatLabel]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                          {j.service_types && j.service_types.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {j.service_types.map((s) => (
+                                <span
+                                  key={s}
+                                  className="rounded-full border border-border bg-bg-card px-2 py-0.5 text-[11px] text-text-secondary"
+                                >
+                                  {s}
+                                  {j.service_descriptions?.[s] && (
+                                    <span className="text-text-secondary/70">
+                                      {" "}
+                                      — {j.service_descriptions[s]}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Link
+                          href={`/portal/marine-tech?job=${j.id}${month ? `&month=${month}` : ""}`}
+                          scroll={false}
+                          className="shrink-0 rounded-lg bg-gold px-3 py-1.5 text-sm font-medium text-bg-primary transition-colors hover:bg-gold-hover"
+                        >
+                          Schedule
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
