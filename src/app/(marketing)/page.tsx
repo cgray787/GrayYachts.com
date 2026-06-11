@@ -17,8 +17,7 @@ import {
 import Link from "next/link";
 
 import { FleetGallery } from "@/components/marketing/fleet-gallery";
-import { FleetGrid } from "@/components/marketing/fleet-grid";
-import { heroSlides, vessels } from "@/lib/fleet";
+import { heroSlides } from "@/lib/fleet";
 
 /* ------------------------------------------------------------------ */
 /*  Animation helpers                                                  */
@@ -348,32 +347,6 @@ export default function HomePage() {
           variants={stagger}
           className="mx-auto max-w-6xl"
         >
-          <motion.p
-            variants={fadeUp}
-            custom={0}
-            className="text-center text-[10px] tracking-[0.35em] text-gold"
-          >
-            FEATURED VESSELS
-          </motion.p>
-
-          <motion.h2
-            variants={fadeUp}
-            custom={1}
-            className="mt-4 text-center font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl md:text-5xl"
-          >
-            Currently Representing
-          </motion.h2>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed text-text-secondary"
-          >
-            Hand-picked Pacific Northwest listings ready for immediate viewing.
-          </motion.p>
-
-          <FleetGrid vessels={vessels} />
-
           {/* Hero-only scroller — one card per vessel, no interior shots. */}
           {/* The full Step Inside gallery lives on /fleet.                */}
           <FleetGallery
