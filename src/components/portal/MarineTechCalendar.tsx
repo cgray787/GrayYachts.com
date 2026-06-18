@@ -160,9 +160,12 @@ function buildWeekSegments(week: Date[], jobs: CalendarJob[]): Segment[] {
 export function MarineTechCalendar({
   jobs,
   monthParam,
+  selectedDay,
 }: {
   jobs: CalendarJob[];
   monthParam: string | undefined;
+  /** The day focused below the grid, 'yyyy-MM-dd'. Clicking a date sets it. */
+  selectedDay?: string;
 }) {
   const { year, month0 } = parseMonth(monthParam);
   const monthKey = formatMonth(year, month0);
@@ -254,24 +257,33 @@ export function MarineTechCalendar({
                 const inMonth = day.getMonth() === month0;
                 const iso = toISODate(day);
                 const isToday = iso === todayISO;
+                const isSelected = iso === selectedDay;
                 return (
                   <div
                     key={di}
                     className={`border-r border-border px-1.5 pb-1.5 pt-1 ${
                       di === 6 ? "border-r-0" : ""
-                    } ${inMonth ? "" : "bg-bg-primary/40"}`}
+                    } ${inMonth ? "" : "bg-bg-primary/40"} ${
+                      isSelected ? "bg-gold-muted" : ""
+                    }`}
                   >
-                    <span
-                      className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] ${
+                    <Link
+                      href={`/portal/marine-tech?month=${monthKey}&day=${iso}`}
+                      scroll={false}
+                      aria-label={`Focus ${iso}`}
+                      aria-current={isSelected ? "date" : undefined}
+                      className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] transition-colors ${
                         isToday
                           ? "bg-gold font-semibold text-bg-primary"
+                          : isSelected
+                          ? "font-semibold text-gold ring-1 ring-gold"
                           : inMonth
-                          ? "text-text-secondary"
-                          : "text-text-secondary/40"
+                          ? "text-text-secondary hover:text-gold"
+                          : "text-text-secondary/40 hover:text-text-secondary"
                       }`}
                     >
                       {day.getDate()}
-                    </span>
+                    </Link>
                   </div>
                 );
               })}

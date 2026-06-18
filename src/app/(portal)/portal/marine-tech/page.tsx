@@ -15,12 +15,34 @@ import {
   buildMonthRange,
   type CalendarJob,
 } from "@/components/portal/MarineTechCalendar";
+import { DayFocusPanel } from "@/components/portal/DayFocusPanel";
 import {
   JobEditDrawer,
   type EditableJob,
 } from "@/components/portal/JobEditDrawer";
 
 export const dynamic = "force-dynamic";
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+// Resolve the day to focus below the grid. Honors an explicit ?day= when it's
+// a valid 'yyyy-MM-dd'; otherwise defaults to today (or the 1st of the viewed
+// month when the operator has paged away from the current month).
+function resolveSelectedDay(
+  dayParam: string | undefined,
+  monthParam: string | undefined
+): string {
+  if (dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam)) return dayParam;
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+    const todayMonth = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+    if (monthParam !== todayMonth) return `${monthParam}-01`;
+  }
+  return todayISO;
+}
 
 type RecentReport = {
   id: string;
@@ -196,9 +218,10 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
 export default async function MarineTechPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; job?: string }>;
+  searchParams: Promise<{ month?: string; job?: string; day?: string }>;
 }) {
-  const { month, job: jobId } = await searchParams;
+  const { month, job: jobId, day } = await searchParams;
+  const selectedDay = resolveSelectedDay(day, month);
   const supabase = await createClient();
   const {
     data: { user },
@@ -399,6 +422,13 @@ export default async function MarineTechPage({
           <div className="mt-8">
             <MarineTechCalendar
               jobs={overview.monthJobs}
+              monthParam={month}
+              selectedDay={selectedDay}
+            />
+            <DayFocusPanel
+              scheduledJobs={overview.monthJobs}
+              unscheduledJobs={overview.pendingJobs}
+              selectedDate={selectedDay}
               monthParam={month}
             />
           </div>
