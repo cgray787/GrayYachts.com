@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 import { updateJobSchedule } from "@/app/(portal)/portal/marine-tech/actions";
+import { DateFieldWithCalendar } from "@/components/portal/DateFieldWithCalendar";
 
 export type EditableJob = {
   id: string;
@@ -79,23 +80,22 @@ export function JobEditDrawer({
               <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
                 Start date
               </label>
-              <input
-                type="date"
+              <DateFieldWithCalendar
                 name="scheduled_date"
                 defaultValue={startVal}
                 required
-                className="mt-1 w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary focus:border-gold focus:outline-none"
+                ariaLabel="Start date"
               />
             </div>
             <div>
               <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
                 End date <span className="text-text-secondary/70">(same as start for single-day)</span>
               </label>
-              <input
-                type="date"
+              <DateFieldWithCalendar
                 name="scheduled_end_date"
                 defaultValue={endVal}
-                className="mt-1 w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary focus:border-gold focus:outline-none"
+                clearable
+                ariaLabel="End date"
               />
             </div>
             <div>
