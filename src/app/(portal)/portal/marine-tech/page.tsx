@@ -63,6 +63,22 @@ type PendingJob = {
   boats: { name: string | null; make: string | null; model: string | null } | null;
 };
 
+// A job has a client when the linked customer has a non-empty name.
+function hasClient(j: { customers: { name: string | null } | null }): boolean {
+  return !!j.customers?.name?.trim();
+}
+
+// Stable partition: jobs with a client keep their current (created_at) order;
+// clientless jobs sort to the end (still in their existing relative order).
+// Array.prototype.sort is stable in V8, so equal-key items preserve order.
+function clientlessLast<T extends { customers: { name: string | null } | null }>(
+  jobs: T[]
+): T[] {
+  return [...jobs].sort(
+    (a, b) => Number(hasClient(b)) - Number(hasClient(a))
+  );
+}
+
 async function loadPendingJobs(
   db: ReturnType<typeof createMarineTechClient>
 ): Promise<PendingJob[]> {
@@ -427,7 +443,7 @@ export default async function MarineTechPage({
             />
             <DayFocusPanel
               scheduledJobs={overview.monthJobs}
-              unscheduledJobs={overview.pendingJobs}
+              unscheduledJobs={clientlessLast(overview.pendingJobs)}
               selectedDate={selectedDay}
               monthParam={month}
             />

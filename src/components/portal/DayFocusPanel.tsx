@@ -230,7 +230,10 @@ function JobRow({
   const time = formatTime(start);
   const multiDay = dayCount != null && dayCount > 1;
   const label = boatLabel(job);
-  const customer = job.customers?.name;
+  const customer = job.customers?.name?.trim() || undefined;
+  // Unscheduled + no client: prompt the operator that tapping opens the
+  // assign/edit drawer. Scheduled rows keep the plain "No client" fallback.
+  const customerLine = customer ?? (scheduled ? "No client" : "No client — tap to assign");
   // Both scheduled rows and unscheduled rows open the existing JobEditDrawer
   // (the portal's only scheduling/editing surface). For unscheduled rows this
   // is the "Schedule" action; for scheduled rows it's "open / reschedule".
@@ -253,7 +256,7 @@ function JobRow({
             <span className="truncate">{label}</span>
           </div>
           <div className="truncate text-xs text-text-secondary">
-            {customer ?? "No client"}
+            {customerLine}
             {multiDay ? ` · Day ${dayIndex} of ${dayCount}` : ""}
           </div>
         </div>
