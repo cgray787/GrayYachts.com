@@ -96,3 +96,20 @@ export function jobsForWeek(
 function sortKey(j: CalendarJob): string {
   return j.scheduled_start ?? j.scheduled_date ?? "";
 }
+
+/**
+ * The place (text) a job is at on a given day (yyyy-MM-dd). A multi-day job can
+ * carry a per-day place in `day_locations` ({ 'YYYY-MM-DD': '<place>' }); when a
+ * day has no explicit entry we fall back to the job's marina, then its free-text
+ * `location_override`, then null. Mirrors marine-tech-app/lib/calendar/spans.ts
+ * `placeForDay`, adapted to the portal's snake_case CalendarJob shape.
+ */
+export function placeForDay(job: CalendarJob, day: string): string | null {
+  const perDay = job.day_locations?.[day]?.trim();
+  if (perDay) return perDay;
+  const marina = job.marinas?.name?.trim();
+  if (marina) return marina;
+  const override = job.location_override?.trim();
+  if (override) return override;
+  return null;
+}

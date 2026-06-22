@@ -4,13 +4,23 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export type CalendarJob = {
   id: string;
   status: string;
+  kind?: string | null;                    // 'service' | 'paperwork' (migration 039)
+  notes?: string | null;                   // paperwork title/note (rendered as the label)
   scheduled_date: string | null;          // legacy 'date' column
   scheduled_end_date?: string | null;     // legacy multi-day end
   scheduled_start?: string | null;        // new 'timestamptz' column written by Marine Tech App
   scheduled_end?: string | null;          // new 'timestamptz' end
+  location_override?: string | null;       // free-text place when there's no marina
+  day_locations?: Record<string, string> | null; // { 'YYYY-MM-DD': '<place>' } per-day place
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
+  marinas?: { name: string | null } | null;
 };
+
+/** True when the job is a standalone paperwork/admin block (no client/boat). */
+export function isPaperwork(j: CalendarJob | { kind?: string | null }): boolean {
+  return j.kind === "paperwork";
+}
 
 // Prefer the new timestamptz columns when present; fall back to the legacy
 // date columns. The portal calendar grid is date-resolution so we just need
@@ -76,6 +86,10 @@ function shiftMonth(year: number, month0: number, delta: number) {
 }
 
 function boatLabel(j: CalendarJob): string {
+  if (isPaperwork(j)) {
+    const note = j.notes?.trim();
+    return note ? `📋 Paperwork — ${note}` : "📋 Paperwork";
+  }
   return (
     j.boats?.name ||
     [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
@@ -293,12 +307,21 @@ export function MarineTechCalendar({
                 style={{ top: "28px" }}
               >
                 {segments.map((seg, si) => {
-                  const cls = STATUS_BAR[seg.job.status] ?? "bg-slate-500/25 border-slate-400/40 text-slate-100";
+                  const paperwork = isPaperwork(seg.job);
+                  // Paperwork blocks get a distinct gold/slate look so they read
+                  // as admin time, not field work. Service jobs keep the
+                  // status-driven palette.
+                  const cls = paperwork
+                    ? "bg-gold-muted border-gold/50 text-gold"
+                    : STATUS_BAR[seg.job.status] ?? "bg-slate-500/25 border-slate-400/40 text-slate-100";
+                  const dotCls = paperwork
+                    ? "bg-gold"
+                    : STATUS_DOT[seg.job.status] ?? "bg-slate-300";
                   const rounded =
                     (seg.startsHere ? "rounded-l-md " : "") +
                     (seg.endsHere ? "rounded-r-md " : "");
                   const label = boatLabel(seg.job);
-                  const customer = seg.job.customers?.name;
+                  const customer = paperwork ? null : seg.job.customers?.name;
                   return (
                     <Link
                       key={si}
@@ -317,9 +340,7 @@ export function MarineTechCalendar({
                     >
                       {seg.startsHere && (
                         <span
-                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                            STATUS_DOT[seg.job.status] ?? "bg-slate-300"
-                          }`}
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotCls}`}
                         />
                       )}
                       <span className="truncate">
@@ -343,6 +364,9 @@ export function MarineTechCalendar({
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-400" /> Completed
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-gold" /> 📋 Paperwork
         </span>
       </div>
     </div>

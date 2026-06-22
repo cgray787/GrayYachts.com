@@ -130,7 +130,7 @@ async function loadMonthJobs(
   const withEnd = await db
     .from("jobs")
     .select(
-      "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, customers(name), boats(name, make, model)"
+      "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(name), boats(name, make, model), marinas(name)"
     )
     .or(
       `and(scheduled_start.gte.${startTs},scheduled_start.lte.${endTs}),and(scheduled_date.gte.${start},scheduled_date.lte.${end})`
@@ -210,7 +210,7 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
     const withEnd = await db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, service_types, service_descriptions, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, kind, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, service_types, service_descriptions, notes, customers(name), boats(name, make, model), marinas(name), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .eq("id", id)
       .maybeSingle();

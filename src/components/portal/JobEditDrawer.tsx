@@ -2,19 +2,24 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { updateJobSchedule } from "@/app/(portal)/portal/marine-tech/actions";
 import { DateFieldWithCalendar } from "@/components/portal/DateFieldWithCalendar";
+import { PerDayLocations } from "@/components/portal/PerDayLocations";
 
 export type EditableJob = {
   id: string;
   status: string;
+  kind?: string | null;
   scheduled_date: string | null;
   scheduled_end_date?: string | null;
   scheduled_start?: string | null;
   scheduled_end?: string | null;
+  location_override?: string | null;
+  day_locations?: Record<string, string> | null;
   service_types: string[] | null;
   service_descriptions?: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
+  marinas?: { name: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
 
@@ -26,6 +31,7 @@ export function JobEditDrawer({
   monthParam: string | undefined;
 }) {
   const monthQs = monthParam ? `?month=${monthParam}` : "";
+  const paperwork = job.kind === "paperwork";
   // Show what's actually scheduled, preferring the new timestamptz columns
   // (which the Marine Tech App writes) and falling back to legacy date columns.
   const startVal = (job.scheduled_start ? job.scheduled_start.slice(0, 10) : job.scheduled_date) ?? "";
@@ -34,6 +40,9 @@ export function JobEditDrawer({
     job.boats?.name ||
     [job.boats?.make, job.boats?.model].filter(Boolean).join(" ") ||
     "Unnamed vessel";
+  // Place shown as the per-day fallback: the job's marina, else its free-text
+  // location override.
+  const fallbackPlace = job.marinas?.name?.trim() || job.location_override?.trim() || null;
 
   return (
     <>
@@ -47,13 +56,21 @@ export function JobEditDrawer({
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div>
             <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-text-primary">
-              Schedule job
+              {paperwork ? "Paperwork block" : "Schedule job"}
             </h3>
-            <p className="mt-0.5 text-xs text-text-secondary">{boatLine}</p>
-            {job.customers?.name && (
-              <p className="text-xs text-text-secondary">
-                Customer: {job.customers.name}
+            {paperwork ? (
+              <p className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold-muted px-2 py-0.5 text-[11px] font-medium text-gold">
+                📋 Paperwork
               </p>
+            ) : (
+              <>
+                <p className="mt-0.5 text-xs text-text-secondary">{boatLine}</p>
+                {job.customers?.name && (
+                  <p className="text-xs text-text-secondary">
+                    Customer: {job.customers.name}
+                  </p>
+                )}
+              </>
             )}
             {job.profiles?.full_name && (
               <p className="text-xs text-text-secondary">
@@ -74,6 +91,7 @@ export function JobEditDrawer({
         <form action={updateJobSchedule} className="flex flex-1 flex-col">
           <input type="hidden" name="id" value={job.id} />
           <input type="hidden" name="month" value={monthParam ?? ""} />
+          <input type="hidden" name="kind" value={paperwork ? "paperwork" : "service"} />
 
           <div className="flex-1 space-y-4 p-5">
             <div>
@@ -98,6 +116,15 @@ export function JobEditDrawer({
                 ariaLabel="End date"
               />
             </div>
+
+            {/* Per-day location editor — only renders when end date > start. */}
+            <PerDayLocations
+              initialStart={startVal}
+              initialEnd={endVal}
+              initialDayLocations={job.day_locations}
+              fallbackPlace={fallbackPlace}
+            />
+
             <div>
               <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
                 Status
@@ -112,7 +139,7 @@ export function JobEditDrawer({
                 <option value="completed">Completed</option>
               </select>
             </div>
-            {job.service_types && job.service_types.length > 0 && (
+            {!paperwork && job.service_types && job.service_types.length > 0 && (
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
                   Services
@@ -133,15 +160,30 @@ export function JobEditDrawer({
                 </div>
               </div>
             )}
-            {job.notes && (
+            {paperwork ? (
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
-                  Notes from tech
+                  Title / Note
                 </label>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">
-                  {job.notes}
-                </p>
+                <textarea
+                  name="notes"
+                  defaultValue={job.notes ?? ""}
+                  placeholder="What is this paperwork block for?"
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:border-gold focus:outline-none"
+                />
               </div>
+            ) : (
+              job.notes && (
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wide text-text-secondary">
+                    Notes from tech
+                  </label>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">
+                    {job.notes}
+                  </p>
+                </div>
+              )
             )}
           </div>
 

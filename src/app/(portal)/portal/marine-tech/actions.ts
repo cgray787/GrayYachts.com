@@ -35,6 +35,7 @@ export async function updateJobSchedule(formData: FormData) {
   const endRaw = normalizeDate(formData.get("scheduled_end_date"));
   const status = String(formData.get("status") ?? "").trim();
   const month = String(formData.get("month") ?? "");
+  const isPaperwork = String(formData.get("kind") ?? "") === "paperwork";
 
   if (status && !ALLOWED_STATUSES.has(status)) {
     throw new Error("Invalid status");
@@ -54,7 +55,7 @@ export async function updateJobSchedule(formData: FormData) {
 
   const db = createMarineTechClient();
 
-  const update: Record<string, string | null> = {
+  const update: Record<string, unknown> = {
     scheduled_date: start,
     scheduled_start: startTs,
     scheduled_end: endTs,
@@ -72,12 +73,32 @@ export async function updateJobSchedule(formData: FormData) {
     }
   }
 
+  // Per-day locations (migration 039): inputs named day_loc__<YYYY-MM-DD> in
+  // the per-day editor → jsonb { 'YYYY-MM-DD': '<place>' }. Only days inside the
+  // chosen span are submitted; blanks are dropped (fall back to marina).
+  const dayLocations: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("day_loc__") && typeof value === "string") {
+      const day = key.slice("day_loc__".length);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+      const trimmed = value.trim();
+      if (trimmed) dayLocations[day] = trimmed;
+    }
+  }
+
+  // Paperwork blocks carry their title/note in `notes` (editable in the drawer).
+  if (isPaperwork) {
+    const note = String(formData.get("notes") ?? "").trim();
+    update.notes = note || null;
+  }
+
   const withEnd = await db
     .from("jobs")
     .update({
       ...update,
       scheduled_end_date: end,
       service_descriptions: serviceDescriptions,
+      day_locations: dayLocations,
     })
     .eq("id", id);
 

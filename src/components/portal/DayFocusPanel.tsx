@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { Calendar, AlertCircle, ChevronRight } from "lucide-react";
-import type { CalendarJob } from "@/components/portal/MarineTechCalendar";
-import { jobsForDay, jobsForWeek, jobDays, type DayJob } from "@/lib/marine-tech/spans";
+import { Calendar, AlertCircle, ChevronRight, MapPin } from "lucide-react";
+import { type CalendarJob, isPaperwork } from "@/components/portal/MarineTechCalendar";
+import {
+  jobsForDay,
+  jobsForWeek,
+  jobDays,
+  placeForDay,
+  type DayJob,
+} from "@/lib/marine-tech/spans";
 
 // Unscheduled jobs (no date in either world) arrive in the page's PendingJob
 // shape. We only need a label + status + id here, so accept a structurally
@@ -9,6 +15,8 @@ import { jobsForDay, jobsForWeek, jobDays, type DayJob } from "@/lib/marine-tech
 export type UnscheduledJob = {
   id: string;
   status: string;
+  kind?: string | null;
+  notes?: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
 };
@@ -71,9 +79,15 @@ function formatTime(start: string | null | undefined): string {
 }
 
 function boatLabel(j: {
+  kind?: string | null;
+  notes?: string | null;
   customers: { name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
 }): string {
+  if (isPaperwork(j)) {
+    const note = j.notes?.trim();
+    return note ? `📋 Paperwork — ${note}` : "📋 Paperwork";
+  }
   return (
     j.boats?.name ||
     [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
@@ -147,6 +161,7 @@ export function DayFocusPanel({
               scheduled
               dayIndex={j.dayIndex}
               dayCount={j.dayCount}
+              place={placeForDay(j, selectedDate)}
               monthQs={monthQs}
             />
           ))}
@@ -159,9 +174,21 @@ export function DayFocusPanel({
           accent="#4ade80"
           empty="Nothing else scheduled this week."
         >
-          {weekJobs.map((j) => (
-            <JobRow key={j.id} job={j} scheduled monthQs={monthQs} />
-          ))}
+          {weekJobs.map((j) => {
+            // Show the place for the job's first day that falls in this week.
+            const days = jobDays(j);
+            const dayInWeek =
+              days.find((d) => d >= weekStartDay && d <= weekEndDay) ?? days[0];
+            return (
+              <JobRow
+                key={j.id}
+                job={j}
+                scheduled
+                place={dayInWeek ? placeForDay(j, dayInWeek) : null}
+                monthQs={monthQs}
+              />
+            );
+          })}
         </Section>
 
         {/* ③ Unscheduled */}
@@ -218,22 +245,29 @@ function JobRow({
   scheduled,
   dayIndex,
   dayCount,
+  place,
   monthQs,
 }: {
   job: DayJob | CalendarJob | UnscheduledJob;
   scheduled: boolean;
   dayIndex?: number;
   dayCount?: number;
+  /** The place (text) this job is at on the day this row represents. */
+  place?: string | null;
   monthQs: string;
 }) {
+  const paperwork = isPaperwork(job);
   const start = "scheduled_start" in job ? job.scheduled_start : null;
   const time = formatTime(start);
   const multiDay = dayCount != null && dayCount > 1;
   const label = boatLabel(job);
-  const customer = job.customers?.name?.trim() || undefined;
-  // Unscheduled + no client: prompt the operator that tapping opens the
-  // assign/edit drawer. Scheduled rows keep the plain "No client" fallback.
-  const customerLine = customer ?? (scheduled ? "No client" : "No client — tap to assign");
+  const customer = paperwork ? undefined : job.customers?.name?.trim() || undefined;
+  // Paperwork blocks have no client — show the per-day place instead (or nothing).
+  // Service rows: unscheduled + no client prompts that tapping opens the
+  // assign/edit drawer; scheduled rows keep the plain "No client" fallback.
+  const customerLine = paperwork
+    ? place ?? undefined
+    : customer ?? (scheduled ? "No client" : "No client — tap to assign");
   // Both scheduled rows and unscheduled rows open the existing JobEditDrawer
   // (the portal's only scheduling/editing surface). For unscheduled rows this
   // is the "Schedule" action; for scheduled rows it's "open / reschedule".
@@ -247,7 +281,9 @@ function JobRow({
         className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
       >
         <span
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[job.status] ?? "bg-slate-400"}`}
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+            paperwork ? "bg-gold" : STATUS_DOT[job.status] ?? "bg-slate-400"
+          }`}
           aria-hidden
         />
         <div className="min-w-0 flex-1">
@@ -255,9 +291,18 @@ function JobRow({
             {scheduled && time && <span className="tabular-nums text-gold">{time}</span>}
             <span className="truncate">{label}</span>
           </div>
-          <div className="truncate text-xs text-text-secondary">
-            {customerLine}
-            {multiDay ? ` · Day ${dayIndex} of ${dayCount}` : ""}
+          <div className="flex items-center gap-1.5 truncate text-xs text-text-secondary">
+            <span className="truncate">
+              {customerLine}
+              {multiDay ? ` · Day ${dayIndex} of ${dayCount}` : ""}
+            </span>
+            {/* Per-day place. Paperwork already shows the place as its main line. */}
+            {!paperwork && place && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-gold/80">
+                <MapPin className="h-3 w-3" aria-hidden />
+                <span className="truncate">{place}</span>
+              </span>
+            )}
           </div>
         </div>
 
