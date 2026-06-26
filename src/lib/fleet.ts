@@ -25,6 +25,12 @@ export type Vessel = {
   gallery: GalleryPhoto[];
   href?: string;
   badge?: string;
+  /**
+   * Full URL to this vessel's published 360° walkthrough on grayyachts.media,
+   * e.g. "https://grayyachts.media/360tour/<slug>". When set, the fleet card
+   * shows a "360° TOUR" button. Leave unset until a tour is published.
+   */
+  tour3DUrl?: string;
 };
 
 export const vessels: Vessel[] = [

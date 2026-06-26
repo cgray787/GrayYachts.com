@@ -34,17 +34,15 @@ export function FleetGrid({ vessels }: { vessels: Vessel[] }) {
       className="mt-16 flex flex-wrap justify-center gap-6"
     >
       {vessels.map((vessel, i) => {
-        const Wrapper = vessel.href ? motion.a : motion.div;
-        const wrapperProps = vessel.href
-          ? { href: vessel.href, target: "_blank", rel: "noopener noreferrer" }
-          : {};
+        // Stretched-link pattern: the whole card links to the brochure via an
+        // absolutely-positioned <a>, while the "360° TOUR" button is a sibling
+        // <a> stacked above it — avoids invalid nested anchors.
         return (
-          <Wrapper
+          <motion.div
             key={vessel.name}
             variants={fadeUp}
             custom={i}
-            {...wrapperProps}
-            className="group flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-bg-card transition-all duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_24px_60px_-24px_rgba(201,169,110,0.35)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+            className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-bg-card transition-all duration-500 hover:-translate-y-1 hover:border-gold hover:shadow-[0_24px_60px_-24px_rgba(201,169,110,0.35)] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
           >
             {/* Image — 16:10 cinematic ratio (was 4:3) */}
             <div className="relative aspect-[16/10] overflow-hidden">
@@ -56,9 +54,20 @@ export function FleetGrid({ vessels }: { vessels: Vessel[] }) {
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               {vessel.badge && (
-                <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-bg-primary shadow-md">
+                <span className="absolute left-4 top-4 z-10 rounded-full bg-gold px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-bg-primary shadow-md">
                   {vessel.badge}
                 </span>
+              )}
+              {vessel.tour3DUrl && (
+                <a
+                  href={vessel.tour3DUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${vessel.name} 360° tour`}
+                  className="absolute right-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-bg-primary/75 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-gold shadow-md backdrop-blur transition-colors hover:bg-gold hover:text-bg-primary"
+                >
+                  360&deg; TOUR
+                </a>
               )}
             </div>
             {/* Info stack */}
@@ -83,7 +92,17 @@ export function FleetGrid({ vessels }: { vessels: Vessel[] }) {
                 )}
               </div>
             </div>
-          </Wrapper>
+            {/* Stretched link → brochure (sits below the 360° tour button). */}
+            {vessel.href && (
+              <a
+                href={vessel.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${vessel.name} brochure`}
+                className="absolute inset-0 z-10"
+              />
+            )}
+          </motion.div>
         );
       })}
     </motion.div>
