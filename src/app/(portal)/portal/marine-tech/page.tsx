@@ -359,6 +359,7 @@ export default async function MarineTechPage({
                         <Link
                           href={`/portal/marine-tech?job=${j.id}${month ? `&month=${month}` : ""}`}
                           scroll={false}
+                          prefetch={false}
                           className="shrink-0 rounded-lg bg-gold px-3 py-1.5 text-sm font-medium text-bg-primary transition-colors hover:bg-gold-hover"
                         >
                           Schedule
@@ -395,6 +396,7 @@ export default async function MarineTechPage({
                       <li key={r.id}>
                         <Link
                           href={`/portal/marine-tech/reports/${r.id}`}
+                          prefetch={false}
                           className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-bg-card-hover"
                         >
                           <div className="min-w-0">
