@@ -151,22 +151,52 @@ export default async function DashboardPage() {
         redirect("/login");
       }
 
-      /* ── Profile (first name for greeting) ── */
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
+      /* ── All dashboard data in parallel (was a 6-query serial waterfall) ── */
+      const nowIso = new Date().toISOString();
+      const [
+        { data: profile },
+        yachtsResult,
+        activityResult,
+        docResult,
+        maintResult,
+        pendingResult,
+      ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("yachts")
+          .select("id, name, length_m, type, status")
+          .eq("user_id", user.id)
+          .order("name"),
+        supabase
+          .from("activity_log")
+          .select("id, action, description, created_at, yachts(name)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id),
+        supabase
+          .from("maintenance_records")
+          .select("service_date")
+          .eq("user_id", user.id)
+          .gte("service_date", nowIso)
+          .order("service_date", { ascending: true })
+          .limit(1),
+        supabase
+          .from("maintenance_records")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("service_date", nowIso),
+      ]);
 
       const fullName = profile?.full_name ?? "";
       firstName = fullName.split(" ")[0] || "James";
-
-      /* ── Yachts ── */
-      const yachtsResult = await supabase
-        .from("yachts")
-        .select("id, name, length_m, type, status")
-        .eq("user_id", user.id)
-        .order("name");
 
       // Once authenticated, always show the user's actual yachts — even when
       // that's an empty array. This is the line that prevents a logged-in
@@ -180,14 +210,6 @@ export default async function DashboardPage() {
         }));
       }
 
-      /* ── Activity log ── */
-      const activityResult = await supabase
-        .from("activity_log")
-        .select("id, action, description, created_at, yachts(name)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
       if (activityResult.data) {
         activities = activityResult.data.map((a, i) => {
           const yachtRaw = a.yachts as unknown;
@@ -199,28 +221,6 @@ export default async function DashboardPage() {
           };
         });
       }
-
-      /* ── Document count ── */
-      const docResult = await supabase
-        .from("documents")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      /* ── Next upcoming maintenance ── */
-      const maintResult = await supabase
-        .from("maintenance_records")
-        .select("service_date")
-        .eq("user_id", user.id)
-        .gte("service_date", new Date().toISOString())
-        .order("service_date", { ascending: true })
-        .limit(1);
-
-      /* ── Pending services ── */
-      const pendingResult = await supabase
-        .from("maintenance_records")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .gte("service_date", new Date().toISOString());
 
       if (yachtsResult.data) {
         stats = {
