@@ -12,7 +12,7 @@ export type CalendarJob = {
   scheduled_end?: string | null;          // new 'timestamptz' end
   location_override?: string | null;       // free-text place when there's no marina
   day_locations?: Record<string, string> | null; // { 'YYYY-MM-DD': '<place>' } per-day place
-  customers: { name: string | null } | null;
+  customers: { id?: string | null; name: string | null } | null;
   boats: { name: string | null; make: string | null; model: string | null } | null;
   marinas?: { name: string | null } | null;
 };
@@ -34,11 +34,26 @@ function dateFromJob(j: CalendarJob, kind: "start" | "end"): string | null {
   return j.scheduled_end_date ?? null;
 }
 
-const STATUS_BAR: Record<string, string> = {
-  new: "bg-blue-500/25 border-blue-400/50 text-blue-100 hover:bg-blue-500/35",
-  in_progress: "bg-amber-500/25 border-amber-400/50 text-amber-100 hover:bg-amber-500/35",
-  completed: "bg-emerald-500/25 border-emerald-400/50 text-emerald-100 hover:bg-emerald-500/35",
-};
+// Job bars are filled by CLIENT (mirrors the Marine Tech admin dashboard) so
+// different customers read distinctly instead of every bar sharing a status
+// color. Five white-text-legible hues; the client id (or name) is hashed for a
+// stable per-client color. Status is still shown by the leading dot below.
+const CLIENT_PALETTE = [
+  "#3b6cd6", // blue
+  "#14b8a6", // teal
+  "#a855f7", // purple
+  "#f97316", // orange
+  "#ec4899", // pink
+] as const;
+
+function clientColor(key: string | null | undefined): string {
+  if (!key) return "#64748b"; // neutral slate when there's no client
+  let h = 0;
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return CLIENT_PALETTE[h % CLIENT_PALETTE.length];
+}
 
 const STATUS_DOT: Record<string, string> = {
   new: "bg-blue-400",
@@ -309,11 +324,14 @@ export function MarineTechCalendar({
                 {segments.map((seg, si) => {
                   const paperwork = isPaperwork(seg.job);
                   // Paperwork blocks get a distinct gold/slate look so they read
-                  // as admin time, not field work. Service jobs keep the
-                  // status-driven palette.
+                  // as admin time, not field work. Service jobs are filled by
+                  // client color; the leading dot still encodes status.
+                  const barColor = paperwork
+                    ? null
+                    : clientColor(seg.job.customers?.id ?? seg.job.customers?.name);
                   const cls = paperwork
                     ? "bg-gold-muted border-gold/50 text-gold"
-                    : STATUS_BAR[seg.job.status] ?? "bg-slate-500/25 border-slate-400/40 text-slate-100";
+                    : "border-white/15 text-white";
                   const dotCls = paperwork
                     ? "bg-gold"
                     : STATUS_DOT[seg.job.status] ?? "bg-slate-300";
@@ -331,6 +349,7 @@ export function MarineTechCalendar({
                         gridColumnStart: seg.colStart,
                         gridColumnEnd: seg.colStart + seg.colSpan,
                         gridRow: seg.lane + 1,
+                        ...(barColor ? { backgroundColor: barColor } : {}),
                       }}
                       className={`pointer-events-auto mx-0.5 flex items-center gap-1 truncate border px-1.5 py-0.5 text-[11px] transition-colors ${cls} ${rounded}`}
                       title={`${label}${customer ? ` · ${customer}` : ""} · ${seg.job.status.replace(
@@ -356,6 +375,7 @@ export function MarineTechCalendar({
       </div>
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border p-3 text-[11px] text-text-secondary">
+        <span className="text-text-primary">Bars colored per client · dot = status:</span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-blue-400" /> New
         </span>
