@@ -130,7 +130,7 @@ async function loadMonthJobs(
   const withEnd = await db
     .from("jobs")
     .select(
-      "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(name), boats(name, make, model), marinas(name)"
+      "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(id, name), boats(name, make, model), marinas(name)"
     )
     .or(
       `and(scheduled_start.gte.${startTs},scheduled_start.lte.${endTs}),and(scheduled_date.gte.${start},scheduled_date.lte.${end})`
@@ -143,7 +143,7 @@ async function loadMonthJobs(
   const single = await db
     .from("jobs")
     .select(
-      "id, status, scheduled_date, customers(name), boats(name, make, model)"
+      "id, status, scheduled_date, customers(id, name), boats(name, make, model)"
     )
     .gte("scheduled_date", start)
     .lte("scheduled_date", end)
