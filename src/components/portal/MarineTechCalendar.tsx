@@ -299,6 +299,7 @@ export function MarineTechCalendar({
                     <Link
                       href={`/portal/marine-tech?month=${monthKey}&day=${iso}`}
                       scroll={false}
+                      prefetch={false}
                       aria-label={`Focus ${iso}`}
                       aria-current={isSelected ? "date" : undefined}
                       className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] transition-colors ${
@@ -345,6 +346,7 @@ export function MarineTechCalendar({
                       key={si}
                       href={`/portal/marine-tech?month=${monthKey}&job=${seg.job.id}`}
                       scroll={false}
+                      prefetch={false}
                       style={{
                         gridColumnStart: seg.colStart,
                         gridColumnEnd: seg.colStart + seg.colSpan,

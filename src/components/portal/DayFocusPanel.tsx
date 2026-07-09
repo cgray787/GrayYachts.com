@@ -278,6 +278,7 @@ function JobRow({
       <Link
         href={href}
         scroll={false}
+        prefetch={false}
         className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
       >
         <span
@@ -330,6 +331,7 @@ function JobRow({
         <Link
           href={href}
           scroll={false}
+          prefetch={false}
           className="flex items-center self-stretch border-l border-border bg-gold px-3 text-xs font-semibold text-bg-primary transition-colors hover:bg-gold-hover"
         >
           Schedule
