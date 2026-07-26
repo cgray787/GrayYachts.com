@@ -174,6 +174,31 @@ export const vessels: Vessel[] = [
       { src: "/listings/un-reel-2/i4.jpg", caption: "Helm & Forward Berth", interior: true },
     ],
   },
+  {
+    // ⚠️ NOT a Gray Yachts listing. Victory Boats' boat, listed on FB
+    // Marketplace by Ed Robinson at $64,862; $70,000 here is Connor's
+    // presentation figure. Photos are captures of the seller's own listing
+    // images — get originals + permission before external use, and do NOT
+    // publish this vessel to the live fleet as our own inventory.
+    name: "Jeanneau NC 695",
+    slug: "jeanneau-nc-695",
+    year: 2022,
+    make: "Jeanneau NC 695",
+    length: "24'5\"",
+    location: "Tacoma, WA",
+    price: "$70,000",
+    image: "/listings/jeanneau-nc-695/hero.jpg",
+    href: "/listings/jeanneau-nc-695.pdf",
+    gallery: [
+      { src: "/listings/jeanneau-nc-695/hero.jpg", caption: "Stern & Mercury 150" },
+      { src: "/listings/jeanneau-nc-695/g1.jpg", caption: "Profile" },
+      { src: "/listings/jeanneau-nc-695/g2.jpg", caption: "Cockpit & Sliding Door" },
+      { src: "/listings/jeanneau-nc-695/i1.jpg", caption: "Helm & Garmin", interior: true },
+      { src: "/listings/jeanneau-nc-695/i2.jpg", caption: "Helm Seat & Galley", interior: true },
+      { src: "/listings/jeanneau-nc-695/i3.jpg", caption: "Saloon Dinette", interior: true },
+      { src: "/listings/jeanneau-nc-695/i4.jpg", caption: "Forward Berths", interior: true },
+    ],
+  },
 ];
 
 export type GallerySlide = {

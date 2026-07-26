@@ -264,6 +264,41 @@ export const brochures: Record<string, BrochureContent> = {
       "Self-bailing cockpit w/ bench seating",
     ],
   },
+  "jeanneau-nc-695": {
+    slug: "jeanneau-nc-695",
+    tagline: {
+      lead: "A",
+      emphasis: "French-built weekender",
+      tail: "— enclosed wheelhouse, two cabins, factory backed.",
+    },
+    specStrip: [
+      { value: "24'5\"", label: "Length" },
+      { value: "2022", label: "Year Built" },
+      { value: "Mercury", label: "150hp Outboard" },
+      { value: "1,100", label: "Engine Hours" },
+      { value: "45 gal", label: "Fuel" },
+    ],
+    narrative: [
+      "The Jeanneau NC 695 is the boat that made the NC formula famous — a proper enclosed wheelhouse, a sliding side door, and full standing accommodation, all inside a 24-foot hull light enough to run behind a single 150. This 2022 example has had one owner and has been maintained since new by the Victory Boats service department.",
+      "What separates the 695 from other boats this size is that nothing about it feels borrowed from something smaller. The wheelhouse closes up completely against Northwest weather, with a sliding door aft to the cockpit and a second door forward to the side deck. Inside, a solid table and wraparound settee convert to a berth, with a further cabin forward — real overnight accommodation rather than a token cuddy.",
+      "Power is a trimmable Mercury 150 with 1,100 hours. The selling dealer has completed a full 77-point inspection and backs the engine with a one-year manufacturer warranty; engine and compression test results are available on request. Navigation is a touchscreen Garmin chartplotter and depth sounder, there is a four-speaker digital audio system, and the bottom has been freshly painted for saltwater use.",
+      "Offered at $70,000 — in line with recent comparable sales at similar hours. Sea trial available, with the dealer offering sea-trial satisfaction before final purchase.",
+    ],
+    highlights: [
+      "2022 Jeanneau NC 695 — one owner",
+      "Trimmable Mercury 150hp · 1,100 hours",
+      "1-year manufacturer-backed engine warranty",
+      "Full 77-point dealer inspection completed",
+      "Engine & compression test results available",
+      "Touchscreen Garmin chartplotter & sounder",
+      "Four-speaker digital audio system",
+      "Fresh bottom paint — saltwater ready",
+      "Enclosed wheelhouse w/ sliding side door",
+      "Convertible saloon berth + forward cabin",
+      "24'5\" · 8'4\" beam · 18° deadrise",
+      "45 gal fuel · WA registered WN 0490 SZ",
+    ],
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
