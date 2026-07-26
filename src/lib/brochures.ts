@@ -229,6 +229,41 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Seattle, WA",
   },
+  "un-reel-2": {
+    slug: "un-reel-2",
+    tagline: {
+      lead: "A",
+      emphasis: "no-compromise Northwest",
+      tail: "fishing boat — composite built, factory backed.",
+    },
+    specStrip: [
+      { value: "24'6\"", label: "Length" },
+      { value: "2023", label: "Year Built" },
+      { value: "Mercury", label: "175XL Outboard" },
+      { value: "1,505", label: "Engine Hours" },
+      { value: "100 gal", label: "Fuel" },
+    ],
+    narrative: [
+      "Un Reel 2 is a 2023 Defiance San Juan 220 — a Pacific Northwest fishing platform built the way Northwest boats ought to be. A fully composite hull with no wood coring anywhere, a 21-degree deep-vee that settles into a Sound chop, and a hardtop pilothouse you can genuinely fish from in February. One owner, maintained since new by a professional service department.",
+      "The San Juan 220 refuses to choose between fishing and cruising. The pilothouse carries a proper helm, a convertible dinette that drops down into a berth, and enough enclosed, heated-in space for a family to wait out weather that would end the day on an open boat. Step aft through the side door and the cockpit is all business — self-bailing, bench seating, rod holders, and a rocket-launcher rack overhead.",
+      "Power is a single Mercury 175XL. The hours are honest at 1,505, and the selling dealer makes the argument that matters: this engine has been run and maintained rather than left to sit. Every oil and impeller change is documented, cylinder compression and engine test results are available, and the full service history comes from the dealer's own technicians.",
+      "She is offered at $69,998 with a one-year manufacturer-backed warranty still in force — genuinely unusual on a used boat, and the reason this one is worth seeing before the private-party listings. In the water at Tacoma and available for viewing and sea trial.",
+    ],
+    highlights: [
+      "2023 Defiance San Juan 220 — one owner",
+      "Mercury 175XL outboard · 1,505 hours",
+      "1-year manufacturer-backed warranty",
+      "Full composite build — no wood coring",
+      "Complete service records since new",
+      "Compression & engine test results on file",
+      "Hardtop pilothouse — side & aft doors",
+      "Convertible dinette — drops to a berth",
+      "24'6\" · 8'6\" beam · 21° deep-vee",
+      "100 gallon fuel capacity",
+      "Rocket-launcher rack & cockpit rod holders",
+      "Self-bailing cockpit w/ bench seating",
+    ],
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

@@ -149,6 +149,31 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // ⚠️ NOT a Gray Yachts listing. This is Union Marine's boat (Ed Robinson),
+    // listed on FB Marketplace. Brochure was built for a buyer-side client
+    // presentation. Photos are captures of the seller's own listing images —
+    // get originals + permission from Union Marine before any external use,
+    // and do NOT publish this vessel to the live fleet as our own inventory.
+    name: "Un Reel 2",
+    slug: "un-reel-2",
+    year: 2023,
+    make: "Defiance San Juan 220",
+    length: "24'6\"",
+    location: "Tacoma, WA",
+    price: "$69,998",
+    image: "/listings/un-reel-2/hero.jpg",
+    href: "/listings/un-reel-2.pdf",
+    gallery: [
+      { src: "/listings/un-reel-2/hero.jpg", caption: "Dockside, Tacoma" },
+      { src: "/listings/un-reel-2/g1.jpg", caption: "Transom & Mercury 175XL" },
+      { src: "/listings/un-reel-2/g2.jpg", caption: "Cockpit" },
+      { src: "/listings/un-reel-2/i1.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/un-reel-2/i2.jpg", caption: "Dinette Converted", interior: true },
+      { src: "/listings/un-reel-2/i3.jpg", caption: "Dinette & Galley", interior: true },
+      { src: "/listings/un-reel-2/i4.jpg", caption: "Helm & Forward Berth", interior: true },
+    ],
+  },
 ];
 
 export type GallerySlide = {
