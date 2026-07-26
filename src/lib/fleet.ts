@@ -135,7 +135,7 @@ export const vessels: Vessel[] = [
     make: "Bénéteau Antares 7",
     length: "24'6\"",
     location: "Seattle, WA",
-    price: "$75,000",
+    price: "$73,000",
     image: "/listings/neverland/hero.jpg",
     href: "/listings/neverland.pdf",
     gallery: [
