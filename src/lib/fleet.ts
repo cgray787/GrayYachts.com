@@ -135,7 +135,7 @@ export const vessels: Vessel[] = [
     make: "Bénéteau Antares 7",
     length: "24'6\"",
     location: "Seattle, WA",
-    price: "$73,000",
+    price: "$75,000",
     image: "/listings/neverland/hero.jpg",
     href: "/listings/neverland.pdf",
     gallery: [
@@ -161,7 +161,7 @@ export const vessels: Vessel[] = [
     make: "Defiance San Juan 220",
     length: "24'6\"",
     location: "Tacoma, WA",
-    price: "$69,998",
+    price: "$70,000",
     image: "/listings/un-reel-2/hero.jpg",
     href: "/listings/un-reel-2.pdf",
     gallery: [
