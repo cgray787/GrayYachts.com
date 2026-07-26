@@ -125,6 +125,30 @@ export const vessels: Vessel[] = [
     ],
     href: "/listings/moby-dick.pdf",
   },
+  {
+    name: "M/Y Neverland",
+    slug: "neverland",
+    // ⚠️ UNCONFIRMED — model ran 2012–2022; exact year not yet supplied by the
+    // seller. NOT rendered in the brochure PDF, but it IS shown on the public
+    // fleet card. Confirm with Connor before merging this vessel to main.
+    year: 2019,
+    make: "Bénéteau Antares 7",
+    length: "24'6\"",
+    location: "Seattle, WA",
+    price: "$75,000",
+    image: "/listings/neverland/hero.jpg",
+    href: "/listings/neverland.pdf",
+    gallery: [
+      { src: "/listings/neverland/hero.jpg", caption: "Underway" },
+      { src: "/listings/neverland/g1.jpg", caption: "Stern Quarter" },
+      { src: "/listings/neverland/g2.jpg", caption: "Bow Profile" },
+      { src: "/listings/neverland/i1.jpg", caption: "Helm & Garmin", interior: true },
+      { src: "/listings/neverland/i2.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/neverland/i3.jpg", caption: "Cabin Dinette", interior: true },
+      { src: "/listings/neverland/i4.jpg", caption: "Aft Cabin", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {

@@ -193,6 +193,42 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Lake Washington, WA",
   },
+  neverland: {
+    slug: "neverland",
+    tagline: {
+      lead: "A",
+      emphasis: "true pocket cruiser",
+      tail: "— enclosed pilothouse, private cabin, and outboard simplicity in 24 feet.",
+    },
+    specStrip: [
+      { value: "24'6\"", label: "Length" },
+      { value: "8'4\"", label: "Beam" },
+      { value: "Mercury", label: "Outboard" },
+      { value: "1,200", label: "Engine Hours" },
+      { value: "46 gal", label: "Fuel" },
+    ],
+    narrative: [
+      "Neverland is a Bénéteau Antares 7 — the French builder's most successful pocket cruiser, and one of the very few boats under 25 feet that delivers a genuine enclosed pilothouse, a private cabin, and outboard simplicity in a single trailerable package. She runs a single Mercury outboard, carries Garmin electronics at the helm, and presents the way a boat does when it has lived under cover.",
+      "The hardtop pilothouse is why this model earned its reputation on Northwest water. A sliding door and opening side glass turn the helm from a fully enclosed wheelhouse into an open-air cockpit in seconds — the difference between a boat you use three months a year and one you use nine. Inside, a solid wenge-toned table drops to convert the settee into a berth, with a second private cabin aft, tucked under the cockpit sole. White gelcoat, warm joinery, and Bénéteau fit and finish throughout.",
+      "On deck, walkaround side decks run forward past stainless rails and a bow pulpit to a self-draining anchor locker. Aft, twin boarding platforms flank the outboard well with a folding swim ladder, making the water easy to get into and easier to get out of. Forty-six gallons of fuel give her honest range for the Sound and the San Juans, and because she trailers behind a properly rated tow vehicle, her cruising ground is not limited to her home port.",
+      "Twelve hundred hours are logged on the Mercury and the boat is offered at $75,000 — in line with the national market for the model. Maintenance records, full spec sheet, and sea trial available on request.",
+    ],
+    highlights: [
+      "Bénéteau Antares 7 — hardtop pocket cruiser",
+      "Single Mercury outboard · 1,200 hours",
+      "Enclosed pilothouse — sliding door & side glass",
+      "Garmin chartplotter at the helm",
+      "Convertible dinette — table drops to berth",
+      "Private aft cabin beneath the cockpit",
+      "24'6\" LOA · 8'4\" beam",
+      "46 gallon fuel capacity",
+      "Walkaround decks, bow pulpit & anchor locker",
+      "Twin boarding platforms w/ folding swim ladder",
+      "Covered moorage · stored indoors",
+      "Trailerable — WA registered WN 4540 AU",
+    ],
+    photoCredit: "Seattle, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
