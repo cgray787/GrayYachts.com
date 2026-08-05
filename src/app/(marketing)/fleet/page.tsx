@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { FleetGallery } from "@/components/marketing/fleet-gallery";
-import { FleetGrid } from "@/components/marketing/fleet-grid";
+import { FleetBrowser } from "@/components/marketing/fleet-browser";
 import { interiorSlides, vessels } from "@/lib/fleet";
 
 const fadeUp = {
@@ -69,7 +69,7 @@ export default function FleetPage() {
       {/* ============================================================ */}
       <section className="bg-bg-primary px-6 pb-16 lg:px-12">
         <div className="mx-auto max-w-6xl">
-          <FleetGrid vessels={vessels} />
+          <FleetBrowser vessels={vessels} />
         </div>
       </section>
 
