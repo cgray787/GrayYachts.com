@@ -479,6 +479,41 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Madrona Marina, WA",
   },
+  "ocean-alexander-548": {
+    slug: "ocean-alexander-548",
+    tagline: {
+      lead: "A",
+      emphasis: "proper pilothouse",
+      tail: "motoryacht — teak joinery, twin diesels.",
+    },
+    specStrip: [
+      { value: "548", label: "Ocean Alexander" },
+      { value: "1996", label: "Year Built" },
+      { value: "Twin", label: "Diesel Inboard" },
+      { value: "2", label: "Staterooms" },
+      { value: "Flybridge", label: "& Pilothouse" },
+    ],
+    narrative: [
+      "This 1996 Ocean Alexander 548 is the kind of boat the Pacific Northwest was made for. Ocean Alexander built their reputation on heavily-built, teak-joined pilothouse motoryachts that could run the Inside Passage in comfort, and the 548 sits right in the sweet spot of that lineage — big enough to live aboard for a season, small enough for a couple to run.",
+      "The saloon is finished in warm teak with a large L-shaped settee, opposing armchairs and windows on three sides. Forward and up, a true pilothouse gives you a raised helm with a settee behind it — the place you will actually spend your time when the weather turns. The galley sits down and forward, laid out for real cooking rather than reheating.",
+      "Accommodation is two staterooms and two heads: a full-beam master with a walkaround berth and en-suite, and a guest cabin with twin berths and its own head with separate shower stall. Below, a walk-in engine room houses twin diesels with standing access down the centreline and clean, labelled electrical distribution — the sort of engine space that says a boat has been maintained rather than merely used.",
+      "Topside, the flybridge carries Furuno radar, a second helm and generous seating, with a broad foredeck forward. A serious cruising platform, offered by Gray Yachts and Jeff Brown Yachts — price on application.",
+    ],
+    highlights: [
+      "1996 Ocean Alexander 548",
+      "Twin diesel inboards — walk-in engine room",
+      "True raised pilothouse with helm settee",
+      "Flybridge helm with Furuno radar",
+      "Two staterooms, two heads",
+      "Full-beam master with walkaround berth",
+      "Guest cabin with twin berths",
+      "Separate shower stall",
+      "Teak joinery throughout the saloon",
+      "Galley laid out for real cooking",
+      "Clean, labelled electrical distribution",
+      "Broad foredeck & generous flybridge seating",
+    ],
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

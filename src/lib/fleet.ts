@@ -325,6 +325,35 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // Owner Spark Carlander. ⚠️ NO listing agreement exists in the folder —
+    // there is no signed price, length or location on file.
+    //   price:    "Price on Application" until Connor supplies the figure.
+    //   length:   "54'" is INFERRED from the 548 model designation.
+    //   location: "Puget Sound, WA" is a placeholder — the photos show an
+    //             unidentified marina.
+    // Model confirmed as an Ocean Alexander 548 from the engraved
+    // electrical panel in IMG_3747. Confirm all four before publishing.
+    name: "Ocean Alexander 548",
+    slug: "ocean-alexander-548",
+    year: 1996,
+    make: "Ocean Alexander 548",
+    length: "54'",
+    location: "Puget Sound, WA",
+    price: "Price on Application",
+    image: "/listings/ocean-alexander-548/hero.jpg",
+    href: "/listings/ocean-alexander-548.pdf",
+    gallery: [
+      { src: "/listings/ocean-alexander-548/hero.jpg", caption: "Dockside" },
+      { src: "/listings/ocean-alexander-548/g1.jpg", caption: "Foredeck" },
+      { src: "/listings/ocean-alexander-548/g2.jpg", caption: "Flybridge" },
+      { src: "/listings/ocean-alexander-548/i1.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/ocean-alexander-548/i2.jpg", caption: "Saloon", interior: true },
+      { src: "/listings/ocean-alexander-548/i3.jpg", caption: "Galley", interior: true },
+      { src: "/listings/ocean-alexander-548/i4.jpg", caption: "Master Stateroom", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {
