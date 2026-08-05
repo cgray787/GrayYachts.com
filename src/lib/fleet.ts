@@ -248,6 +248,30 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // JBY central listing (owner Charlie Brown), signed Jun 30 2026.
+    // Price is $400,000 per the JBY agreement — the older Hampton Yacht
+    // Group listing sheet in the folder says $409,995; JBY's is current.
+    // Equipment detail comes from the seller's own walkthrough write-up.
+    name: "M/Y Sau Ping",
+    slug: "sau-ping",
+    year: 2021,
+    make: "Sea Ray Sundancer 350",
+    length: "35'0\"",
+    location: "Des Moines, WA",
+    price: "$400,000",
+    image: "/listings/sau-ping/hero.jpg",
+    href: "/listings/sau-ping.pdf",
+    gallery: [
+      { src: "/listings/sau-ping/hero.jpg", caption: "Underway" },
+      { src: "/listings/sau-ping/g1.jpg", caption: "Stern Quarter" },
+      { src: "/listings/sau-ping/g2.jpg", caption: "Swim Platform" },
+      { src: "/listings/sau-ping/i1.jpg", caption: "Helm & Simrad", interior: true },
+      { src: "/listings/sau-ping/i2.jpg", caption: "Engine Room", interior: true },
+      { src: "/listings/sau-ping/i3.jpg", caption: "On Plane" },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {

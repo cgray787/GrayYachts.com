@@ -373,6 +373,42 @@ export const brochures: Record<string, BrochureContent> = {
     documentation: { officialNo: "1065009" },
     photoCredit: "Seabeck, WA",
   },
+  "sau-ping": {
+    slug: "sau-ping",
+    tagline: {
+      lead: "A",
+      emphasis: "single-owner Sundancer",
+      tail: "— joystick docking, boat-show spec.",
+    },
+    specStrip: [
+      { value: "35'0\"", label: "Length" },
+      { value: "2021", label: "Year Built" },
+      { value: "750hp", label: "Twin MerCruiser 8.2L" },
+      { value: "600", label: "Engine Hours" },
+      { value: "Joystick", label: "with Skyhook" },
+    ],
+    narrative: [
+      "Sau Ping is a 2021 Sea Ray Sundancer 350 — a single-owner boat ordered as a Seattle Boat Show special with essentially every box ticked. Twin MerCruiser 8.2L V-drive inboards produce 375 horsepower each with just 600 hours logged, and Mercury joystick control with Skyhook alongside a Vetus bow thruster make a 35-foot express cruiser genuinely easy to handle single-handed.",
+      "The cockpit is built for entertaining: a large U-shaped settee with filler cushions that convert it into a transom sun pad, a chaise lounge to port of the helm, double swivel helm chairs with flip-up bolsters, and a beverage centre with Kenyon electric grill, Dometic refrigerator and sink. Upgraded SeaDek runs through the cockpit and out onto the extended swim platform. Overhead sits a hardtop sunroof with blue accent lighting and a retractable six-foot SureShade awning, and the full canvas enclosure with upgraded isinglass — a $26,000 factory upgrade — pushes the season well past Labor Day.",
+      "Below there are three separate sleeping areas: a forward queen with privacy curtain, a salon settee that converts to a midship berth, and an aft queen that splits into two twins. The galley carries refrigerator, microwave, stovetop and sink, and the head has a Vacuflush toilet, vessel sink and a fully separate shower stall — genuinely hard to find at thirty-five feet.",
+      "Navigation is a Simrad 14-inch touchscreen with charts, radar, GPS and sonar alongside SmartCraft engine control. A Westerbeke generator, Fusion stereo with ten Kicker Coastal speakers, three Samsung televisions and an Intervac central vacuum round out the package. Offered at $400,000, lying Des Moines Marina.",
+    ],
+    highlights: [
+      "2021 Sea Ray Sundancer 350 — single owner",
+      "Twin MerCruiser 8.2L V-drives · 750hp",
+      "600 hours logged",
+      "Mercury joystick control with Skyhook",
+      "Vetus bow thruster",
+      "Simrad 14\" touchscreen — radar, GPS, sonar",
+      "Westerbeke generator",
+      "$26,000 full canvas enclosure upgrade",
+      "Hardtop sunroof & retractable SureShade",
+      "SeaDek cockpit & extended swim platform",
+      "Three sleeping areas — forward, salon, aft",
+      "Separate shower stall in the head",
+    ],
+    photoCredit: "Des Moines Marina, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
