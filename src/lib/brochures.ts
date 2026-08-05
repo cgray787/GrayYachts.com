@@ -336,6 +336,43 @@ export const brochures: Record<string, BrochureContent> = {
     documentation: { officialNo: "1270309" },
     photoCredit: "Edmonds Marina, WA",
   },
+  jimmie: {
+    slug: "jimmie",
+    tagline: {
+      lead: "A",
+      emphasis: "purpose-built aluminum",
+      tail: "workboat — Rozema hulled, shellfish rigged.",
+    },
+    specStrip: [
+      { value: "50'0\"", label: "Length" },
+      { value: "1997", label: "Year Built" },
+      { value: "Aluminum", label: "Welded Hull" },
+      { value: "Twin", label: "Outboard Power" },
+      { value: "Rozema", label: "Boat Works" },
+    ],
+    narrative: [
+      "Jimmie is a 1997 Rozema 50 — a custom welded-aluminum workboat built for the shellfish industry and still doing the job she was designed for. Rozema Boat Works of Mount Vernon has built aluminum commercial hulls for Pacific Northwest operators for decades, and this is one of their custom oyster boats: a long, flat, unobstructed working deck, shallow draft, and the kind of structure that shrugs off a working life on the tideflats.",
+      "The layout is all business. A raised pilothouse sits well aft, leaving the entire foredeck clear for gear, totes and bulk product, with a deck davit for handling loads over the side. Welded aluminum means no core to rot and a hull that tolerates beach work and grid time that would end a fiberglass boat.",
+      "Power is twin outboards on the transom — simple to service, straightforward to repower, and friendly to the shallow water this kind of work demands. The pilothouse is functional and uncluttered, with clear sightlines fore and aft for close-quarters deck handling, and the battery bank and systems sit in dry, accessible compartments.",
+      "Offered at $1,100,000. USCG documented. Survey, service history and sea trial available on request — serious inquiries welcome.",
+    ],
+    highlights: [
+      "1997 Rozema 50' — custom aluminum build",
+      "Rozema Boat Works, Mount Vernon, WA",
+      "Welded aluminum hull — no core to rot",
+      "Long, unobstructed working foredeck",
+      "Deck davit for over-the-side handling",
+      "Twin outboard power — simple to service",
+      "Shallow draft — tideflat capable",
+      "Raised pilothouse, clear sightlines",
+      "USCG documented · Official #1065009",
+      "Purpose-built for shellfish operations",
+      "Accessible battery bank & systems",
+      "Lying Seabeck, WA — Hood Canal",
+    ],
+    documentation: { officialNo: "1065009" },
+    photoCredit: "Seabeck, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

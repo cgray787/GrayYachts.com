@@ -223,6 +223,31 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // JBY central listing (owner Cathy Hayes), signed Jul 10 2026, 180 days.
+    // Commercial aluminum shellfish workboat, NOT a pleasure yacht.
+    // ⚠️ Outboard make/hp, capacity and tonnage are NOT in the listing
+    // agreement and are deliberately not claimed — confirm with Connor.
+    name: "M/V Jimmie",
+    slug: "jimmie",
+    year: 1997,
+    make: "Rozema 50' Aluminum",
+    length: "50'0\"",
+    location: "Seabeck, WA",
+    price: "$1,100,000",
+    image: "/listings/jimmie/hero.jpg",
+    href: "/listings/jimmie.pdf",
+    gallery: [
+      { src: "/listings/jimmie/hero.jpg", caption: "On the Hook" },
+      { src: "/listings/jimmie/g1.jpg", caption: "Working Deck" },
+      { src: "/listings/jimmie/g2.jpg", caption: "Foredeck" },
+      { src: "/listings/jimmie/i1.jpg", caption: "Helm", interior: true },
+      { src: "/listings/jimmie/i2.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/jimmie/i3.jpg", caption: "Outboard Power" },
+      { src: "/listings/jimmie/i4.jpg", caption: "Battery Bank", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {
