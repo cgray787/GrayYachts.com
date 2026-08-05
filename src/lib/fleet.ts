@@ -308,7 +308,9 @@ export const vessels: Vessel[] = [
     name: "Cobalt 343",
     slug: "cobalt-343",
     year: 2005,
-    make: "Cobalt 343 Performance Cruiser",
+    // Short form: the full "Cobalt 343 Performance Cruiser" wraps to two
+    // lines on the fleet card and knocks that row out of alignment.
+    make: "Cobalt 343",
     length: "35'4\"",
     location: "Madrona Marina, WA",
     price: "$89,000",
