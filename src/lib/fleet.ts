@@ -298,6 +298,33 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // JBY central listing (owner Tyeson Doughty), signed Jul 10 2026.
+    // 181 hours read off the Hobbs meter in the photos (0181.3). Twin
+    // MerCruiser confirmed from the engine-bay shot. Beam/fuel are NOT
+    // claimed — the window sticker in the photos is too low-res to read.
+    // ⚠️ Source photos are small screenshots (max 846px); replace with
+    // originals before this goes to print.
+    name: "Cobalt 343",
+    slug: "cobalt-343",
+    year: 2005,
+    make: "Cobalt 343 Performance Cruiser",
+    length: "35'4\"",
+    location: "Madrona Marina, WA",
+    price: "$89,000",
+    image: "/listings/cobalt-343/hero.jpg",
+    href: "/listings/cobalt-343.pdf",
+    gallery: [
+      { src: "/listings/cobalt-343/hero.jpg", caption: "Dockside Profile" },
+      { src: "/listings/cobalt-343/g1.jpg", caption: "Bow Quarter" },
+      { src: "/listings/cobalt-343/g2.jpg", caption: "Foredeck" },
+      { src: "/listings/cobalt-343/i1.jpg", caption: "Engine Bay", interior: true },
+      { src: "/listings/cobalt-343/i2.jpg", caption: "Cockpit", interior: true },
+      { src: "/listings/cobalt-343/i3.jpg", caption: "Helm", interior: true },
+      { src: "/listings/cobalt-343/i4.jpg", caption: "Original Manuals & Keys", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {

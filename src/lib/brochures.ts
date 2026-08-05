@@ -444,6 +444,41 @@ export const brochures: Record<string, BrochureContent> = {
       "Stored ashore under cover",
     ],
   },
+  "cobalt-343": {
+    slug: "cobalt-343",
+    tagline: {
+      lead: "A",
+      emphasis: "181-hour Cobalt",
+      tail: "— flagship 343, original paperwork intact.",
+    },
+    specStrip: [
+      { value: "35'4\"", label: "Length" },
+      { value: "2005", label: "Year Built" },
+      { value: "Twin", label: "MerCruiser Power" },
+      { value: "181", label: "Engine Hours" },
+    ],
+    narrative: [
+      "This 2005 Cobalt 343 Performance Cruiser shows just 181 hours on the meter. Cobalt built the 343 as the flagship of its cruiser line, and the company's reputation for build quality is the reason a twenty-year-old boat still presents the way this one does. She retains her original window sticker, owner's manuals and keys, and was delivered new through Seattle Boat Company.",
+      "Twin MerCruiser power sits beneath a power-assisted engine hatch in a clean, well-lit bay with diamond-plate step surfaces and genuine access all round — the kind of engine room that makes a surveyor's job easy. The cockpit is pure Cobalt: deep wraparound seating, faux-teak decking through the sole and out onto the swim platform, and a broad transom sun pad. Forward, the foredeck opens up as a second lounging area with its own cushioning.",
+      "A deep-vee hull of this size is what Cobalt does best — a dry, confident ride through the short chop Puget Sound serves up on a summer afternoon, with enough beam to carry a crowd without anyone feeling crowded. She lies at Madrona Marina, Washington registered.",
+      "Offered at $89,000. Original documentation, service history and sea trial available on request.",
+    ],
+    highlights: [
+      "2005 Cobalt 343 Performance Cruiser",
+      "Just 181 hours indicated",
+      "Twin MerCruiser power",
+      "Original window sticker & manuals retained",
+      "Delivered new by Seattle Boat Company",
+      "Deep-vee performance cruiser hull",
+      "Power-assisted engine hatch",
+      "Faux-teak decking, cockpit & platform",
+      "Transom sun pad + foredeck lounge",
+      "Hull No. FGE34056C505",
+      "WA registered WN 4054 NS",
+      "Lying Madrona Marina",
+    ],
+    photoCredit: "Madrona Marina, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
