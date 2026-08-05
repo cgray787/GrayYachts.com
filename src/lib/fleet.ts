@@ -272,6 +272,32 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // JBY NET listing (owner Mark Hayes), Connor sales exec, Jul 6 2026.
+    // 21'2" is the hull length from the agreement (LOA w/ pulpit is ~24'5").
+    // ⚠️ Registration conflict: agreement says OR 785AJB, but the photos
+    // show CA "CF 9179 LE" — older shots, presumably re-registered. Reg is
+    // deliberately omitted from the brochure. Engine make/hp not stated.
+    // ⚠️ No interior photos exist in the folder — gallery is exteriors only.
+    name: "Jeanneau NC 695 Weekender",
+    slug: "nc-695-weekender",
+    year: 2019,
+    make: "Jeanneau NC 695 Weekender",
+    length: "21'2\"",
+    location: "Portland, OR",
+    price: "$72,000",
+    image: "/listings/nc-695-weekender/hero.jpg",
+    href: "/listings/nc-695-weekender.pdf",
+    gallery: [
+      { src: "/listings/nc-695-weekender/hero.jpg", caption: "Bow Quarter" },
+      { src: "/listings/nc-695-weekender/g1.jpg", caption: "Profile on Trailer" },
+      { src: "/listings/nc-695-weekender/g2.jpg", caption: "Stored Ashore" },
+      { src: "/listings/nc-695-weekender/i1.jpg", caption: "Wheelhouse Detail" },
+      { src: "/listings/nc-695-weekender/i2.jpg", caption: "Hardtop & Glazing" },
+      { src: "/listings/nc-695-weekender/i3.jpg", caption: "On Her Trailer" },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {

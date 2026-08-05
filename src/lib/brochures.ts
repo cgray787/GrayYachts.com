@@ -409,6 +409,41 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Des Moines Marina, WA",
   },
+  "nc-695-weekender": {
+    slug: "nc-695-weekender",
+    tagline: {
+      lead: "A",
+      emphasis: "trailerable weekender",
+      tail: "— enclosed wheelhouse, trailer included.",
+    },
+    specStrip: [
+      { value: "21'2\"", label: "Hull Length" },
+      { value: "2019", label: "Year Built" },
+      { value: "8'4\"", label: "Beam" },
+      { value: "Single", label: "Outboard" },
+      { value: "Trailer", label: "Included" },
+    ],
+    narrative: [
+      "This 2019 Jeanneau NC 695 Weekender is the boat that proves you do not need forty feet to cruise properly. The NC formula puts a genuinely enclosed wheelhouse, a sliding side door and real overnight accommodation into a hull short enough to tow behind a properly rated vehicle — and she comes with her Pacific tandem-axle trailer included in the sale.",
+      "The wheelhouse closes up completely against weather, with a sliding door aft to the cockpit and a second door forward to the side deck for line handling. Inside, the saloon table and wraparound settee drop down to form a berth, with a further cabin forward. It is the layout that made the NC range Jeanneau's best-selling powerboat line, and it works as well on Puget Sound as it does in the Med.",
+      "Outboard power keeps things simple: nothing under the sole to service, an easy repower path down the road, and shallow draft when you want to nose into a beach. Deck hardware is straightforward and the hardtop carries the model's signature wraparound glass, so visibility from the helm is excellent in close quarters.",
+      "Offered at $72,000 with the trailer. That combination — enclosed wheelhouse, sleeping accommodation, and the freedom to tow her to new water — is genuinely hard to find at this price. Sea trial available on request.",
+    ],
+    highlights: [
+      "2019 Jeanneau NC 695 Weekender",
+      "Pacific tandem-axle trailer included",
+      "Enclosed wheelhouse — sliding side door",
+      "Convertible saloon berth + forward cabin",
+      "Single outboard — simple to service",
+      "Wraparound hardtop glazing",
+      "Trailerable — cruise beyond your home port",
+      "21'2\" hull · 8'4\" beam",
+      "Shallow draft for beaching",
+      "Second forward door for line handling",
+      "Jeanneau's best-selling powerboat range",
+      "Stored ashore under cover",
+    ],
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
