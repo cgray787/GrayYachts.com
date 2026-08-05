@@ -6,6 +6,8 @@ import {
   Ship,
   Camera,
   Shield,
+  Wrench,
+  LineChart,
   Lock,
   Phone,
   Mail,
@@ -43,28 +45,47 @@ const stagger = {
 
 const services = [
   {
+    icon: Shield,
+    eyebrow: "REPRESENTATION",
+    title: "Brokerage Listing",
+    description:
+      "Strategic listing representation with cinematic marketing, global syndication, and white-glove negotiation from contract through close.",
+  },
+  {
     icon: Ship,
+    eyebrow: "NEW & PRE-OWNED",
     title: "Dealership",
     description:
-      "Full-service new and pre-owned yacht dealership partnerships across the Pacific Northwest's premier marine brands.",
+      "Full-service new and pre-owned dealership partnerships across the Pacific Northwest's premier marine brands.",
+  },
+  {
+    icon: Wrench,
+    eyebrow: "CLIENT PLATFORM",
+    title: "Owner Portal & Maintenance Records",
+    featured: true,
+    description:
+      "Software built for owners, not filing cabinets. Every work order, service record, technician note, scheduled job and invoice for your vessel lives in one place — current, searchable, and ready the moment a surveyor, insurer or buyer asks for it.",
+  },
+  {
+    icon: LineChart,
+    eyebrow: "MARKET INTELLIGENCE",
+    title: "Valuation & Comparable Sales",
+    description:
+      "Broker-prepared valuations built on actual comparable sales rather than algorithmic estimates, so you price from evidence — listing this season or simply watching the market.",
   },
   {
     icon: Anchor,
-    title: "Captain Services",
+    eyebrow: "ON THE WATER",
+    title: "Captain & Delivery Services",
     description:
-      "Licensed captains for delivery, sea trials, and owner training — ensuring your vessel is in expert hands at every stage.",
-  },
-  {
-    icon: Shield,
-    title: "Brokerage Listing",
-    description:
-      "Strategic listing representation with cinematic marketing, global syndication, and white-glove negotiation from contract to close.",
+      "Licensed captains for delivery, sea trials and owner training — your vessel in expert hands at every stage, anywhere from Southeast Alaska to the Columbia.",
   },
   {
     icon: Camera,
-    title: "Photography",
+    eyebrow: "PRODUCTION",
+    title: "Cinematic Media",
     description:
-      "Drone cinematography, professional photography, 3D Matterport walkthroughs, and authority content that commands attention.",
+      "Drone cinematography, professional photography, 3D walkthroughs and authority content — the production capability that puts a vessel in front of qualified buyers worldwide.",
   },
 ];
 
@@ -240,20 +261,24 @@ export default function HomePage() {
               whileInView="visible"
               viewport={{ once: true, amount: 0.1 }}
               variants={stagger}
-              className="grid gap-6 sm:grid-cols-2"
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
               {services.map((service, i) => (
                 <motion.div
                   key={service.title}
                   variants={fadeUp}
                   custom={i}
-                  className="group relative rounded-lg border border-border bg-bg-card p-8 transition-all duration-500 hover:border-border-light hover:bg-bg-card-hover"
+                  className={`group relative rounded-lg border bg-bg-card p-8 transition-all duration-500 hover:bg-bg-card-hover ${
+                    service.featured
+                      ? "border-gold/35 hover:border-gold/60 sm:col-span-2 lg:col-span-1"
+                      : "border-border hover:border-border-light"
+                  }`}
                 >
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-gold-muted">
                     <service.icon size={20} className="text-gold" />
                   </div>
                   <p className="text-[10px] tracking-[0.25em] text-text-secondary">
-                    WHAT WE OFFER
+                    {service.eyebrow}
                   </p>
                   <h3 className="mt-2 font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
                     {service.title}
@@ -275,34 +300,50 @@ export default function HomePage() {
               ))}
             </motion.div>
 
-            {/* Exclusive Member Access overlay */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.6 }}
-              className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-bg-primary/85 backdrop-blur-sm"
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ============================================================ */}
+      {/*  EXCLUSIVE MEMBER ACCESS                                     */}
+      {/* ============================================================ */}
+      <section className="relative bg-bg-secondary px-6 pb-32 lg:px-12">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.7 }}
+          className="mx-auto max-w-4xl overflow-hidden rounded-lg border border-gold/25 bg-gradient-to-b from-bg-card to-bg-primary px-6 py-16 text-center sm:px-12"
+        >
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-bg-card">
+            <Lock size={22} className="text-gold" />
+          </div>
+          <p className="text-[10px] tracking-[0.35em] text-gold">
+            CLIENT PORTAL
+          </p>
+          <h2 className="mt-4 font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl">
+            Exclusive Member Access
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-text-secondary">
+            Owners we represent get a private portal: live maintenance and
+            service records, scheduling, documents and valuation history for
+            every vessel in their care — plus pricing and availability across
+            the services above.
+          </p>
+          <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link
+              href="/portal"
+              className="inline-block bg-gold px-10 py-3.5 text-[11px] font-semibold tracking-[0.25em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
             >
-              <div className="flex flex-col items-center text-center px-6">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-bg-card">
-                  <Lock size={22} className="text-gold" />
-                </div>
-                <h3 className="font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl">
-                  Exclusive Member Access
-                </h3>
-                <p className="mt-3 max-w-md text-sm text-text-secondary">
-                  Full service details, pricing, and scheduling are available
-                  through our client portal. Request access to view our
-                  complete capabilities.
-                </p>
-                <Link
-                  href="/portal"
-                  className="mt-8 inline-block bg-gold px-10 py-3.5 text-[11px] font-semibold tracking-[0.25em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
-                >
-                  ACCESS PORTAL
-                </Link>
-              </div>
-            </motion.div>
+              ACCESS PORTAL
+            </Link>
+            <Link
+              href="#contact"
+              className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.2em] text-gold transition-colors duration-300 hover:text-gold-hover"
+            >
+              REQUEST ACCESS
+              <ArrowRight size={12} />
+            </Link>
           </div>
         </motion.div>
       </section>
