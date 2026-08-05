@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronDown, Search, SlidersHorizontal, ArrowUpDown, X } from "lucide-react";
 
@@ -207,21 +208,18 @@ function VesselCard({ vessel, index }: { vessel: Vessel; index: number }) {
             <p className="font-[family-name:var(--font-cormorant)] text-xl font-medium text-text-primary">
               {vessel.price}
             </p>
-            {vessel.href && (
-              <span className="text-[10px] tracking-[0.25em] text-gold opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                BROCHURE &rarr;
-              </span>
-            )}
+            <span className="text-[10px] tracking-[0.25em] text-gold opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              VIEW LISTING &rarr;
+            </span>
           </div>
         </div>
       </div>
 
-      {vessel.href && (
-        <a
-          href={vessel.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`${vessel.name} brochure`}
+      {/* Card now opens the full listing page; the brochure PDF lives there. */}
+      {vessel.slug && (
+        <Link
+          href={`/fleet/${vessel.slug}`}
+          aria-label={`${vessel.name} listing`}
           className="absolute inset-0 z-10"
         />
       )}
