@@ -199,6 +199,30 @@ export const vessels: Vessel[] = [
       { src: "/listings/jeanneau-nc-695/i4.jpg", caption: "Forward Berths", interior: true },
     ],
   },
+  {
+    // JBY central listing (owner Brian White), Connor listing broker.
+    // Specs from the signed listing agreement; beam is the published
+    // Back Cove 30 figure. Photos are Connor's own edited set.
+    name: "M/V Miss Maggie II",
+    slug: "miss-maggie-ii",
+    year: 2016,
+    make: "Back Cove 30",
+    length: "30'5\"",
+    location: "Edmonds, WA",
+    price: "$325,000",
+    image: "/listings/miss-maggie-ii/hero.jpg",
+    href: "/listings/miss-maggie-ii.pdf",
+    gallery: [
+      { src: "/listings/miss-maggie-ii/hero.jpg", caption: "Covered Moorage" },
+      { src: "/listings/miss-maggie-ii/g1.jpg", caption: "Transom" },
+      { src: "/listings/miss-maggie-ii/g2.jpg", caption: "Cockpit" },
+      { src: "/listings/miss-maggie-ii/i1.jpg", caption: "Helm", interior: true },
+      { src: "/listings/miss-maggie-ii/i2.jpg", caption: "Salon & Dinette", interior: true },
+      { src: "/listings/miss-maggie-ii/i3.jpg", caption: "Forward Cabin", interior: true },
+      { src: "/listings/miss-maggie-ii/i4.jpg", caption: "Engine Space", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {

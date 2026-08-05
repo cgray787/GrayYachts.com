@@ -299,6 +299,43 @@ export const brochures: Record<string, BrochureContent> = {
       "45 gal fuel · WA registered WN 0490 SZ",
     ],
   },
+  "miss-maggie-ii": {
+    slug: "miss-maggie-ii",
+    tagline: {
+      lead: "A",
+      emphasis: "Down East classic",
+      tail: "— Maine built, single-diesel simple.",
+    },
+    specStrip: [
+      { value: "30'5\"", label: "Length" },
+      { value: "2016", label: "Year Built" },
+      { value: "10'10\"", label: "Beam" },
+      { value: "Single", label: "Diesel Inboard" },
+      { value: "Down East", label: "Hull Form" },
+    ],
+    narrative: [
+      "Miss Maggie II is a 2016 Back Cove 30 — the boat that defined the modern Down East cruiser. Built in Rockland, Maine, the 30 pairs a single diesel inboard with a soft-riding semi-displacement hull, giving you the look of a classic lobster yacht and the running costs of one engine. She is USCG documented and lies in covered moorage at Edmonds.",
+      "Back Cove's reputation rests on how much boat they fit into thirty feet without making it feel crowded. A deep windshield and wraparound glass keep the pilothouse bright and the visibility honest. The helm sits to starboard with a companion settee opposite and a salon that converts for guests. Forward there is a private cabin with a proper V-berth, a separate head with shower, and a galley with refrigeration, stovetop and microwave — everything a couple needs for a week in the San Juans.",
+      "The cockpit is deep, self-draining and uncluttered, with easy side-deck access forward. Below the sole a single diesel sits in a clean, well-lit engine space with genuine room to work — the kind of installation that tells you how a boat has been kept. A generator, bow thruster and Espar diesel cabin heat make her a true three-season Northwest boat.",
+      "Offered at $325,000. Full documentation, service records and sea trial available on request.",
+    ],
+    highlights: [
+      "2016 Back Cove 30 — built in Rockland, Maine",
+      "Single diesel inboard — economical to run",
+      "Semi-displacement Down East hull",
+      "USCG documented · Official #1270309",
+      "Generator & bow thruster",
+      "Espar diesel cabin heat",
+      "Pilothouse with wraparound glass",
+      "Private forward cabin, V-berth",
+      "Separate head with shower",
+      "Galley — fridge, stovetop & microwave",
+      "Deep self-draining cockpit",
+      "Covered moorage, Edmonds Marina",
+    ],
+    documentation: { officialNo: "1270309" },
+    photoCredit: "Edmonds Marina, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {
