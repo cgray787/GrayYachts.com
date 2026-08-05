@@ -273,12 +273,18 @@ export const vessels: Vessel[] = [
     image: "/listings/sau-ping/hero.jpg",
     href: "/listings/sau-ping.pdf",
     gallery: [
-      { src: "/listings/sau-ping/hero.jpg", caption: "Underway" },
-      { src: "/listings/sau-ping/g1.jpg", caption: "Stern Quarter" },
-      { src: "/listings/sau-ping/g2.jpg", caption: "Swim Platform" },
-      { src: "/listings/sau-ping/i1.jpg", caption: "Helm & Simrad", interior: true },
-      { src: "/listings/sau-ping/i2.jpg", caption: "Engine Room", interior: true },
-      { src: "/listings/sau-ping/i3.jpg", caption: "On Plane" },
+      { src: "/listings/sau-ping/hero.jpg", caption: "Aerial Profile" },
+      { src: "/listings/sau-ping/g1.jpg", caption: "Golden Hour" },
+      { src: "/listings/sau-ping/g2.jpg", caption: "Underway" },
+      { src: "/listings/sau-ping/g3.jpg", caption: "At Sunset" },
+      { src: "/listings/sau-ping/g4.jpg", caption: "Marina Entrance" },
+      { src: "/listings/sau-ping/g5.jpg", caption: "On Puget Sound" },
+      { src: "/listings/sau-ping/i1.jpg", caption: "Helm", interior: true },
+      { src: "/listings/sau-ping/i2.jpg", caption: "Cockpit & Sunroof", interior: true },
+      { src: "/listings/sau-ping/i3.jpg", caption: "Salon", interior: true },
+      { src: "/listings/sau-ping/i4.jpg", caption: "Galley", interior: true },
+      { src: "/listings/sau-ping/i5.jpg", caption: "Forward Berth", interior: true },
+      { src: "/listings/sau-ping/i6.jpg", caption: "Head", interior: true },
     ],
     badge: "NEW LISTING",
   },
@@ -340,19 +346,19 @@ export const vessels: Vessel[] = [
   {
     // Owner Spark Carlander. ⚠️ NO listing agreement exists in the folder —
     // there is no signed price, length or location on file.
-    //   price:    "Price on Application" until Connor supplies the figure.
-    //   length:   "54'" is INFERRED from the 548 model designation.
-    //   location: "Puget Sound, WA" is a placeholder — the photos show an
-    //             unidentified marina.
+    //   price:    $575,000 — supplied directly by Connor 2026-08-05.
+    //   length:   "54'" is still INFERRED from the 548 model designation.
+    //   location: "Puget Sound, WA" is still a placeholder — the photos
+    //             show an unidentified marina.
     // Model confirmed as an Ocean Alexander 548 from the engraved
-    // electrical panel in IMG_3747. Confirm all four before publishing.
+    // electrical panel in IMG_3747. Length + location still need confirming.
     name: "Ocean Alexander 548",
     slug: "ocean-alexander-548",
     year: 1996,
     make: "Ocean Alexander 548",
     length: "54'",
     location: "Puget Sound, WA",
-    price: "Price on Application",
+    price: "$575,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
     gallery: [
