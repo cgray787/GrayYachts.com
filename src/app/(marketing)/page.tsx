@@ -112,20 +112,12 @@ export default function HomePage() {
           <motion.p
             variants={fadeUp}
             custom={1}
-            className="mt-8 max-w-3xl font-[family-name:var(--font-cormorant)] text-3xl font-semibold leading-tight text-text-primary sm:text-4xl md:text-5xl"
-          >
-            Sell Your Yacht for <em className="not-italic text-gold">Full Market Value</em>
-          </motion.p>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="mt-5 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
+            className="mt-6 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
           >
             PACIFIC NORTHWEST&apos;S PREMIER YACHT EXPERIENCE
           </motion.p>
 
-          <motion.div variants={fadeUp} custom={3}>
+          <motion.div variants={fadeUp} custom={2}>
             <Link
               href="#fleet"
               className="mt-10 inline-block border border-text-secondary/40 px-10 py-3.5 text-[11px] font-medium tracking-[0.25em] text-text-primary transition-all duration-500 hover:border-gold hover:text-gold"
