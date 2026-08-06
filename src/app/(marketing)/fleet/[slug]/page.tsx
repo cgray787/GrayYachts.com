@@ -49,13 +49,13 @@ export async function generateMetadata({
 function SpecRow({ items }: { items: { label: string; value: string }[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-8 gap-y-7 sm:grid-cols-3">
       {items.map((s) => (
-        <div key={s.label + s.value}>
+        <div key={s.label + s.value} className="text-center">
           <p className="text-[10px] tracking-[0.25em] text-text-secondary">
             {s.label.toUpperCase()}
           </p>
-          <p className="mt-1.5 font-[family-name:var(--font-cormorant)] text-xl font-light text-text-primary">
+          <p className="mt-2 font-[family-name:var(--font-cormorant)] text-xl font-light text-text-primary">
             {s.value}
           </p>
         </div>
@@ -158,8 +158,10 @@ export default async function ListingPage({
         </div>
 
         {/* Spec bar */}
-        <div className="mt-8 flex flex-wrap items-end justify-between gap-6 border-y border-border py-6">
-          <div className="flex flex-wrap gap-x-10 gap-y-5">
+        {/* Equal-width columns rather than content-width ones, so the five
+            specs sit on a uniform rhythm instead of a ragged flex row. */}
+        <div className="mt-8 border-y border-border py-7">
+          <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
             {[
               { label: "Length", value: vessel.length },
               { label: "Built", value: String(vessel.year) },
@@ -167,15 +169,15 @@ export default async function ListingPage({
               { label: "Location", value: vessel.location },
               { label: "Asking Price", value: vessel.price },
             ].map((s) => (
-              <div key={s.label}>
+              <div key={s.label} className="text-center">
                 <p className="text-[10px] tracking-[0.25em] text-text-secondary">
                   {s.label.toUpperCase()}
                 </p>
-                <p className="mt-1.5 text-sm text-text-primary">{s.value}</p>
+                <p className="mt-2 text-sm text-text-primary">{s.value}</p>
               </div>
             ))}
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
             {vessel.href && (
               <a
                 href={vessel.href}
