@@ -45,8 +45,10 @@ export function ListingStickyBar({
               BROCHURE
             </a>
           )}
+          {/* Anchors to the on-page enquiry form rather than a mailto:,
+              which silently no-ops without a registered mail handler. */}
           <a
-            href="mailto:connor@grayyachts.com"
+            href="#enquire"
             className="bg-gold px-6 py-2.5 text-[10px] font-semibold tracking-[0.2em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
           >
             CONTACT CONNOR

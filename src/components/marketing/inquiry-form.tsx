@@ -64,7 +64,11 @@ export function InquiryForm({ vessel }: { vessel?: string }) {
 
   if (state === "sent") {
     return (
-      <div className="rounded-xl border border-gold/40 bg-gold/5 p-6 text-center">
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-xl border border-gold/40 bg-gold/5 p-6 text-center"
+      >
         <Check size={22} className="mx-auto text-gold" />
         <p className="mt-3 font-[family-name:var(--font-cormorant)] text-xl font-light text-text-primary">
           Message sent
@@ -147,7 +151,11 @@ export function InquiryForm({ vessel }: { vessel?: string }) {
       </button>
 
       {state === "error" && (
-        <div className="flex items-start gap-2 rounded-lg border border-border bg-bg-primary p-3">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2 rounded-lg border border-border bg-bg-primary p-3"
+        >
           <AlertCircle size={15} className="mt-0.5 shrink-0 text-gold" />
           <p className="text-xs leading-relaxed text-text-secondary">
             {error}{" "}

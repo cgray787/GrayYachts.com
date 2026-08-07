@@ -22,6 +22,39 @@ function esc(s: string) {
     .replace(/>/g, "&gt;");
 }
 
+/**
+ * Rate limiting uses Cloudflare's INQUIRY_RATE_LIMIT binding (5 req / 60s per
+ * IP), declared in wrangler.jsonc. An in-process Map is NOT sufficient here:
+ * Workers spreads requests across isolates, so a per-isolate counter never
+ * accumulates — verified against production, 7 rapid posts produced no 429.
+ * If the binding is unavailable (local dev), we fail OPEN rather than block
+ * genuine enquiries.
+ *
+ * ⚠️ VERIFIED INVOKED BUT NOT YET OBSERVED ENFORCING. Against production the
+ * binding resolves and `.limit()` is called, but 8 rapid posts from one IP all
+ * returned success — Cloudflare's rate-limiting binding is still beta and may
+ * be plan-gated on this account. There is no live abuse surface yet because
+ * RESEND_API_KEY is unset (the route 503s before sending). Re-run the burst
+ * test once the key is set; if it still doesn't limit, move to a KV- or
+ * Durable-Object-backed counter.
+ */
+type RateLimiter = { limit: (o: { key: string }) => Promise<{ success: boolean }> };
+
+async function rateLimited(ip: string): Promise<{ limited: boolean; via: string }> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const ctx = await getCloudflareContext({ async: true });
+    const rl = (ctx.env as unknown as { INQUIRY_RATE_LIMIT?: RateLimiter })
+      .INQUIRY_RATE_LIMIT;
+    if (!rl) return { limited: false, via: "no-binding" };
+    const { success } = await rl.limit({ key: ip });
+    return { limited: !success, via: "binding" };
+  } catch (e) {
+    console.error("[inquiry] rate-limit check failed", e);
+    return { limited: false, via: "error" }; // fail open
+  }
+}
+
 export async function POST(req: Request) {
   let body: Body;
   try {
@@ -35,9 +68,6 @@ export async function POST(req: Request) {
   const phone = (body.phone ?? "").trim();
   const message = (body.message ?? "").trim();
   const vessel = (body.vessel ?? "").trim();
-
-  // Silently accept honeypot hits so bots don't learn anything.
-  if ((body.company ?? "").trim()) return NextResponse.json({ ok: true });
 
   if (!name || !email) {
     return NextResponse.json(
@@ -53,6 +83,23 @@ export async function POST(req: Request) {
   }
   if (name.length > 200 || email.length > 200 || phone.length > 60 || message.length > 5000) {
     return NextResponse.json({ ok: false, error: "Message too long." }, { status: 422 });
+  }
+
+  // Honeypot is checked AFTER validation so a bot can't distinguish it: an
+  // empty body 422s either way, and a valid-looking body returns the same
+  // 200 envelope whether or not the trap was tripped. We just don't send.
+  if ((body.company ?? "").trim()) return NextResponse.json({ ok: true });
+
+  const ip =
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  const rl = await rateLimited(ip);
+  if (rl.limited) {
+    return NextResponse.json(
+      { ok: false, error: "Too many messages — please try again shortly.", fallbackEmail: TO },
+      { status: 429 },
+    );
   }
 
   const key = process.env.RESEND_API_KEY;

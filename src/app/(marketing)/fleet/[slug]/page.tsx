@@ -190,8 +190,10 @@ export default async function ListingPage({
                 <Download size={13} /> BROCHURE
               </a>
             )}
+            {/* Anchors to the enquiry form. Was a mailto:, which silently
+                does nothing when no mail handler is registered. */}
             <a
-              href="mailto:connor@grayyachts.com"
+              href="#enquire"
               className="bg-gold px-7 py-3 text-[10px] font-semibold tracking-[0.2em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
             >
               CONTACT CONNOR
@@ -319,7 +321,7 @@ export default async function ListingPage({
           </div>
 
           {/* Sidebar */}
-          <aside className="lg:sticky lg:top-28 lg:self-start">
+          <aside id="enquire" className="scroll-mt-28 lg:sticky lg:top-28 lg:self-start">
             <div className="rounded-2xl border border-border bg-bg-card p-6">
               <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
                 Interested in this vessel?

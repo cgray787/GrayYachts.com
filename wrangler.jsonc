@@ -16,5 +16,19 @@
   "routes": [
     { "pattern": "grayyachts.com/*", "zone_name": "grayyachts.com" },
     { "pattern": "www.grayyachts.com/*", "zone_name": "grayyachts.com" }
-  ]
+  ],
+  // Cloudflare's built-in rate limiter, shared across isolates. An in-process
+  // Map does NOT work here — Workers spreads requests over many isolates, so a
+  // per-isolate counter never accumulates (verified: 7 rapid posts, no 429).
+  // Guards the public unauthenticated POST /api/inquiry.
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "INQUIRY_RATE_LIMIT",
+        "type": "ratelimit",
+        "namespace_id": "1001",
+        "simple": { "limit": 5, "period": 60 }
+      }
+    ]
+  }
 }
