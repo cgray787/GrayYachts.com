@@ -5,6 +5,8 @@ import { ArrowLeft, Check, ChevronRight, Download, Mail, Phone } from "lucide-re
 
 import { ListingGallery } from "@/components/marketing/listing-gallery";
 import { ListingStickyBar } from "@/components/marketing/listing-sticky-bar";
+import { InquiryForm } from "@/components/marketing/inquiry-form";
+import { PaymentCalculator } from "@/components/marketing/payment-calculator";
 import { vessels } from "@/lib/fleet";
 import { getBrochure } from "@/lib/brochures";
 
@@ -290,6 +292,9 @@ export default async function ListingPage({
               </Section>
             )}
 
+            {/* Payment calculator — only where we have a real number to seed it. */}
+            {priceNumber && <PaymentCalculator price={Number(priceNumber)} />}
+
             {/* Brochure download — the ask */}
             {vessel.href && (
               <section className="mt-16 rounded-2xl border border-border bg-bg-card p-8 text-center sm:p-10">
@@ -323,14 +328,9 @@ export default async function ListingPage({
                 Request documentation, schedule a viewing, or ask anything at all. Every
                 showing is by appointment.
               </p>
-              <a
-                href={`mailto:connor@grayyachts.com?subject=${encodeURIComponent(
-                  `${vessel.name} — ${vessel.year} ${vessel.make}`,
-                )}`}
-                className="mt-6 flex w-full items-center justify-center gap-2 bg-gold px-6 py-3 text-[10px] font-semibold tracking-[0.2em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
-              >
-                <Mail size={14} /> REQUEST INFORMATION
-              </a>
+              <div className="mt-6">
+                <InquiryForm vessel={`${vessel.year} ${vessel.make} — ${vessel.name}`} />
+              </div>
               {vessel.href && (
                 <a
                   href={vessel.href}

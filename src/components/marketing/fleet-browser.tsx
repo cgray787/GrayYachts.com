@@ -238,7 +238,8 @@ export function FleetBrowser({ vessels }: { vessels: Vessel[] }) {
   const [year, setYear] = useState<string | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [type, setType] = useState<string | null>(null);
-  const [sort, setSort] = useState<Sort>("Featured");
+  // Default to most-expensive-first so the flagship listings lead the page.
+  const [sort, setSort] = useState<Sort>("Price: High to Low");
 
   const locations = useMemo(
     () => Array.from(new Set(vessels.map((v) => v.location))).sort(),
