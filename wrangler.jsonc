@@ -17,10 +17,16 @@
     { "pattern": "grayyachts.com/*", "zone_name": "grayyachts.com" },
     { "pattern": "www.grayyachts.com/*", "zone_name": "grayyachts.com" }
   ],
-  // Cloudflare's built-in rate limiter, shared across isolates. An in-process
-  // Map does NOT work here — Workers spreads requests over many isolates, so a
-  // per-isolate counter never accumulates (verified: 7 rapid posts, no 429).
-  // Guards the public unauthenticated POST /api/inquiry.
+  // Rate limiting for the public POST /api/inquiry.
+  // Two layers, because neither alone was sufficient:
+  //  - the `ratelimit` binding resolves and is invoked, but was never observed
+  //    enforcing (beta / likely plan-gated) — kept as a free fast path;
+  //  - KV is the one that actually counts. An in-process Map does NOT work:
+  //    Workers spreads requests across isolates so a per-isolate counter never
+  //    accumulates (verified — 7 rapid posts produced no 429).
+  "kv_namespaces": [
+    { "binding": "RATE_LIMIT", "id": "ce1e84923c4f469d8420906f9185be8c" }
+  ],
   "unsafe": {
     "bindings": [
       {

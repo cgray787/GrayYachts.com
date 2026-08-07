@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const TO = "connor@grayyachts.com";
+const TO = "connorgray@jeffbrownyachts.com";
 const FROM = "Gray Yachts Website <onboarding@resend.dev>";
+/** Shown to the visitor when we can't send — the public-facing address. */
+const PUBLIC_CONTACT = "connor@grayyachts.com";
 
 type Body = {
   name?: string;
@@ -30,28 +32,58 @@ function esc(s: string) {
  * If the binding is unavailable (local dev), we fail OPEN rather than block
  * genuine enquiries.
  *
- * ⚠️ VERIFIED INVOKED BUT NOT YET OBSERVED ENFORCING. Against production the
- * binding resolves and `.limit()` is called, but 8 rapid posts from one IP all
- * returned success — Cloudflare's rate-limiting binding is still beta and may
- * be plan-gated on this account. There is no live abuse surface yet because
- * RESEND_API_KEY is unset (the route 503s before sending). Re-run the burst
- * test once the key is set; if it still doesn't limit, move to a KV- or
- * Durable-Object-backed counter.
+ * Two layers. The native `ratelimit` binding is tried first but was never
+ * observed enforcing in production (beta, likely plan-gated), so KV is the
+ * authoritative counter — it is the only one that actually shares state
+ * across isolates.
  */
 type RateLimiter = { limit: (o: { key: string }) => Promise<{ success: boolean }> };
+type KV = {
+  get: (k: string) => Promise<string | null>;
+  put: (k: string, v: string, o?: { expirationTtl?: number }) => Promise<void>;
+};
+
+const WINDOW_S = 60;
+const MAX_PER_WINDOW = 5;
 
 async function rateLimited(ip: string): Promise<{ limited: boolean; via: string }> {
+  let env: Record<string, unknown>;
   try {
     const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const ctx = await getCloudflareContext({ async: true });
-    const rl = (ctx.env as unknown as { INQUIRY_RATE_LIMIT?: RateLimiter })
-      .INQUIRY_RATE_LIMIT;
-    if (!rl) return { limited: false, via: "no-binding" };
-    const { success } = await rl.limit({ key: ip });
-    return { limited: !success, via: "binding" };
+    env = (await getCloudflareContext({ async: true })).env as unknown as Record<
+      string,
+      unknown
+    >;
   } catch (e) {
-    console.error("[inquiry] rate-limit check failed", e);
-    return { limited: false, via: "error" }; // fail open
+    console.error("[inquiry] no cf context", e);
+    return { limited: false, via: "no-context" }; // fail open
+  }
+
+  // Fast path: Cloudflare's native limiter, when it actually enforces.
+  try {
+    const native = env.INQUIRY_RATE_LIMIT as RateLimiter | undefined;
+    if (native) {
+      const { success } = await native.limit({ key: ip });
+      if (!success) return { limited: true, via: "binding" };
+    }
+  } catch (e) {
+    console.error("[inquiry] native limiter failed", e);
+  }
+
+  // Authoritative: KV counter, shared across isolates. Read-modify-write is
+  // not atomic, so a tight burst can slip an extra request or two through —
+  // acceptable for a contact form, and far better than no limit at all.
+  try {
+    const kv = env.RATE_LIMIT as KV | undefined;
+    if (!kv) return { limited: false, via: "no-kv" };
+    const bucket = Math.floor(Date.now() / 1000 / WINDOW_S);
+    const key = `iq:${ip}:${bucket}`;
+    const n = Number((await kv.get(key)) ?? "0") + 1;
+    await kv.put(key, String(n), { expirationTtl: WINDOW_S * 2 });
+    return { limited: n > MAX_PER_WINDOW, via: "kv" };
+  } catch (e) {
+    console.error("[inquiry] kv limiter failed", e);
+    return { limited: false, via: "kv-error" }; // fail open
   }
 }
 
@@ -97,7 +129,7 @@ export async function POST(req: Request) {
   const rl = await rateLimited(ip);
   if (rl.limited) {
     return NextResponse.json(
-      { ok: false, error: "Too many messages — please try again shortly.", fallbackEmail: TO },
+      { ok: false, error: "Too many messages — please try again shortly.", fallbackEmail: PUBLIC_CONTACT },
       { status: 429 },
     );
   }
@@ -107,7 +139,7 @@ export async function POST(req: Request) {
     // Not configured yet — tell the client so it can show the direct-contact
     // fallback rather than pretending the enquiry was delivered.
     return NextResponse.json(
-      { ok: false, error: "NOT_CONFIGURED", fallbackEmail: TO },
+      { ok: false, error: "NOT_CONFIGURED", fallbackEmail: PUBLIC_CONTACT },
       { status: 503 },
     );
   }
@@ -145,7 +177,7 @@ export async function POST(req: Request) {
       const detail = await res.text();
       console.error("[inquiry] resend failed", res.status, detail.slice(0, 300));
       return NextResponse.json(
-        { ok: false, error: "Could not send right now.", fallbackEmail: TO },
+        { ok: false, error: "Could not send right now.", fallbackEmail: PUBLIC_CONTACT },
         { status: 502 },
       );
     }
@@ -153,7 +185,7 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("[inquiry] error", e);
     return NextResponse.json(
-      { ok: false, error: "Could not send right now.", fallbackEmail: TO },
+      { ok: false, error: "Could not send right now.", fallbackEmail: PUBLIC_CONTACT },
       { status: 502 },
     );
   }
