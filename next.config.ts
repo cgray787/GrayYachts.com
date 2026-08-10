@@ -14,15 +14,11 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcmt3eHpodGlkc3R6bnB6bHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NzA3MzAsImV4cCI6MjA4OTU0NjczMH0.2mPq25_musLoqHLZCzzLFjj_70fcNs5nYwJd9H94aEE";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      // The seller valuation landing page is a self-contained static file in
-      // public/sell/. Next will not serve public/<dir>/index.html at a clean
-      // URL on its own, so map /sell (and the ad-friendly /valuation alias)
-      // onto it.
-      { source: "/sell", destination: "/sell/index.html" },
-      { source: "/valuation", destination: "/sell/index.html" },
-    ];
+  // Cloudflare's asset handler serves public/sell/index.html at /sell/ before
+  // a Next rewrite can run, so /sell needs nothing. /valuation is an alias for
+  // ads and has no matching asset, so it must be a redirect, not a rewrite.
+  async redirects() {
+    return [{ source: "/valuation", destination: "/sell/", permanent: false }];
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL:
