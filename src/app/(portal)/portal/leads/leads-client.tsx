@@ -44,6 +44,54 @@ const TABS: { key: Tab; label: string }[] = [
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
 /**
+ * Lead thumbnail with a failover chain.
+ *
+ * Facebook CDN URLs are signed and time-limited (`oh=` / `oe=` params), so a
+ * photo scraped days ago starts 403ing and the card renders a broken-image
+ * icon with raw alt text. Rather than store a dead URL:
+ *
+ *   1. try the stored FB URL — still fine while its token is valid
+ *   2. fall back to /api/yacht-image?url=<listing>, the durable proxy that
+ *      re-fetches through the provider chain and re-hosts under our domain
+ *   3. if both fail, render a clean placeholder — never a broken image
+ *
+ * The proper long-term fix is caching the bytes at ingest so step 1 never
+ * expires; this makes the UI correct today without touching the scraper.
+ */
+function LeadPhoto({ lead }: { lead: FbLead }) {
+  const [tier, setTier] = useState<0 | 1 | 2>(lead.photo ? 0 : 1);
+  const box = "h-48 w-full object-cover sm:h-auto sm:w-52 sm:shrink-0";
+
+  if (tier === 2) {
+    return (
+      <div
+        className={`${box} flex items-center justify-center bg-bg-secondary sm:h-auto`}
+        aria-hidden
+      >
+        <Camera className="h-6 w-6 text-text-secondary/40" />
+      </div>
+    );
+  }
+
+  const src =
+    tier === 0
+      ? (lead.photo as string)
+      : `/api/yacht-image?url=${encodeURIComponent(lead.url)}`;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={src}
+      src={src}
+      alt={lead.title}
+      loading="lazy"
+      onError={() => setTier((t) => (t === 0 ? 1 : 2))}
+      className={box}
+    />
+  );
+}
+
+/**
  * One-click assisted send.
  *
  * Facebook has no API for sending Marketplace DMs — Meta's Messenger Platform
@@ -250,14 +298,7 @@ function LeadCard({
       } ${dead ? "opacity-70" : ""} ${pending ? "animate-pulse" : ""}`}
     >
       <div className="flex flex-col sm:flex-row">
-        {lead.photo && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={lead.photo}
-            alt={lead.title}
-            className="h-48 w-full object-cover sm:h-auto sm:w-52 sm:shrink-0"
-          />
-        )}
+        <LeadPhoto lead={lead} />
 
         <div className="min-w-0 flex-1 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
