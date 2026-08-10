@@ -79,6 +79,51 @@ export const DEAD_STAGES: LeadStage[] = ["broker_dead", "dead"];
 export const ACTION_STAGES: LeadStage[] = ["replied", "negotiating"];
 export const WAITING_STAGES: LeadStage[] = ["opener_sent", "pitch_sent", "nudged", "terms_sent"];
 
+const DAY = 24 * 60 * 60 * 1000;
+const daysSince = (iso: string | null) =>
+  iso ? (Date.now() - new Date(iso).getTime()) / DAY : null;
+
+/**
+ * Does this lead need Connor right now?
+ *
+ * Stage alone isn't enough — a lead sitting in `opener_sent` for a week needs
+ * a nudge just as much as one that replied, but stage-based bucketing left it
+ * in "Waiting" forever. This adds the time dimension, so "Needs You" is a real
+ * to-do list rather than a category you maintain by hand.
+ */
+export function needsYou(lead: FbLead): { need: boolean; why: string | null } {
+  if (DEAD_STAGES.includes(lead.stage)) return { need: false, why: null };
+
+  // Seller spoke and is waiting on us.
+  if (ACTION_STAGES.includes(lead.stage)) {
+    return { need: true, why: "Seller replied — your move" };
+  }
+
+  // Outbound has gone quiet.
+  const quiet: Partial<Record<LeadStage, { days: number; why: string }>> = {
+    opener_sent: { days: 3, why: "No reply in 3+ days — nudge" },
+    pitch_sent: { days: 5, why: "Pitch went quiet — send “Thoughts?”" },
+    nudged: { days: 5, why: "Nudge went unanswered" },
+    terms_sent: { days: 4, why: "Terms sent — chase the answer" },
+  };
+  const rule = quiet[lead.stage];
+  if (rule) {
+    const sentAt =
+      lead.stage === "opener_sent"
+        ? lead.opener_sent_at
+        : lead.stage === "pitch_sent"
+          ? lead.pitch_sent_at
+          : lead.stage === "nudged"
+            ? lead.nudge_sent_at
+            : lead.terms_sent_at;
+    const d = daysSince(sentAt);
+    if (d !== null && d >= rule.days && !lead.reply_at) {
+      return { need: true, why: rule.why };
+    }
+  }
+  return { need: false, why: null };
+}
+
 export function nextAction(lead: FbLead): string | null {
   switch (lead.stage) {
     case "new":

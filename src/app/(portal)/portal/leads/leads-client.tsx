@@ -23,6 +23,7 @@ import {
   DEAD_STAGES,
   ACTION_STAGES,
   WAITING_STAGES,
+  needsYou,
   nextAction,
   messageScript,
   dealTerms,
@@ -41,6 +42,75 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
+
+/**
+ * One-click assisted send.
+ *
+ * Facebook has no API for sending Marketplace DMs — Meta's Messenger Platform
+ * only covers Pages replying inside a 24h window, and FSBO listings are
+ * personal-account threads. Driving the logged-in session with a headless
+ * browser would work until it got the account banned, and that account IS the
+ * pipeline. So: we copy the exact message, open the thread, and log the send.
+ * Connor pastes and hits enter. Two seconds, zero ban risk, and he stays the
+ * human sender — which also reads better to a private seller.
+ */
+function SendStepButton({
+  lead,
+  step,
+  pending,
+  onSend,
+}: {
+  lead: FbLead;
+  step: { step: string; body: string } | undefined;
+  pending: boolean;
+  onSend: (listingId: string, step: string, body: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  if (!step || !step.body) return null;
+
+  const verb =
+    step.step === "Opener"
+      ? "Send the opener"
+      : step.step === "If private seller"
+        ? "Send the pitch"
+        : step.step === "No reply"
+          ? "Send the nudge"
+          : "Send the terms";
+
+  async function go() {
+    try {
+      await navigator.clipboard.writeText(step!.body);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 4000);
+    } catch {
+      // Clipboard can be blocked; the script stays visible below either way.
+    }
+    window.open(lead.url, "_blank", "noopener,noreferrer");
+    onSend(lead.listing_id, step!.step, step!.body);
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={go}
+        disabled={pending}
+        className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
+      >
+        {pending ? "LOGGING…" : verb.toUpperCase()} →
+      </button>
+      <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+        {copied ? (
+          <span className="text-gold">
+            Copied. Paste into the Marketplace thread that just opened, then send.
+          </span>
+        ) : (
+          <>Copies the message, opens the listing, and marks it sent.</>
+        )}
+      </p>
+    </div>
+  );
+}
 
 const since = (iso: string | null) => {
   if (!iso) return null;
@@ -151,6 +221,13 @@ function LeadCard({
   const [showNote, setShowNote] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Shared by the one-click send button and the script rows below it, so both
+  // routes log identically and advance the stage the same way.
+  const onSendStep = (listingId: string, step: string, body: string) =>
+    startTransition(async () => {
+      await logSent(listingId, step, body);
+    });
+
   // Server is the source of truth — if a realtime update changes the note,
   // adopt it rather than keeping a stale local draft.
   useEffect(() => setNoteDraft(lead.note ?? ""), [lead.note]);
@@ -158,6 +235,7 @@ function LeadCard({
   const verdict = verdictPill(lead);
   const script = messageScript(lead);
   const action = nextAction(lead);
+  const attention = needsYou(lead);
   const dead = DEAD_STAGES.includes(lead.stage);
   const terms = dealTerms(lead.ask);
   const live = liveStep(lead);
@@ -232,7 +310,22 @@ function LeadCard({
             </p>
           )}
 
-          {action && <p className="mt-3 text-sm font-medium text-gold">→ {action}</p>}
+          {attention.need && attention.why && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-medium text-emerald-400">
+              {attention.why}
+            </p>
+          )}
+
+          {live >= 0 && !dead ? (
+            <SendStepButton
+              lead={lead}
+              step={script[live]}
+              pending={pending}
+              onSend={onSendStep}
+            />
+          ) : (
+            action && <p className="mt-3 text-sm font-medium text-gold">→ {action}</p>
+          )}
 
           {lead.pitch_angle && !dead && (
             <p className="mt-3 border-l-2 border-gold pl-3 font-[family-name:var(--font-cormorant)] text-base leading-relaxed text-text-primary">
@@ -472,8 +565,13 @@ export default function LeadsClient({
   const groups = useMemo(() => {
     const byRank = [...leads].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
     return {
-      action: byRank.filter((l) => ACTION_STAGES.includes(l.stage)),
-      waiting: byRank.filter((l) => WAITING_STAGES.includes(l.stage)),
+      // Time-aware: a lead that has sat in opener_sent for a week needs you
+      // just as much as one that replied. Waiting excludes anything that has
+      // aged into Needs You, so a lead never shows in both.
+      action: byRank.filter((l) => needsYou(l).need),
+      waiting: byRank.filter(
+        (l) => WAITING_STAGES.includes(l.stage) && !needsYou(l).need,
+      ),
       dead: byRank.filter((l) => DEAD_STAGES.includes(l.stage)),
       queue: byRank.filter((l) => l.stage === "new"),
       all: byRank,
