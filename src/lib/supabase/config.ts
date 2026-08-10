@@ -20,16 +20,41 @@ export type SupabaseConfig = {
   anonKey: string;
 };
 
+/**
+ * Literals, deliberately — NOT process.env.
+ *
+ * next.config.ts `env` did not reach the login page's client chunk: the bundle
+ * containing "Authentication service is not configured" had no Supabase URL in
+ * it, so createClient() returned null and login stayed broken even though the
+ * value was present in another chunk. Inlining depends on the bundler resolving
+ * process.env inside a shared module across chunk boundaries, and it did not.
+ *
+ * A string literal in source has no such failure mode: whatever chunk imports
+ * this module gets the value, because it *is* the value. Both are public — the
+ * anon key is protected by RLS and already ships in wrangler.jsonc — so there
+ * is nothing here that a browser would not receive anyway.
+ */
+const DEFAULT_URL = "https://eorkwxzhtidstznpzlyg.supabase.co";
+const DEFAULT_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcmt3eHpodGlkc3R6bnB6bHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NzA3MzAsImV4cCI6MjA4OTU0NjczMH0.2mPq25_musLoqHLZCzzLFjj_70fcNs5nYwJd9H94aEE";
+
 /** A Supabase project URL, e.g. https://abcdefgh.supabase.co */
 const URL_RE = /^https:\/\/[a-z0-9-]+\.supabase\.(co|in|red)$/i;
 /** Three base64url segments — a JWT. Presence alone is not enough; a truncated
  *  or placeholder key must be rejected loudly rather than 401 at runtime. */
 const JWT_RE = /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
+/** An env value only wins when it is actually usable, so a half-set or typo'd
+ *  variable can never knock out a known-good literal. */
+function pick(raw: string | undefined, fallback: string, ok: RegExp) {
+  const candidate = (raw ?? "").trim();
+  return candidate && ok.test(candidate) ? candidate : fallback;
+}
+
 function readRaw() {
   return {
-    url: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim(),
-    anonKey: (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim(),
+    url: pick(process.env.NEXT_PUBLIC_SUPABASE_URL, DEFAULT_URL, URL_RE),
+    anonKey: pick(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, DEFAULT_ANON_KEY, JWT_RE),
   };
 }
 

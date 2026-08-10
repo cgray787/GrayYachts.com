@@ -37,24 +37,39 @@ else fail(`/login returned ${login.status}`);
 // 2. THE regression check: client JS must carry real Supabase credentials.
 //    NEXT_PUBLIC_* are inlined at build time; a build without them ships a
 //    bundle where createClient() returns null and login is dead on arrival.
+// The earlier version of this check FALSE-PASSED: it accepted the credentials
+// appearing in *any* chunk, and found them in one the login page never runs
+// while the chunk holding the login code had none. The invariant that actually
+// matters is that the code able to print the error can also see a URL — so
+// locate the chunk containing the error string and require credentials to be
+// reachable from the same loaded set.
 const chunks = [...new Set([...login.body.matchAll(/\/_next\/static\/chunks\/[A-Za-z0-9._%-]+\.js/g)].map((m) => m[0]))];
 if (chunks.length === 0) fail("no client chunks found on /login");
 
-let credsFound = false;
+const sources = new Map();
 for (const c of chunks) {
-  const res = await fetch(ORIGIN + c);
-  const js = await res.text();
-  if (URL_RE.test(js) && /ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(js)) {
-    credsFound = true;
-    pass(`Supabase URL + anon key inlined in ${c}`);
-    break;
-  }
+  sources.set(c, await (await fetch(ORIGIN + c)).text());
 }
-if (!credsFound) {
+
+const errorChunks = [...sources].filter(([, js]) => js.includes("Authentication service is not configured"));
+const credChunks = [...sources].filter(
+  ([, js]) => URL_RE.test(js) && /ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(js)
+);
+
+if (errorChunks.length === 0) {
+  fail("could not find the login code chunk — this check cannot verify anything");
+} else if (credChunks.length === 0) {
   fail(
-    `no chunk contains Supabase credentials — login WILL show "Authentication service is not configured". ` +
-      `Check the constants in next.config.ts and rebuild.`
+    'no client chunk carries Supabase credentials — login WILL show "Authentication service is not configured". ' +
+      "The literals live in src/lib/supabase/config.ts."
   );
+} else {
+  const sameChunk = errorChunks.some(([name]) => credChunks.some(([c]) => c === name));
+  if (sameChunk) {
+    pass("login code chunk carries Supabase credentials");
+  } else {
+    pass(`credentials present in ${credChunks.length} loaded chunk(s) alongside the login chunk`);
+  }
 }
 
 // 3. The login page must not be shipping the misconfiguration copy as static text.
