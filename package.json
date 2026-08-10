@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "eslint",
     "check:brochures": "tsx scripts/check-brochures.ts",
-    "brochure": "tsx scripts/generate-brochure.ts"
+    "brochure": "tsx scripts/generate-brochure.ts",
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "ship": "npx opennextjs-cloudflare build && npx wrangler deploy && node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.17.1",

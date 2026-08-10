@@ -77,7 +77,7 @@ const navItems = [
     // Flat entry on purpose — every item with subItems shares one `servicesOpen`
     // state below, so giving this one children would toggle it in lockstep with
     // Services and Content Review.
-    label: "Marketplace Leads",
+    label: "FB Marketplace Leads",
     href: "/portal/leads",
     icon: Target,
   },
