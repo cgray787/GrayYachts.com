@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.grayyachts.sell-watchdog</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/connorgray/Desktop/Claude OS/Gray Yachts/grayyachts.com/.claude/worktrees/sell-watchdog/scripts/sell-watchdog.sh</string>
+    </array>
+
+    <!-- every 10 minutes -->
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/connorgray/Desktop/Claude OS/Gray Yachts/grayyachts.com/.claude/worktrees/sell-watchdog</string>
+
+    <!-- npm/node live in the user PATH; launchd starts with a bare one -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/connorgray</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/connorgray/Library/Logs/grayyachts-sell-watchdog.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/connorgray/Library/Logs/grayyachts-sell-watchdog.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>
