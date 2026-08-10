@@ -15,6 +15,7 @@
  * Run automatically via the `predeploy` npm script.
  * Bypass (only when intentionally removing a listing): DEPLOY_ALLOW_REMOVALS=1
  */
+import { existsSync as existsSyncTop } from "node:fs";
 import { vessels } from "../src/lib/fleet";
 
 const SITE = process.env.PREFLIGHT_SITE ?? "https://grayyachts.com";
@@ -95,8 +96,39 @@ async function main() {
     ok("live site unreachable or empty — skipping count check (first deploy?)");
   }
 
-  // 3. Every vessel whose href is a PDF must have that PDF in this build.
-  const { existsSync } = await import("node:fs");
+  // 3. Key standalone pages that live outside fleet.ts. These have been lost
+  //    before: /sell shipped on `main` while the fleet work shipped on a
+  //    feature branch, so each branch's deploy deleted the other's pages.
+  //    Listed explicitly because nothing in this repo enumerates them.
+  const CRITICAL_PAGES = ["/", "/fleet", "/sell", "/login"];
+  const pageMisses: string[] = [];
+  for (const p of CRITICAL_PAGES) {
+    const live = await status(`${SITE}${p}`);
+    if (live !== 200) continue; // not live today, nothing to protect
+    // Static assets are the usual way these ship; check the build output.
+    const asStatic =
+      existsSyncTop(`public${p}.html`) ||
+      existsSyncTop(`public${p}/index.html`) ||
+      existsSyncTop(`src/app${p}/page.tsx`) ||
+      existsSyncTop(`src/app/(marketing)${p}/page.tsx`) ||
+      existsSyncTop(`src/app/(auth)${p}/page.tsx`) ||
+      p === "/" ||
+      p === "/fleet";
+    if (!asStatic) pageMisses.push(p);
+  }
+  if (pageMisses.length > 0) {
+    bad(`${pageMisses.length} page(s) live now have no source in this build:`);
+    pageMisses.forEach((p) => console.log(`      ${SITE}${p}`));
+    if (!ALLOW_REMOVALS) {
+      console.log("\n  Refusing to deploy — this build would remove them.\n");
+      process.exit(1);
+    }
+  } else {
+    ok(`critical pages present (${CRITICAL_PAGES.join(", ")})`);
+  }
+
+  // 4. Every vessel whose href is a PDF must have that PDF in this build.
+  const existsSync = existsSyncTop;
   const missing = vessels
     .filter((v) => v.href?.endsWith(".pdf"))
     .map((v) => v.href as string)
