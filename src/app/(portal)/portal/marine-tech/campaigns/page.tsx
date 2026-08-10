@@ -8,6 +8,8 @@ import {
   type Manufacturer,
   type PortalCampaign,
   type PortalCampaignEntry,
+  type PortalCampaignPhoto,
+  photosByEntry,
   MANUFACTURER_LABEL,
   MANUFACTURER_MARK,
   STATUS_STYLES,
@@ -35,11 +37,12 @@ export default async function CampaignsPage() {
 
   let campaigns: PortalCampaign[] = [];
   let entries: PortalCampaignEntry[] = [];
+  let photos: Record<string, PortalCampaignPhoto[]> = {};
   let configured = true;
 
   try {
     const db = createMarineTechClient();
-    const [{ data: cats }, { data: log }] = await Promise.all([
+    const [{ data: cats }, { data: log }, { data: pics }] = await Promise.all([
       db
         .from("service_campaigns")
         .select(
@@ -54,9 +57,17 @@ export default async function CampaignsPage() {
         )
         .order("created_at", { ascending: false })
         .limit(300),
+      // The tech's photos from the boat. Fetched alongside rather than per-entry:
+      // a fleet's worth of campaigns would otherwise be one request each.
+      db
+        .from("report_photos")
+        .select("id, campaign_log_id, photo_url, caption")
+        .not("campaign_log_id", "is", null)
+        .order("created_at"),
     ]);
     campaigns = (cats ?? []) as unknown as PortalCampaign[];
     entries = (log ?? []) as unknown as PortalCampaignEntry[];
+    photos = photosByEntry((pics ?? []) as unknown as PortalCampaignPhoto[]);
   } catch {
     configured = false;
   }
@@ -110,7 +121,7 @@ export default async function CampaignsPage() {
             {open.length === 0 ? (
               <Empty>Nothing outstanding. Every campaign on record has been closed out.</Empty>
             ) : (
-              open.map((e) => <EntryRow key={e.id} entry={e} />)
+              open.map((e) => <EntryRow key={e.id} entry={e} photos={photos[e.id]} />)
             )}
           </Section>
 
@@ -180,7 +191,9 @@ export default async function CampaignsPage() {
             {entries.length === 0 ? (
               <Empty>No campaigns have been performed yet.</Empty>
             ) : (
-              entries.map((e) => <EntryRow key={e.id} entry={e} showStatus />)
+              entries.map((e) => (
+                <EntryRow key={e.id} entry={e} showStatus photos={photos[e.id]} />
+              ))
             )}
             {entries.length > 0 && (
               <p className="mt-3 text-xs text-text-secondary">
@@ -195,7 +208,15 @@ export default async function CampaignsPage() {
   );
 }
 
-function EntryRow({ entry, showStatus }: { entry: PortalCampaignEntry; showStatus?: boolean }) {
+function EntryRow({
+  entry,
+  showStatus,
+  photos = [],
+}: {
+  entry: PortalCampaignEntry;
+  showStatus?: boolean;
+  photos?: PortalCampaignPhoto[];
+}) {
   const v = variance(entry);
   return (
     <div
@@ -225,6 +246,27 @@ function EntryRow({ entry, showStatus }: { entry: PortalCampaignEntry; showStatu
         {entry.conditions_found && (
           <span className="mt-1 block text-xs italic text-text-secondary/80">
             “{entry.conditions_found}”
+          </span>
+        )}
+        {/* Photos the tech shot at the boat — the evidence behind the claim. */}
+        {photos.length > 0 && (
+          <span className="mt-2 flex flex-wrap gap-2">
+            {photos.map((p) => (
+              <a
+                key={p.id}
+                href={p.photo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={p.caption ?? "Photo from the field"}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.photo_url}
+                  alt={p.caption ?? "Campaign photo from the field"}
+                  className="h-16 w-16 rounded-lg border border-border object-cover transition-opacity hover:opacity-80"
+                />
+              </a>
+            ))}
           </span>
         )}
       </span>
