@@ -743,7 +743,24 @@ if(COMPS.length){
    sample cards, each stamped SAMPLE and fronted by a loud banner — the
    same fail-loudly rule as the lead endpoint, so invented social proof can
    never go out quietly on paid traffic.                              */
-const REVIEW_SAMPLES = [];   /* no invented reviews on a public page */
+/* Placeholder cards for the rotating band. Every one renders with a SAMPLE
+   pill and a page banner, so nothing here can be mistaken for a real client
+   quote. All six disappear the moment one real review is pasted into the
+   testimonials block at the top of this file. */
+const REVIEW_SAMPLES = [
+  {quote:'He priced her off three boats that had actually sold in Puget Sound that quarter, not off what everyone else was asking. That conversation was worth more than the two brokers who came before him.',
+   name:'Michael R.', detail:"58' Grand Banks Eastbay · Shilshole", stars:5, source:'Sample'},
+  {quote:'I expected a number and a sales pitch. I got a number, the comps behind it, and an honest answer about what she would not bring. We listed two weeks later.',
+   name:'Dana W.', detail:"52' Ocean Alexander · Elliott Bay", stars:5, source:'Sample'},
+  {quote:'The drone work and the walkthrough were better than anything I have seen on a boat at this price. Buyers were coming to the showing already sold.',
+   name:'Ted K.', detail:"48' Fleming · Anacortes", stars:5, source:'Sample'},
+  {quote:'Answered on a Sunday. Had a range to me before the end of the day and never once pushed me to list before I was ready.',
+   name:'Susan H.', detail:"44' Nordic Tug · Roche Harbor", stars:5, source:'Sample'},
+  {quote:'We were quietly thinking about it and not ready to talk to anyone. A year later he was the only broker we called.',
+   name:'Jim & Carol B.', detail:"62' Nordhavn · Bell Harbor", stars:5, source:'Sample'},
+  {quote:'Sold in six weeks at a number I did not think was realistic. He was right about the price and right about the timing.',
+   name:'Rob M.', detail:"46' Back Cove · Des Moines", stars:5, source:'Sample'}
+];
 const usingSamples = TESTIMONIALS.length === 0;
 const REVIEWS = usingSamples ? REVIEW_SAMPLES : TESTIMONIALS;
 
