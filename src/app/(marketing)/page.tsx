@@ -119,7 +119,7 @@ export default function HomePage() {
 
           <motion.div variants={fadeUp} custom={2}>
             <Link
-              href="#fleet"
+              href="/fleet"
               className="mt-10 inline-block border border-text-secondary/40 px-10 py-3.5 text-[11px] font-medium tracking-[0.25em] text-text-primary transition-all duration-500 hover:border-gold hover:text-gold"
             >
               EXPLORE THE FLEET
