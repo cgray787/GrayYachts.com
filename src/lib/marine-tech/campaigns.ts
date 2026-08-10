@@ -54,6 +54,30 @@ export type PortalCampaignEntry = {
   created_at: string;
 };
 
+/**
+ * A photo the tech shot at the boat. Campaign photos live in report_photos with
+ * report_id null and campaign_log_id set — the same rows the field app writes and
+ * the Marine Tech dashboard reads, so there is one record rather than a copy.
+ */
+export type PortalCampaignPhoto = {
+  id: string;
+  campaign_log_id: string;
+  photo_url: string;
+  caption: string | null;
+};
+
+/** Group photos by the campaign entry they belong to. */
+export function photosByEntry(
+  rows: PortalCampaignPhoto[]
+): Record<string, PortalCampaignPhoto[]> {
+  const out: Record<string, PortalCampaignPhoto[]> = {};
+  for (const p of rows) {
+    if (!p.campaign_log_id) continue;
+    (out[p.campaign_log_id] ??= []).push(p);
+  }
+  return out;
+}
+
 export const MANUFACTURER_LABEL: Record<Manufacturer, string> = {
   axopar: "Axopar",
   mercury: "Mercury",
