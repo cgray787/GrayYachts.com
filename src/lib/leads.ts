@@ -5,10 +5,31 @@
 
 export type LeadVerdict = "UNDER" | "AT" | "OVER" | "UNKNOWN" | "DISQUALIFIED";
 
-export type LeadContact = {
-  who: string;
-  on: string;
-  state: string;
+/** How far the Messenger conversation has actually got. */
+export type LeadStage =
+  | "new"
+  | "opener_sent"
+  | "replied"
+  | "pitch_sent"
+  | "nudged"
+  | "terms_sent"
+  | "negotiating"
+  | "won"
+  | "broker_dead"
+  | "dead";
+
+export type Checkpoint = {
+  done: boolean;
+  at?: string | null;
+  body?: string | null;
+};
+
+export type LeadCheckpoints = {
+  opener: Checkpoint;
+  reply: Checkpoint;
+  pitch: Checkpoint;
+  nudge: Checkpoint;
+  terms: Checkpoint;
 };
 
 export type Lead = {
@@ -28,10 +49,49 @@ export type Lead = {
   confidence: string | null;
   disqualifyReason: string | null;
   source: string | null;
-  contacted: LeadContact | null;
+  seller: string | null;
+  stage: LeadStage;
+  checkpoints: LeadCheckpoints;
+  outcome: string | null;
+  note: string | null;
   relistAt: number | null;
   commission: number | null;
 };
+
+export const STAGE_LABEL: Record<LeadStage, string> = {
+  new: "Not contacted",
+  opener_sent: "Opener sent — awaiting reply",
+  replied: "Replied — needs your move",
+  pitch_sent: "Pitch sent",
+  nudged: "Nudged",
+  terms_sent: "Terms sent",
+  negotiating: "Negotiating",
+  won: "Won",
+  broker_dead: "Broker listed — dead",
+  dead: "Dead",
+};
+
+/** The next thing to actually do, per stage. Drives the page's call to action. */
+export function nextAction(lead: Lead): string | null {
+  switch (lead.stage) {
+    case "new":
+      return "Send the opener";
+    case "opener_sent":
+      return "Waiting on seller — nudge if quiet 3+ days";
+    case "replied":
+      return "Seller confirmed private sale — send the pitch";
+    case "pitch_sent":
+      return "Waiting — send “Thoughts?” if quiet";
+    case "nudged":
+      return "Waiting on reply";
+    case "terms_sent":
+      return "Waiting on their answer to 5%/5%";
+    case "negotiating":
+      return "Close it";
+    default:
+      return null;
+  }
+}
 
 export const sweptAt = "2026-08-07";
 export const totalFound = 198;
@@ -55,7 +115,27 @@ export const leads: Lead[] = [
     "confidence": "high",
     "disqualifyReason": "Already broker-represented — the identical boat (2007 Aleutian RP, Wrangell AK 99929, $1,650,000) is listed on YachtWorld. Not an FSBO opportunity.",
     "source": "https://www.yachtworld.com/boats-for-sale/make-grand-banks/model-aleutian-59/",
-    "contacted": null,
+    "seller": null,
+    "stage": "broker_dead",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 1733000,
     "commission": 82500
   },
@@ -76,7 +156,27 @@ export const leads: Lead[] = [
     "confidence": "high",
     "disqualifyReason": "Already broker-represented — same boat, 'SHOW ME THE MONEY', 1997 Dyna 68 Laguna, Seattle, $1,295,000, listed by Shestakov Yacht Sales. Not an FSBO opportunity.",
     "source": "https://shestakovyachtsales.com/s3/yachts-for-sale/motor/68/united-states/seattle/dyna-68-laguna-1997-show-me-the-money-en.pdf",
-    "contacted": null,
+    "seller": null,
+    "stage": "broker_dead",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 1360000,
     "commission": 64750
   },
@@ -97,11 +197,29 @@ export const leads: Lead[] = [
     "confidence": "low",
     "disqualifyReason": null,
     "source": "https://www.yachtworld.com/boats-for-sale/make-broward/",
-    "contacted": {
-      "who": "Terry Piper",
-      "on": "earlier",
-      "state": "thread already open"
+    "seller": "Terry Piper",
+    "stage": "opener_sent",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": null,
+        "body": "Thread opened before this pipeline existed"
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": null,
+    "note": "Pre-existing thread — Messenger showed 'Message again'. Louis Prima / Charlie's Angels provenance, only 3 photos.",
     "relistAt": 525000,
     "commission": 25000
   },
@@ -122,11 +240,29 @@ export const leads: Lead[] = [
     "confidence": "medium",
     "disqualifyReason": null,
     "source": "https://www.boattrader.com/boats/make-hewescraft/model-270-alaskan/",
-    "contacted": {
-      "who": "Kurtis McStay",
-      "on": "2026-08-07",
-      "state": "awaiting reply"
+    "seller": "Kurtis McStay",
+    "stage": "opener_sent",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": "2026-08-07T09:46:00-07:00",
+        "body": "Is this a broker listing?"
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": null,
+    "note": null,
     "relistAt": 254000,
     "commission": 12100
   },
@@ -147,11 +283,31 @@ export const leads: Lead[] = [
     "confidence": "medium",
     "disqualifyReason": null,
     "source": "https://www.yachtworld.com/yacht/2020-coastal-craft-33-profish-9762376/",
-    "contacted": {
-      "who": "Michael Franz",
-      "on": "2026-08-07",
-      "state": "awaiting reply"
+    "seller": "Michael Franz",
+    "stage": "broker_dead",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": "2026-08-07T09:13:00-07:00",
+        "body": "Is this a broker listing?"
+      },
+      "reply": {
+        "done": true,
+        "at": "2026-08-07T10:56:00-07:00",
+        "body": "yes it is."
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": "Broker-represented — confirmed by the seller. No pitch sent; do not pursue.",
+    "note": null,
     "relistAt": 683000,
     "commission": 32500
   },
@@ -172,11 +328,29 @@ export const leads: Lead[] = [
     "confidence": "low",
     "disqualifyReason": null,
     "source": "https://www.boattrader.com/boats/make-north-river/by-owner/",
-    "contacted": {
-      "who": "Heath Gerondale",
-      "on": "2026-08-07",
-      "state": "awaiting reply"
+    "seller": "Heath Gerondale",
+    "stage": "opener_sent",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": "2026-08-07T09:28:00-07:00",
+        "body": "Is this a broker listing?"
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": null,
+    "note": "Listing image reads PRIVATE SALE — serious inquiries only. Strong FSBO signal.",
     "relistAt": 415000,
     "commission": 19750
   },
@@ -197,11 +371,29 @@ export const leads: Lead[] = [
     "confidence": "medium",
     "disqualifyReason": null,
     "source": "https://www.boattrader.com/boats/make-leopard/model-44/",
-    "contacted": {
-      "who": "Michael Schiehser",
-      "on": "earlier",
-      "state": "thread already open"
+    "seller": "Michael Schiehser",
+    "stage": "opener_sent",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": null,
+        "body": "Thread opened before this pipeline existed"
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": null,
+    "note": "Pre-existing thread. Priced ~30% over comparable 2016 Leopard 44s — strongest repricing conversation on the board.",
     "relistAt": 629000,
     "commission": 29950
   },
@@ -222,11 +414,31 @@ export const leads: Lead[] = [
     "confidence": "low",
     "disqualifyReason": null,
     "source": "https://www.yachtworld.com/boats-for-sale/make-nordlund/",
-    "contacted": {
-      "who": "Kirk Barnes",
-      "on": "2026-08-07",
-      "state": "replied: broker listing — dead"
+    "seller": "Kirk Barnes",
+    "stage": "broker_dead",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": "2026-08-07T09:40:00-07:00",
+        "body": "Is this a broker listing?"
+      },
+      "reply": {
+        "done": true,
+        "at": "2026-08-07T09:41:00-07:00",
+        "body": "Yes alaska boat brokers"
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": "Broker-represented (Alaska Boat Brokers) — confirmed by the seller. Do not pursue.",
+    "note": null,
     "relistAt": 483000,
     "commission": 23000
   },
@@ -247,11 +459,29 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": {
-      "who": "Marvin Kuentzel",
-      "on": "2026-08-07",
-      "state": "awaiting reply"
+    "seller": "Marvin Kuentzel",
+    "stage": "opener_sent",
+    "checkpoints": {
+      "opener": {
+        "done": true,
+        "at": "2026-08-07T09:34:00-07:00",
+        "body": "Is this a broker listing?"
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
     },
+    "outcome": null,
+    "note": null,
     "relistAt": 788000,
     "commission": 37500
   },
@@ -272,7 +502,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 184000,
     "commission": 8750
   },
@@ -293,7 +543,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 499000,
     "commission": 23750
   },
@@ -314,7 +584,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 210000,
     "commission": 10000
   },
@@ -335,7 +625,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 607000,
     "commission": 28900
   },
@@ -356,7 +666,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 179000,
     "commission": 8500
   },
@@ -377,7 +707,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 179000,
     "commission": 8500
   },
@@ -398,7 +748,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 177000,
     "commission": 8450
   },
@@ -419,7 +789,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 263000,
     "commission": 12500
   },
@@ -440,7 +830,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 262000,
     "commission": 12495
   },
@@ -461,7 +871,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 408000,
     "commission": 19450
   },
@@ -482,7 +912,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 231000,
     "commission": 11000
   },
@@ -503,7 +953,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 210000,
     "commission": 10000
   },
@@ -524,7 +994,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 200000,
     "commission": 9500
   },
@@ -545,7 +1035,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 357000,
     "commission": 17000
   },
@@ -566,7 +1076,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 194000,
     "commission": 9250
   },
@@ -587,7 +1117,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 188000,
     "commission": 8950
   },
@@ -608,7 +1158,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 236000,
     "commission": 11250
   },
@@ -629,7 +1199,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 167000,
     "commission": 7960
   },
@@ -650,7 +1240,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 163000,
     "commission": 7750
   },
@@ -671,7 +1281,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 315000,
     "commission": 15000
   },
@@ -692,7 +1322,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 194000,
     "commission": 9250
   },
@@ -713,7 +1363,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 289000,
     "commission": 13750
   },
@@ -734,7 +1404,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 394000,
     "commission": 18750
   },
@@ -755,7 +1445,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 168000,
     "commission": 8000
   },
@@ -776,7 +1486,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 261000,
     "commission": 12450
   },
@@ -797,7 +1527,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 251000,
     "commission": 11950
   },
@@ -818,7 +1568,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 578000,
     "commission": 27500
   },
@@ -839,7 +1609,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 209000,
     "commission": 9950
   },
@@ -860,7 +1650,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 205000,
     "commission": 9750
   },
@@ -881,7 +1691,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 188000,
     "commission": 8950
   },
@@ -902,7 +1732,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 179000,
     "commission": 8500
   },
@@ -923,7 +1773,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 282000,
     "commission": 13450
   },
@@ -944,7 +1814,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 282000,
     "commission": 13450
   },
@@ -965,7 +1855,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 278000,
     "commission": 13250
   },
@@ -986,7 +1896,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 168000,
     "commission": 7995
   },
@@ -1007,7 +1937,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 263000,
     "commission": 12500
   },
@@ -1028,7 +1978,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 263000,
     "commission": 12500
   },
@@ -1049,7 +2019,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 252000,
     "commission": 12000
   },
@@ -1070,7 +2060,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 251000,
     "commission": 11950
   },
@@ -1091,7 +2101,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 226000,
     "commission": 10750
   },
@@ -1112,7 +2142,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 226000,
     "commission": 10750
   },
@@ -1133,7 +2183,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 208000,
     "commission": 9900
   },
@@ -1154,7 +2224,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 179000,
     "commission": 8500
   },
@@ -1175,7 +2265,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1196,7 +2306,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8225
   },
@@ -1217,7 +2347,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 167000,
     "commission": 7945
   },
@@ -1238,7 +2388,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 158000,
     "commission": 7500
   },
@@ -1259,7 +2429,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 399000,
     "commission": 19000
   },
@@ -1280,7 +2470,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 394000,
     "commission": 18750
   },
@@ -1301,7 +2511,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 177000,
     "commission": 8450
   },
@@ -1322,7 +2552,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 168000,
     "commission": 8000
   },
@@ -1343,7 +2593,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 347000,
     "commission": 16500
   },
@@ -1364,7 +2634,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 328000,
     "commission": 15605
   },
@@ -1385,7 +2675,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 315000,
     "commission": 15000
   },
@@ -1406,7 +2716,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 314000,
     "commission": 14950
   },
@@ -1427,7 +2757,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 314000,
     "commission": 14950
   },
@@ -1448,7 +2798,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 294000,
     "commission": 14000
   },
@@ -1469,7 +2839,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 263000,
     "commission": 12500
   },
@@ -1490,7 +2880,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 262000,
     "commission": 12500
   },
@@ -1511,7 +2921,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 257000,
     "commission": 12250
   },
@@ -1532,7 +2962,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 251000,
     "commission": 11950
   },
@@ -1553,7 +3003,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 236000,
     "commission": 11250
   },
@@ -1574,7 +3044,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 231000,
     "commission": 11000
   },
@@ -1595,7 +3085,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 231000,
     "commission": 11000
   },
@@ -1616,7 +3126,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 226000,
     "commission": 10750
   },
@@ -1637,7 +3167,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 210000,
     "commission": 9995
   },
@@ -1658,7 +3208,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 209000,
     "commission": 9975
   },
@@ -1679,7 +3249,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 208000,
     "commission": 9900
   },
@@ -1700,7 +3290,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 205000,
     "commission": 9750
   },
@@ -1721,7 +3331,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 205000,
     "commission": 9750
   },
@@ -1742,7 +3372,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 194000,
     "commission": 9245
   },
@@ -1763,7 +3413,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 189000,
     "commission": 9000
   },
@@ -1784,7 +3454,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 189000,
     "commission": 9000
   },
@@ -1805,7 +3495,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 188000,
     "commission": 8950
   },
@@ -1826,7 +3536,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 188000,
     "commission": 8975
   },
@@ -1847,7 +3577,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 184000,
     "commission": 8750
   },
@@ -1868,7 +3618,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 178000,
     "commission": 8500
   },
@@ -1889,7 +3659,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1910,7 +3700,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1931,7 +3741,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1952,7 +3782,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1973,7 +3823,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -1994,7 +3864,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 173000,
     "commission": 8250
   },
@@ -2015,7 +3905,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 168000,
     "commission": 8000
   },
@@ -2036,7 +3946,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 167000,
     "commission": 7950
   },
@@ -2057,7 +3987,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 167000,
     "commission": 7950
   },
@@ -2078,7 +4028,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 163000,
     "commission": 7750
   },
@@ -2099,7 +4069,27 @@ export const leads: Lead[] = [
     "confidence": null,
     "disqualifyReason": null,
     "source": null,
-    "contacted": null,
+    "seller": null,
+    "stage": "new",
+    "checkpoints": {
+      "opener": {
+        "done": false
+      },
+      "reply": {
+        "done": false
+      },
+      "pitch": {
+        "done": false
+      },
+      "nudge": {
+        "done": false
+      },
+      "terms": {
+        "done": false
+      }
+    },
+    "outcome": null,
+    "note": null,
     "relistAt": 158000,
     "commission": 7500
   }
