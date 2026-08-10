@@ -93,17 +93,27 @@
   .trust-bar .l{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.03em}
 
   /* gallery */
-  .gal{display:grid;grid-template-columns:1fr 1fr;gap:22px 16px;margin-top:24px}
+  /* full-bleed fleet showcase */
+  .fleetblk{padding-left:0;padding-right:0}
+  .fleetwrap{width:100vw;margin-left:calc(50% - 50vw);
+    padding:0 clamp(18px,4vw,72px);box-sizing:border-box}
+  .fleeth2{font-size:clamp(28px,4.4vw,46px);margin-bottom:10px}
+  .fleetsub{max-width:62ch;margin-bottom:0}
+  .gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:34px 26px;margin-top:38px}
   .gal figure{margin:0}
-  .gal .shot{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:4/3;
-    background:var(--card);border:1px solid rgba(201,169,110,.12)}
-  .gal img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
-  .gal figure:hover img{transform:scale(1.04)}
-  .gal figcaption{padding:12px 2px 0}
-  .gal .bname{font-family:var(--serif);font-size:19px;line-height:1.15;color:#eaf0f8}
-  .gal .bspec{margin-top:3px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
-    color:var(--muted)}
-  @media(min-width:760px){ .gal{grid-template-columns:repeat(3,1fr)} }
+  .gal .shot{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;
+    background:var(--card);border:1px solid rgba(201,169,110,.14);
+    box-shadow:0 20px 44px -26px rgba(0,0,0,.9);transition:transform .5s ease,box-shadow .5s ease}
+  .gal figure:hover .shot{transform:translateY(-6px);
+    box-shadow:0 32px 60px -26px rgba(0,0,0,.95);border-color:rgba(201,169,110,.32)}
+  .gal img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .7s ease}
+  .gal figure:hover img{transform:scale(1.05)}
+  .gal figcaption{padding:16px 2px 0}
+  .gal .bname{font-family:var(--serif);font-size:clamp(20px,2.1vw,26px);line-height:1.15;color:#f2f6fb}
+  .gal .bspec{margin-top:5px;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--gold-soft);opacity:.85}
+  @media(min-width:1500px){ .gal{grid-template-columns:repeat(4,1fr)} }
   /* ── testimonial carousel ─────────────────────────────────────── */
   .carousel{position:relative;margin-top:30px;overflow:hidden;border-radius:14px;
     border:1px solid var(--line);background:var(--card)}
@@ -439,11 +449,12 @@
   </div>
 </section>
 
-<!-- ══════════ YACHT GALLERY ══════════ -->
-<section class="blk">
-  <div class="wrap">
-    <div class="eyebrow">Recently represented</div>
-    <h2>Vessels we&#8217;ve represented.</h2>
+<!-- ══════════ CURRENTLY REPRESENTING ══════════ -->
+<section class="blk fleetblk">
+  <div class="fleetwrap">
+    <div class="eyebrow">Currently representing</div>
+    <h2 class="fleeth2">The boats on our books right now.</h2>
+    <p class="sub fleetsub">Pacific Northwest vessels under Gray Yachts and Jeff Brown Yachts representation &#8212; from working aluminum to the cruising fleet.</p>
     <div class="gal">
       <figure><div class="shot"><img src="/sell/img/y1.jpg?v=4" alt="Sau Ping, a 2021 Sea Ray Sundancer 350, under way at sunset" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Sau Ping</div><div class="bspec">2021 Sea Ray Sundancer 350</div></figcaption></figure>
       <figure><div class="shot"><img src="/sell/img/y2.jpg?v=4" alt="A 1996 Ocean Alexander 548 at her berth" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Ocean Alexander 548</div><div class="bspec">1996 · 54'</div></figcaption></figure>
