@@ -17,8 +17,13 @@ const nextConfig: NextConfig = {
   // Cloudflare's asset handler serves public/sell/index.html at /sell/ before
   // a Next rewrite can run, so /sell needs nothing. /valuation is an alias for
   // ads and has no matching asset, so it must be a redirect, not a rewrite.
+  // The seller landing page is a single static file. Serving it as
+  // public/sell.html (not public/sell/index.html) lets Cloudflare's asset
+  // handler map it straight to /sell with no directory/trailing-slash
+  // ambiguity -- the earlier index.html layout flipped between
+  // /sell -> /sell/ and /sell/ -> /sell across deploys and 404'd.
   async redirects() {
-    return [{ source: "/valuation", destination: "/sell/", permanent: false }];
+    return [{ source: "/valuation", destination: "/sell", permanent: false }];
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL:
