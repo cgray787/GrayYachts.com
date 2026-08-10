@@ -12,6 +12,7 @@ import {
   Briefcase,
   ClipboardCheck,
   Inbox,
+  Target,
   ChevronDown,
   ChevronRight,
   LogOut,
@@ -71,6 +72,14 @@ const navItems = [
       { label: "Cold Email Outreach", href: "/portal/content-review/outreach" },
       { label: "Newsletter & Blog", href: "/portal/content-review/blog" },
     ],
+  },
+  {
+    // Flat entry on purpose — every item with subItems shares one `servicesOpen`
+    // state below, so giving this one children would toggle it in lockstep with
+    // Services and Content Review.
+    label: "FB Marketplace Leads",
+    href: "/portal/leads",
+    icon: Target,
   },
 ];
 
