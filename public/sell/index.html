@@ -93,10 +93,17 @@
   .trust-bar .l{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.03em}
 
   /* gallery */
-  .gal{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
-  .gal figure{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:4/3;background:var(--card)}
-  .gal img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
-  .gal figure:hover img{transform:scale(1.05)}
+  .gal{display:grid;grid-template-columns:1fr 1fr;gap:22px 16px;margin-top:24px}
+  .gal figure{margin:0}
+  .gal .shot{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:4/3;
+    background:var(--card);border:1px solid rgba(201,169,110,.12)}
+  .gal img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+  .gal figure:hover img{transform:scale(1.04)}
+  .gal figcaption{padding:12px 2px 0}
+  .gal .bname{font-family:var(--serif);font-size:19px;line-height:1.15;color:#eaf0f8}
+  .gal .bspec{margin-top:3px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted)}
+  @media(min-width:760px){ .gal{grid-template-columns:repeat(3,1fr)} }
   /* ── testimonial carousel ─────────────────────────────────────── */
   .carousel{position:relative;margin-top:30px;overflow:hidden;border-radius:14px;
     border:1px solid var(--line);background:var(--card)}
@@ -229,8 +236,7 @@
   .brandshot img{width:100%;height:100%;object-fit:cover}
   .brandshot figcaption{position:absolute;left:0;right:0;bottom:0;padding:26px 14px 11px;
     font-size:12px;color:#fff;background:linear-gradient(180deg,transparent,rgba(6,10,18,.9))}
-  .gal figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 12px 9px;font-size:12px;
-    color:#fff;background:linear-gradient(180deg,transparent,rgba(6,10,18,.9))}
+
 
   /* testimonials */
   .tcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:12px}
@@ -437,14 +443,15 @@
 <section class="blk">
   <div class="wrap">
     <div class="eyebrow">Recently represented</div>
-    <h2>Boats we've had the helm of.</h2>
+    <h2>Vessels we&#8217;ve represented.</h2>
     <div class="gal">
-      <figure><img src="/sell/img/y1.jpg?v=3" alt="Sea Ray 2021 at sunset" loading="lazy" width="900" height="675"><figcaption>Sea Ray 2021</figcaption></figure>
-      <figure><img src="/sell/img/y2.jpg?v=3" alt="Ocean Alexander 548 at her berth" loading="lazy" width="900" height="675"><figcaption>Ocean Alexander 548</figcaption></figure>
-      <figure><img src="/sell/img/y3.jpg?v=3" alt="Back Cove 2016 in covered moorage" loading="lazy" width="900" height="675"><figcaption>Back Cove 2016</figcaption></figure>
-      <figure><img src="/sell/img/y4.jpg?v=3" alt="Cobalt 343 at the dock" loading="lazy" width="900" height="675"><figcaption>Cobalt 343</figcaption></figure>
-      <figure><img src="/sell/img/y5.jpg?v=3" alt="Dub Sea in the San Juans" loading="lazy" width="900" height="675"><figcaption>Dub Sea</figcaption></figure>
-      <figure><img src="/sell/img/y6.jpg?v=3" alt="Moby Dick under way" loading="lazy" width="900" height="675"><figcaption>Moby Dick</figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y1.jpg?v=4" alt="Sau Ping, a 2021 Sea Ray Sundancer 350, under way at sunset" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Sau Ping</div><div class="bspec">2021 Sea Ray Sundancer 350</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y2.jpg?v=4" alt="A 1996 Ocean Alexander 548 at her berth" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Ocean Alexander 548</div><div class="bspec">1996 · 54'</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y3.jpg?v=4" alt="A 2016 Back Cove 30 in covered moorage" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Back Cove 30</div><div class="bspec">2016</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y4.jpg?v=4" alt="A 2005 Cobalt 343 at the dock" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Cobalt 343</div><div class="bspec">2005</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y5.jpg?v=4" alt="Dub Sea, a 2016 Cobalt 293, in the San Juans" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Dub Sea</div><div class="bspec">2016 Cobalt 293</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y6.jpg?v=4" alt="Moby Dick, a 2023 Quicksilver 675 Weekend, under way" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Moby Dick</div><div class="bspec">2023 Quicksilver 675 Weekend</div></figcaption></figure>
+      <figure><div class="shot"><img src="/sell/img/y7.jpg?v=4" alt="Jimmie, a 1997 Rozema 50 aluminum commercial vessel, on the Hood Canal" loading="lazy" width="900" height="675"></div><figcaption><div class="bname">Jimmie</div><div class="bspec">1997 Rozema 50 · Aluminum</div></figcaption></figure>
     </div>
   </div>
 </section>
