@@ -23,6 +23,7 @@ export async function GET() {
     { count: totalReports },
     { count: totalPDI },
     { count: totalTechs },
+    { count: openCampaigns },
   ] = await Promise.all([
     db.from("jobs").select("*", { count: "exact", head: true }),
     db.from("jobs").select("*", { count: "exact", head: true }).eq("status", "new"),
@@ -31,6 +32,9 @@ export async function GET() {
     db.from("service_reports").select("*", { count: "exact", head: true }),
     db.from("pdi_reports").select("*", { count: "exact", head: true }),
     db.from("profiles").select("*", { count: "exact", head: true }).eq("role", "tech"),
+    // Outstanding service campaigns. Voided entries are withdrawn mistakes and
+    // must not be counted as work.
+    db.from("campaign_log").select("*", { count: "exact", head: true }).eq("status", "open"),
   ]);
 
   const { data: recentReports } = await db
@@ -48,6 +52,7 @@ export async function GET() {
       totalReports: totalReports ?? 0,
       totalPDI: totalPDI ?? 0,
       totalTechs: totalTechs ?? 0,
+      openCampaigns: openCampaigns ?? 0,
     },
     recentReports: recentReports ?? [],
   });
