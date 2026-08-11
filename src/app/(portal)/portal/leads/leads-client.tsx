@@ -44,36 +44,46 @@ const TABS: { key: Tab; label: string }[] = [
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
 /**
- * Lead thumbnail with a failover chain.
+ * Lead thumbnail — the RIGHT boat or no boat.
  *
- * Facebook CDN URLs are signed and time-limited (`oh=` / `oe=`), so a photo
- * scraped days ago starts 403ing and the card renders a broken-image icon with
- * raw alt text. Locally cached bytes under /leads/<id>.jpg are preferred when
- * present; otherwise:
- *   1. the stored FB URL — fine while its token is valid
- *   2. /api/yacht-image?url=<listing> — the durable proxy that re-fetches
- *      through the provider chain and re-hosts under our own domain
- *   3. a clean placeholder — never a broken image
+ * Order matters and is deliberately narrow:
+ *   1. /leads/<listing_id>.jpg — bytes captured from the actual listing. The
+ *      only source guaranteed to be this boat.
+ *   2. lead.photo — the scraped Facebook CDN URL. Correct while it lasts, but
+ *      FB signs these with `oh=`/`oe=` tokens that expire, after which it 403s.
+ *   3. a placeholder.
+ *
+ * It deliberately does NOT fall back to /api/yacht-image. That proxy ends its
+ * provider chain at serpapi-google-images, which Google-Image-searches the
+ * title and returns whatever looks like a yacht. On a Compare Yachts card a
+ * representative photo is fine; on a lead it is a lie — "1998 Martin Boat
+ * Marin" rendered as a gleaming white motoryacht when the actual boat is
+ * CHERRY II, a commercial fishing vessel. A wrong photo is far worse than a
+ * missing one: it travels into a conversation with the seller.
  */
 function LeadPhoto({ lead }: { lead: FbLead }) {
-  const [tier, setTier] = useState<0 | 1 | 2>(lead.photo ? 0 : 1);
+  // 0 = captured file, 1 = scraped FB URL, 2 = placeholder
+  const [tier, setTier] = useState<0 | 1 | 2>(0);
   const box = "h-48 w-full object-cover sm:h-auto sm:w-52 sm:shrink-0";
-
-  if (tier === 2) {
-    return (
-      <div
-        className={`${box} flex items-center justify-center bg-bg-secondary sm:h-auto`}
-        aria-hidden
-      >
-        <Camera className="h-6 w-6 text-text-secondary/40" />
-      </div>
-    );
-  }
 
   const src =
     tier === 0
-      ? (lead.photo as string)
-      : `/api/yacht-image?url=${encodeURIComponent(lead.url)}`;
+      ? `/leads/${lead.listing_id}.jpg`
+      : tier === 1 && lead.photo
+        ? lead.photo
+        : null;
+
+  if (!src) {
+    return (
+      <div
+        className={`${box} flex flex-col items-center justify-center gap-1 bg-bg-secondary sm:h-auto`}
+        title="No captured photo for this listing yet"
+      >
+        <Camera className="h-6 w-6 text-text-secondary/40" />
+        <span className="text-[10px] text-text-secondary/60">no photo</span>
+      </div>
+    );
+  }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
