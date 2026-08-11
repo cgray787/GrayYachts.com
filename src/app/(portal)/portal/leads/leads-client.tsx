@@ -44,6 +44,64 @@ const TABS: { key: Tab; label: string }[] = [
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
 /**
+ * True once the Gray Yachts Marketplace extension announces itself.
+ *
+ * A page on grayyachts.com cannot script facebook.com — same-origin policy
+ * forbids it. The extension is the only thing that can act in both places, so
+ * the button checks for it and degrades to copy-and-open when it is absent.
+ */
+function useMarketplaceExtension() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const d = e.data as { source?: string; type?: string; ok?: boolean };
+      if (d?.source === "gy-ext" && (d.type === "GY_EXT_READY" || d.type === "GY_EXT_PONG")) {
+        setReady(d.type === "GY_EXT_READY" ? true : !!d.ok);
+      }
+    };
+    window.addEventListener("message", onMsg);
+    window.postMessage({ source: "gy-portal", type: "GY_EXT_PING" }, window.location.origin);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+  return ready;
+}
+
+/** Ask the extension to send; resolves with the outcome. */
+function sendViaExtension(
+  url: string,
+  body: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  return new Promise((resolve) => {
+    const requestId = Math.random().toString(36).slice(2);
+    const timer = window.setTimeout(
+      () => resolve({ ok: false, reason: "Extension did not respond." }),
+      120_000,
+    );
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const d = e.data as {
+        source?: string;
+        type?: string;
+        requestId?: string;
+        ok?: boolean;
+        reason?: string;
+      };
+      if (d?.source === "gy-ext" && d.type === "GY_EXT_SENT" && d.requestId === requestId) {
+        window.clearTimeout(timer);
+        window.removeEventListener("message", onMsg);
+        resolve({ ok: !!d.ok, reason: d.reason });
+      }
+    };
+    window.addEventListener("message", onMsg);
+    window.postMessage(
+      { source: "gy-portal", type: "GY_EXT_SEND", requestId, url, body },
+      window.location.origin,
+    );
+  });
+}
+
+/**
  * Lead thumbnail — the RIGHT boat or no boat.
  *
  * Order matters and is deliberately narrow:
@@ -121,6 +179,9 @@ function SendStepButton({
   onSend: (listingId: string, step: string, body: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const extReady = useMarketplaceExtension();
   if (!step || !step.body) return null;
 
   const verb =
@@ -133,6 +194,24 @@ function SendStepButton({
           : "Send the terms";
 
   async function go() {
+    // Extension present: it really sends, inside Connor's own FB session.
+    if (extReady) {
+      setSending(true);
+      setStatus("Opening the listing and sending…");
+      const res = await sendViaExtension(lead.url, step!.body);
+      setSending(false);
+      if (res.ok) {
+        setStatus("Sent on Marketplace.");
+        onSend(lead.listing_id, step!.step, step!.body);
+      } else {
+        // Deliberately do NOT log a checkpoint — nothing went out, and a
+        // lead wrongly marked "contacted" is worse than one still queued.
+        setStatus(res.reason || "Could not send — nothing was logged.");
+      }
+      return;
+    }
+
+    // No extension: copy + open, Connor pastes.
     try {
       await navigator.clipboard.writeText(step!.body);
       setCopied(true);
@@ -149,16 +228,20 @@ function SendStepButton({
       <button
         type="button"
         onClick={go}
-        disabled={pending}
+        disabled={pending || sending}
         className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
       >
-        {pending ? "LOGGING…" : verb.toUpperCase()} →
+        {sending ? "SENDING…" : pending ? "LOGGING…" : verb.toUpperCase()} →
       </button>
       <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
-        {copied ? (
+        {status ? (
+          <span className="text-gold">{status}</span>
+        ) : copied ? (
           <span className="text-gold">
             Copied. Paste into the Marketplace thread that just opened, then send.
           </span>
+        ) : extReady ? (
+          <>Sends on Marketplace for you, then marks it sent.</>
         ) : (
           <>Copies the message, opens the listing, and marks it sent.</>
         )}
