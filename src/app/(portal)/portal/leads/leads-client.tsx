@@ -46,17 +46,14 @@ const money = (n: number) => "$" + Math.round(n).toLocaleString();
 /**
  * Lead thumbnail with a failover chain.
  *
- * Facebook CDN URLs are signed and time-limited (`oh=` / `oe=` params), so a
- * photo scraped days ago starts 403ing and the card renders a broken-image
- * icon with raw alt text. Rather than store a dead URL:
- *
- *   1. try the stored FB URL — still fine while its token is valid
- *   2. fall back to /api/yacht-image?url=<listing>, the durable proxy that
- *      re-fetches through the provider chain and re-hosts under our domain
- *   3. if both fail, render a clean placeholder — never a broken image
- *
- * The proper long-term fix is caching the bytes at ingest so step 1 never
- * expires; this makes the UI correct today without touching the scraper.
+ * Facebook CDN URLs are signed and time-limited (`oh=` / `oe=`), so a photo
+ * scraped days ago starts 403ing and the card renders a broken-image icon with
+ * raw alt text. Locally cached bytes under /leads/<id>.jpg are preferred when
+ * present; otherwise:
+ *   1. the stored FB URL — fine while its token is valid
+ *   2. /api/yacht-image?url=<listing> — the durable proxy that re-fetches
+ *      through the provider chain and re-hosts under our own domain
+ *   3. a clean placeholder — never a broken image
  */
 function LeadPhoto({ lead }: { lead: FbLead }) {
   const [tier, setTier] = useState<0 | 1 | 2>(lead.photo ? 0 : 1);
@@ -98,9 +95,9 @@ function LeadPhoto({ lead }: { lead: FbLead }) {
  * only covers Pages replying inside a 24h window, and FSBO listings are
  * personal-account threads. Driving the logged-in session with a headless
  * browser would work until it got the account banned, and that account IS the
- * pipeline. So: we copy the exact message, open the thread, and log the send.
- * Connor pastes and hits enter. Two seconds, zero ban risk, and he stays the
- * human sender — which also reads better to a private seller.
+ * pipeline. So: copy the exact message, open the thread, log the send. Connor
+ * pastes and hits enter — two seconds, zero ban risk, and he stays the human
+ * sender, which also reads better to a private seller.
  */
 function SendStepButton({
   lead,
@@ -159,6 +156,7 @@ function SendStepButton({
     </div>
   );
 }
+
 
 const since = (iso: string | null) => {
   if (!iso) return null;
@@ -269,8 +267,8 @@ function LeadCard({
   const [showNote, setShowNote] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // Shared by the one-click send button and the script rows below it, so both
-  // routes log identically and advance the stage the same way.
+  // Shared by the one-click send button and the script rows below it, so
+  // both routes log identically and advance the stage the same way.
   const onSendStep = (listingId: string, step: string, body: string) =>
     startTransition(async () => {
       await logSent(listingId, step, body);
@@ -606,9 +604,9 @@ export default function LeadsClient({
   const groups = useMemo(() => {
     const byRank = [...leads].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
     return {
-      // Time-aware: a lead that has sat in opener_sent for a week needs you
-      // just as much as one that replied. Waiting excludes anything that has
-      // aged into Needs You, so a lead never shows in both.
+      // Time-aware: a lead parked in opener_sent for a week needs you as
+      // much as one that replied. Waiting excludes anything that has aged
+      // into Needs You, so a lead never appears in both.
       action: byRank.filter((l) => needsYou(l).need),
       waiting: byRank.filter(
         (l) => WAITING_STAGES.includes(l.stage) && !needsYou(l).need,

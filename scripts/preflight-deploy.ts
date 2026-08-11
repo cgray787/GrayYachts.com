@@ -49,13 +49,45 @@ async function main() {
   //    otherwise a stale checkout simply never looks for what it dropped.
   //    (First version of this script had exactly that bug and passed the
   //    Aug-10 scenario it was written to catch.)
+  //    Scraping /fleet for hrefs does NOT work: FleetBrowser is a client
+  //    component, so the cards and their links never appear in the server HTML.
+  //    That made this check silently report "0 live listing pages", meaning the
+  //    guard's core protection could never fire — the same blind spot, one
+  //    level down. Build the candidate set from every slug that has ever
+  //    existed in fleet.ts across all refs (a superset of anything that could
+  //    be live) and probe each against the live site.
+  const discovered = new Set<string>(slugs);
+
   const fleetHtml = await fetch(`${SITE}/fleet`)
     .then((r) => (r.ok ? r.text() : ""))
     .catch(() => "");
-
-  const discovered = new Set<string>();
   for (const m of fleetHtml.matchAll(/\/fleet\/([a-z0-9][a-z0-9-]*)/g)) {
     discovered.add(m[1]);
+  }
+
+  try {
+    const { execFileSync } = await import("node:child_process");
+    const revs = execFileSync(
+      "git",
+      ["log", "--all", "--format=%H", "-n", "60", "--", "src/lib/fleet.ts"],
+      { encoding: "utf8" },
+    )
+      .split("\n")
+      .filter(Boolean);
+
+    for (const rev of revs) {
+      try {
+        const src = execFileSync("git", ["show", `${rev}:src/lib/fleet.ts`], {
+          encoding: "utf8",
+          maxBuffer: 1024 * 1024 * 8,
+        });
+        for (const m of src.matchAll(/slug:\s*"([a-z0-9][a-z0-9-]*)"/g)) discovered.add(m[1]);
+      } catch {
+        // revision predates the file — nothing to learn from it
+      }
+    }
+  } catch {
+    console.log("  (git history unavailable — probing build + live HTML slugs only)");
   }
   // Confirm each really serves a page before treating it as a regression.
   const liveSlugs: string[] = [];
