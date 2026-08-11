@@ -51,6 +51,13 @@ if (!URL_RE.test(resolvedUrl) || !JWT_RE.test(resolvedKey)) {
 }
 
 const nextConfig: NextConfig = {
+  // /sell itself needs no rule: the landing page ships as public/sell.html and
+  // Cloudflare's asset handler maps it straight to /sell. /valuation is an ads
+  // alias with no matching asset, so it must be an explicit redirect — it was
+  // lost briefly when these two configs were merged and 404'd for ad traffic.
+  async redirects() {
+    return [{ source: "/valuation", destination: "/sell", permanent: false }];
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: resolvedUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: resolvedKey,
