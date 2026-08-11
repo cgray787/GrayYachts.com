@@ -57,12 +57,25 @@ function useMarketplaceExtension() {
       if (e.source !== window) return;
       const d = e.data as { source?: string; type?: string; ok?: boolean };
       if (d?.source === "gy-ext" && (d.type === "GY_EXT_READY" || d.type === "GY_EXT_PONG")) {
-        setReady(d.type === "GY_EXT_READY" ? true : !!d.ok);
+        // Latch on. With repeated pings a single failed reply must not undo a
+        // successful handshake.
+        if (d.type === "GY_EXT_READY" || d.ok) setReady(true);
       }
     };
     window.addEventListener("message", onMsg);
-    window.postMessage({ source: "gy-portal", type: "GY_EXT_PING" }, window.location.origin);
-    return () => window.removeEventListener("message", onMsg);
+    // Retry the handshake: the content script injects at document_idle, which
+    // can land either side of React mounting. A single ping loses that race
+    // about half the time and the button silently drops to copy-and-paste.
+    const timers = [0, 300, 1000, 2500, 5000].map((ms) =>
+      window.setTimeout(
+        () => window.postMessage({ source: "gy-portal", type: "GY_EXT_PING" }, window.location.origin),
+        ms,
+      ),
+    );
+    return () => {
+      timers.forEach(window.clearTimeout);
+      window.removeEventListener("message", onMsg);
+    };
   }, []);
   return ready;
 }
@@ -212,6 +225,12 @@ function SendStepButton({
     }
 
     // No extension: copy + open, Connor pastes.
+    //
+    // Open FIRST. window.open() must run synchronously inside the click
+    // handler — awaiting the clipboard spends the user-activation token and
+    // Chrome's pop-up blocker then silently swallows the call, so the button
+    // looks dead.
+    const win = window.open(lead.url, "_blank", "noopener,noreferrer");
     try {
       await navigator.clipboard.writeText(step!.body);
       setCopied(true);
@@ -219,7 +238,11 @@ function SendStepButton({
     } catch {
       // Clipboard can be blocked; the script stays visible below either way.
     }
-    window.open(lead.url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      setStatus(
+        "Chrome blocked the pop-up. Allow pop-ups for grayyachts.com, or use OPEN LISTING below.",
+      );
+    }
     onSend(lead.listing_id, step!.step, step!.body);
   }
 
