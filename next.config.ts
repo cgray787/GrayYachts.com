@@ -51,6 +51,11 @@ if (!URL_RE.test(resolvedUrl) || !JWT_RE.test(resolvedKey)) {
 }
 
 const nextConfig: NextConfig = {
+  // /valuation is an ad-friendly alias for the seller landing page, which is
+  // the static file public/sell.html served at /sell.
+  async redirects() {
+    return [{ source: "/valuation", destination: "/sell", permanent: false }];
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: resolvedUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: resolvedKey,
