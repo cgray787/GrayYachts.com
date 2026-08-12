@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Gray Yachts \u2014 Marketplace Sender",
+  "version": "1.0.1",
+  "description": "Lets the Gray Yachts portal send a Marketplace opener in your own logged-in Facebook session, then reports the result back so the lead stage advances.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://web.facebook.com/*",
+    "https://grayyachts.com/*",
+    "https://www.grayyachts.com/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://grayyachts.com/portal/*",
+        "https://www.grayyachts.com/portal/*",
+        "http://localhost/portal/*"
+      ],
+      "js": [
+        "content-portal.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.facebook.com/marketplace/item/*",
+        "https://web.facebook.com/marketplace/item/*"
+      ],
+      "js": [
+        "content-fb.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

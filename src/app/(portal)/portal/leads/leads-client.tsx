@@ -23,6 +23,7 @@ import {
   DEAD_STAGES,
   ACTION_STAGES,
   WAITING_STAGES,
+  needsYou,
   nextAction,
   messageScript,
   dealTerms,
@@ -41,6 +42,237 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
+
+/**
+ * True once the Gray Yachts Marketplace extension announces itself.
+ *
+ * A page on grayyachts.com cannot script facebook.com — same-origin policy
+ * forbids it. The extension is the only thing that can act in both places, so
+ * the button checks for it and degrades to copy-and-open when it is absent.
+ */
+function useMarketplaceExtension() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const d = e.data as { source?: string; type?: string; ok?: boolean };
+      if (d?.source === "gy-ext" && (d.type === "GY_EXT_READY" || d.type === "GY_EXT_PONG")) {
+        // Latch on. With repeated pings a single failed reply must not undo a
+        // successful handshake.
+        if (d.type === "GY_EXT_READY" || d.ok) setReady(true);
+      }
+    };
+    window.addEventListener("message", onMsg);
+    // Retry the handshake: the content script injects at document_idle, which
+    // can land either side of React mounting. A single ping loses that race
+    // about half the time and the button silently drops to copy-and-paste.
+    const timers = [0, 300, 1000, 2500, 5000].map((ms) =>
+      window.setTimeout(
+        () => window.postMessage({ source: "gy-portal", type: "GY_EXT_PING" }, window.location.origin),
+        ms,
+      ),
+    );
+    return () => {
+      timers.forEach(window.clearTimeout);
+      window.removeEventListener("message", onMsg);
+    };
+  }, []);
+  return ready;
+}
+
+/** Ask the extension to send; resolves with the outcome. */
+function sendViaExtension(
+  url: string,
+  body: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  return new Promise((resolve) => {
+    const requestId = Math.random().toString(36).slice(2);
+    const timer = window.setTimeout(
+      () => resolve({ ok: false, reason: "Extension did not respond." }),
+      120_000,
+    );
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== window) return;
+      const d = e.data as {
+        source?: string;
+        type?: string;
+        requestId?: string;
+        ok?: boolean;
+        reason?: string;
+      };
+      if (d?.source === "gy-ext" && d.type === "GY_EXT_SENT" && d.requestId === requestId) {
+        window.clearTimeout(timer);
+        window.removeEventListener("message", onMsg);
+        resolve({ ok: !!d.ok, reason: d.reason });
+      }
+    };
+    window.addEventListener("message", onMsg);
+    window.postMessage(
+      { source: "gy-portal", type: "GY_EXT_SEND", requestId, url, body },
+      window.location.origin,
+    );
+  });
+}
+
+/**
+ * Lead thumbnail — the RIGHT boat or no boat.
+ *
+ * Order matters and is deliberately narrow:
+ *   1. /leads/<listing_id>.jpg — bytes captured from the actual listing. The
+ *      only source guaranteed to be this boat.
+ *   2. lead.photo — the scraped Facebook CDN URL. Correct while it lasts, but
+ *      FB signs these with `oh=`/`oe=` tokens that expire, after which it 403s.
+ *   3. a placeholder.
+ *
+ * It deliberately does NOT fall back to /api/yacht-image. That proxy ends its
+ * provider chain at serpapi-google-images, which Google-Image-searches the
+ * title and returns whatever looks like a yacht. On a Compare Yachts card a
+ * representative photo is fine; on a lead it is a lie — "1998 Martin Boat
+ * Marin" rendered as a gleaming white motoryacht when the actual boat is
+ * CHERRY II, a commercial fishing vessel. A wrong photo is far worse than a
+ * missing one: it travels into a conversation with the seller.
+ */
+function LeadPhoto({ lead }: { lead: FbLead }) {
+  // 0 = captured file, 1 = scraped FB URL, 2 = placeholder
+  const [tier, setTier] = useState<0 | 1 | 2>(0);
+  const box = "h-48 w-full object-cover sm:h-auto sm:w-52 sm:shrink-0";
+
+  const src =
+    tier === 0
+      ? `/leads/${lead.listing_id}.jpg`
+      : tier === 1 && lead.photo
+        ? lead.photo
+        : null;
+
+  if (!src) {
+    return (
+      <div
+        className={`${box} flex flex-col items-center justify-center gap-1 bg-bg-secondary sm:h-auto`}
+        title="No captured photo for this listing yet"
+      >
+        <Camera className="h-6 w-6 text-text-secondary/40" />
+        <span className="text-[10px] text-text-secondary/60">no photo</span>
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={src}
+      src={src}
+      alt={lead.title}
+      loading="lazy"
+      onError={() => setTier((t) => (t === 0 ? 1 : 2))}
+      className={box}
+    />
+  );
+}
+
+/**
+ * One-click assisted send.
+ *
+ * Facebook has no API for sending Marketplace DMs — Meta's Messenger Platform
+ * only covers Pages replying inside a 24h window, and FSBO listings are
+ * personal-account threads. Driving the logged-in session with a headless
+ * browser would work until it got the account banned, and that account IS the
+ * pipeline. So: copy the exact message, open the thread, log the send. Connor
+ * pastes and hits enter — two seconds, zero ban risk, and he stays the human
+ * sender, which also reads better to a private seller.
+ */
+function SendStepButton({
+  lead,
+  step,
+  pending,
+  onSend,
+}: {
+  lead: FbLead;
+  step: { step: string; body: string } | undefined;
+  pending: boolean;
+  onSend: (listingId: string, step: string, body: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const extReady = useMarketplaceExtension();
+  if (!step || !step.body) return null;
+
+  const verb =
+    step.step === "Opener"
+      ? "Send the opener"
+      : step.step === "If private seller"
+        ? "Send the pitch"
+        : step.step === "No reply"
+          ? "Send the nudge"
+          : "Send the terms";
+
+  async function go() {
+    // Extension present: it really sends, inside Connor's own FB session.
+    if (extReady) {
+      setSending(true);
+      setStatus("Opening the listing and sending…");
+      const res = await sendViaExtension(lead.url, step!.body);
+      setSending(false);
+      if (res.ok) {
+        setStatus("Sent on Marketplace.");
+        onSend(lead.listing_id, step!.step, step!.body);
+      } else {
+        // Deliberately do NOT log a checkpoint — nothing went out, and a
+        // lead wrongly marked "contacted" is worse than one still queued.
+        setStatus(res.reason || "Could not send — nothing was logged.");
+      }
+      return;
+    }
+
+    // No extension: copy + open, Connor pastes.
+    //
+    // Open FIRST. window.open() must run synchronously inside the click
+    // handler — awaiting the clipboard spends the user-activation token and
+    // Chrome's pop-up blocker then silently swallows the call, so the button
+    // looks dead.
+    const win = window.open(lead.url, "_blank", "noopener,noreferrer");
+    try {
+      await navigator.clipboard.writeText(step!.body);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 4000);
+    } catch {
+      // Clipboard can be blocked; the script stays visible below either way.
+    }
+    if (!win) {
+      setStatus(
+        "Chrome blocked the pop-up. Allow pop-ups for grayyachts.com, or use OPEN LISTING below.",
+      );
+    }
+    onSend(lead.listing_id, step!.step, step!.body);
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={go}
+        disabled={pending || sending}
+        className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
+      >
+        {sending ? "SENDING…" : pending ? "LOGGING…" : verb.toUpperCase()} →
+      </button>
+      <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+        {status ? (
+          <span className="text-gold">{status}</span>
+        ) : copied ? (
+          <span className="text-gold">
+            Copied. Paste into the Marketplace thread that just opened, then send.
+          </span>
+        ) : extReady ? (
+          <>Sends on Marketplace for you, then marks it sent.</>
+        ) : (
+          <>Copies the message, opens the listing, and marks it sent.</>
+        )}
+      </p>
+    </div>
+  );
+}
+
 
 const since = (iso: string | null) => {
   if (!iso) return null;
@@ -151,6 +383,13 @@ function LeadCard({
   const [showNote, setShowNote] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Shared by the one-click send button and the script rows below it, so
+  // both routes log identically and advance the stage the same way.
+  const onSendStep = (listingId: string, step: string, body: string) =>
+    startTransition(async () => {
+      await logSent(listingId, step, body);
+    });
+
   // Server is the source of truth — if a realtime update changes the note,
   // adopt it rather than keeping a stale local draft.
   useEffect(() => setNoteDraft(lead.note ?? ""), [lead.note]);
@@ -158,6 +397,7 @@ function LeadCard({
   const verdict = verdictPill(lead);
   const script = messageScript(lead);
   const action = nextAction(lead);
+  const attention = needsYou(lead);
   const dead = DEAD_STAGES.includes(lead.stage);
   const terms = dealTerms(lead.ask);
   const live = liveStep(lead);
@@ -172,14 +412,7 @@ function LeadCard({
       } ${dead ? "opacity-70" : ""} ${pending ? "animate-pulse" : ""}`}
     >
       <div className="flex flex-col sm:flex-row">
-        {lead.photo && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={lead.photo}
-            alt={lead.title}
-            className="h-48 w-full object-cover sm:h-auto sm:w-52 sm:shrink-0"
-          />
-        )}
+        <LeadPhoto lead={lead} />
 
         <div className="min-w-0 flex-1 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -232,7 +465,22 @@ function LeadCard({
             </p>
           )}
 
-          {action && <p className="mt-3 text-sm font-medium text-gold">→ {action}</p>}
+          {attention.need && attention.why && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-medium text-emerald-400">
+              {attention.why}
+            </p>
+          )}
+
+          {live >= 0 && !dead ? (
+            <SendStepButton
+              lead={lead}
+              step={script[live]}
+              pending={pending}
+              onSend={onSendStep}
+            />
+          ) : (
+            action && <p className="mt-3 text-sm font-medium text-gold">→ {action}</p>
+          )}
 
           {lead.pitch_angle && !dead && (
             <p className="mt-3 border-l-2 border-gold pl-3 font-[family-name:var(--font-cormorant)] text-base leading-relaxed text-text-primary">
@@ -472,8 +720,13 @@ export default function LeadsClient({
   const groups = useMemo(() => {
     const byRank = [...leads].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
     return {
-      action: byRank.filter((l) => ACTION_STAGES.includes(l.stage)),
-      waiting: byRank.filter((l) => WAITING_STAGES.includes(l.stage)),
+      // Time-aware: a lead parked in opener_sent for a week needs you as
+      // much as one that replied. Waiting excludes anything that has aged
+      // into Needs You, so a lead never appears in both.
+      action: byRank.filter((l) => needsYou(l).need),
+      waiting: byRank.filter(
+        (l) => WAITING_STAGES.includes(l.stage) && !needsYou(l).need,
+      ),
       dead: byRank.filter((l) => DEAD_STAGES.includes(l.stage)),
       queue: byRank.filter((l) => l.stage === "new"),
       all: byRank,
