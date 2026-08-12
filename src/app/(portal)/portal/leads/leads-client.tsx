@@ -226,11 +226,11 @@ function SendStepButton({
 
     // No extension: copy + open, Connor pastes.
     //
-    // Open FIRST. window.open() must run synchronously inside the click
-    // handler — awaiting the clipboard spends the user-activation token and
-    // Chrome's pop-up blocker then silently swallows the call, so the button
-    // looks dead.
-    const win = window.open(lead.url, "_blank", "noopener,noreferrer");
+    // Note there is no window.open() here. In this mode the control is a real
+    // <a target="_blank">, so the browser itself opens the listing as ordinary
+    // link navigation — which no pop-up blocker touches. window.open() was
+    // blocked silently (it loses user activation across the clipboard await)
+    // and the button read as dead. Leave this as a link.
     try {
       await navigator.clipboard.writeText(step!.body);
       setCopied(true);
@@ -238,24 +238,33 @@ function SendStepButton({
     } catch {
       // Clipboard can be blocked; the script stays visible below either way.
     }
-    if (!win) {
-      setStatus(
-        "Chrome blocked the pop-up. Allow pop-ups for grayyachts.com, or use OPEN LISTING below.",
-      );
-    }
     onSend(lead.listing_id, step!.step, step!.body);
   }
 
+  const label = `${sending ? "SENDING…" : pending ? "LOGGING…" : verb.toUpperCase()} →`;
+  const btnClass =
+    "inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60";
+
   return (
     <div className="mt-3">
-      <button
-        type="button"
-        onClick={go}
-        disabled={pending || sending}
-        className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
-      >
-        {sending ? "SENDING…" : pending ? "LOGGING…" : verb.toUpperCase()} →
-      </button>
+      {extReady ? (
+        // The extension sends in place; nothing needs to open here.
+        <button type="button" onClick={go} disabled={pending || sending} className={btnClass}>
+          {label}
+        </button>
+      ) : (
+        // A genuine link, not a scripted window.open — link navigation is
+        // never pop-up blocked, so this can't silently do nothing.
+        <a
+          href={lead.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={go}
+          className={btnClass}
+        >
+          {label}
+        </a>
+      )}
       <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
         {status ? (
           <span className="text-gold">{status}</span>
