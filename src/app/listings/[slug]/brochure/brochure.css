@@ -37,11 +37,22 @@
 
 .bx-doc { display:flex; gap:.18in; }
 .bx-doc .anchor { color:var(--gold); font-size:22px; line-height:1; }
+
+/* Page-3 gallery. Additive: only renders when a vessel has photos beyond the
+   hero, so single-photo listings (e.g. Seawulff) are unchanged. */
+/* 3-up, near-square cells. Listing photos are overwhelmingly portrait phone
+   shots; a wide letterbox cell crops them to an unreadable center band, so
+   keep each cell close to 1:1 and let the grid go three across. */
+.bx-gallery { display:grid; grid-template-columns:repeat(3, 1fr); gap:.12in; margin-top:.14in; }
+.bx-gallery figure { margin:0; break-inside:avoid; }
+.bx-gallery img { width:100%; height:2.2in; object-fit:cover; display:block; }
+.bx-gallery figcaption { letter-spacing:.12em; font-size:7px; color:var(--muted);
+  text-transform:uppercase; margin-top:5px; }
 .bx-cta { border:1px solid var(--rule); padding:.4in; text-align:center; margin-top:.3in; }
 .bx-cta .ci { font-family:var(--font-cormorant); font-size:26px; font-style:italic; margin:.1in 0; }
 .bx-cta .btn { display:inline-block; border:1px solid var(--gold); color:var(--gold);
   letter-spacing:.18em; font-size:11px; padding:.14in .4in; text-transform:uppercase; margin-top:.18in; }
 .bx-footer { display:flex; justify-content:space-between; color:var(--muted);
-  letter-spacing:.14em; font-size:9px; text-transform:uppercase; margin-top:.5in; }
+  letter-spacing:.14em; font-size:9px; text-transform:uppercase; margin-top:.3in; }
 
 @media print { @page { size: Letter; margin: 0; } .bx { width:100%; } .bx-page{ margin:0; } }

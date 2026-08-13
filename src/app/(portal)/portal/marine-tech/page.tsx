@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ClipboardCheck,
+  Megaphone,
   Wrench,
   ClipboardList,
   Users,
@@ -164,6 +165,7 @@ async function loadOverview(monthParam: string | undefined) {
       { count: totalReports },
       { count: totalPDI },
       { count: totalTechs },
+      { count: openCampaigns },
       { data: recentReports },
       monthJobs,
       pendingJobs,
@@ -175,6 +177,9 @@ async function loadOverview(monthParam: string | undefined) {
       db.from("service_reports").select("*", { count: "exact", head: true }),
       db.from("pdi_reports").select("*", { count: "exact", head: true }),
       db.from("profiles").select("*", { count: "exact", head: true }).eq("role", "tech"),
+      // Outstanding service campaigns. Voided entries are withdrawn mistakes and
+      // must never be counted as work still to do.
+      db.from("campaign_log").select("*", { count: "exact", head: true }).eq("status", "open"),
       db
         .from("service_reports")
         .select("id, boat_name, owner_name, make_model, submitted_at")
@@ -194,6 +199,7 @@ async function loadOverview(monthParam: string | undefined) {
         totalReports: totalReports ?? 0,
         totalPDI: totalPDI ?? 0,
         totalTechs: totalTechs ?? 0,
+        openCampaigns: openCampaigns ?? 0,
       },
       recentReports: (recentReports ?? []) as RecentReport[],
       monthJobs,
@@ -303,6 +309,14 @@ export default async function MarineTechPage({
               iconBg="bg-purple-400/10"
               value={overview.counts.totalTechs}
               label="Technicians"
+            />
+            <StatCard
+              href="/portal/marine-tech/campaigns"
+              icon={<Megaphone className="h-5 w-5 text-sky-400" />}
+              iconBg="bg-sky-400/10"
+              value={overview.counts.openCampaigns ?? 0}
+              label="Service Campaigns"
+              hint="Axopar + Mercury bulletins outstanding"
             />
           </div>
 

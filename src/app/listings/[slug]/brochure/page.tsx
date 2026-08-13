@@ -20,6 +20,8 @@ export default async function BrochurePage({
   const [priceMain, ...priceRest] = vessel.price.split(/\s+(?=(?:or\b|OBO\b))/i);
   const obo = priceRest.join(" ");
   const heroCaption = vessel.gallery[0]?.caption ?? vessel.name;
+  // Everything after the hero, capped so page 3 still holds the CTA + footer.
+  const galleryPhotos = vessel.gallery.slice(1, 7);
 
   return (
     <div className="bx">
@@ -76,6 +78,19 @@ export default async function BrochurePage({
 
       {/* PAGE 3 */}
       <section className="bx-page">
+        {galleryPhotos.length > 0 && (
+          <>
+            <div className="bx-eyebrow">Gallery</div>
+            <div className="bx-gallery">
+              {galleryPhotos.map((p) => (
+                <figure key={p.src}>
+                  <img src={p.src} alt={p.caption} />
+                  <figcaption>{p.caption}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </>
+        )}
         {b.documentation?.note && (
           <div className="bx-doc">
             <span className="anchor">⚓</span>

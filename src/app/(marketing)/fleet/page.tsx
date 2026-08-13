@@ -4,9 +4,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { FleetGallery } from "@/components/marketing/fleet-gallery";
-import { FleetGrid } from "@/components/marketing/fleet-grid";
-import { interiorSlides, vessels } from "@/lib/fleet";
+import { FleetBrowser } from "@/components/marketing/fleet-browser";
+import { vessels } from "@/lib/fleet";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -69,22 +68,13 @@ export default function FleetPage() {
       {/* ============================================================ */}
       <section className="bg-bg-primary px-6 pb-16 lg:px-12">
         <div className="mx-auto max-w-6xl">
-          <FleetGrid vessels={vessels} />
+          <FleetBrowser vessels={vessels} />
         </div>
       </section>
 
-      {/* ============================================================ */}
-      {/*  STEP INSIDE — full interior + alternate-angle gallery       */}
-      {/* ============================================================ */}
-      <section className="bg-bg-secondary px-6 py-24 lg:px-12">
-        <div className="mx-auto max-w-6xl">
-          <FleetGallery
-            slides={interiorSlides}
-            eyebrow="ABOARD THE FLEET"
-            heading="Step Inside"
-          />
-        </div>
-      </section>
+      {/* "Step Inside" interior carousel removed from /fleet — interiors now
+          live in each listing's own 12-photo gallery at /fleet/[slug].
+          FleetGallery is still used on the homepage. */}
 
       {/* ============================================================ */}
       {/*  FOOTER CTA                                                  */}

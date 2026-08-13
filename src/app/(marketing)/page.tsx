@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 
 import { FleetGallery } from "@/components/marketing/fleet-gallery";
+import { Testimonials } from "@/components/marketing/testimonials";
 import { heroSlides } from "@/lib/fleet";
 
 /* ------------------------------------------------------------------ */
@@ -118,7 +119,7 @@ export default function HomePage() {
 
           <motion.div variants={fadeUp} custom={2}>
             <Link
-              href="#fleet"
+              href="/fleet"
               className="mt-10 inline-block border border-text-secondary/40 px-10 py-3.5 text-[11px] font-medium tracking-[0.25em] text-text-primary transition-all duration-500 hover:border-gold hover:text-gold"
             >
               EXPLORE THE FLEET
@@ -403,6 +404,12 @@ export default function HomePage() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* ============================================================ */}
+      {/*  TESTIMONIALS — self-hides while src/lib/testimonials.ts is  */}
+      {/*  empty, so no invented social proof can ship.                */}
+      {/* ============================================================ */}
+      <Testimonials />
 
       {/* ============================================================ */}
       {/*  CONTACT / BIO                                               */}

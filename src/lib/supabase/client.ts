@@ -2,13 +2,22 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+import { getSupabaseConfig, isSupabaseConfigured, supabaseConfigProblem } from "./config";
 
-  if (!url || !key) {
+/**
+ * Browser Supabase client.
+ *
+ * Returns null only when the config is genuinely unusable — which, thanks to
+ * the build-time assertion in next.config.ts, can no longer happen in a shipped
+ * bundle. The null branch is kept so callers degrade to a readable message
+ * instead of a white screen, and the reason is logged for diagnosis.
+ */
+export function createClient() {
+  if (!isSupabaseConfigured()) {
+    console.error(`[supabase] ${supabaseConfigProblem()}`);
     return null;
   }
 
-  return createBrowserClient(url, key);
+  const { url, anonKey } = getSupabaseConfig();
+  return createBrowserClient(url, anonKey);
 }

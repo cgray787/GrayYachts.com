@@ -32,8 +32,10 @@ Luxury yacht management platform with a client portal for yacht owners. Features
 # Development
 npm run dev
 
-# Build & deploy to Cloudflare Workers
-npx opennextjs-cloudflare build && npx wrangler deploy
+# Build & deploy to Cloudflare Workers — ALWAYS use this, never raw wrangler.
+# `predeploy` runs check:brochures + preflight-deploy first and ABORTS if the
+# build would remove pages that are currently live.
+npm run deploy
 
 # Preview locally with Wrangler
 npm run preview
@@ -44,6 +46,28 @@ npx tsc --noEmit
 # Lint
 npx eslint src/
 ```
+
+## ⚠️ Deploying — read before you publish
+
+**Production has been silently reverted once already.** On 2026-08-10 the site
+was overwritten by a deploy from a checkout ~26 commits behind: every
+`/fleet/<slug>` listing page started 404ing and the enquiry form, payment
+calculator and price sort disappeared. The deploy reported success.
+
+Two protections now exist — do not route around them:
+
+1. **`npm run deploy`**, never a bare `npx wrangler deploy`. The `predeploy`
+   hook runs `check:brochures` and `scripts/preflight-deploy.ts`, which
+   compares the working tree against **what the live site is currently
+   serving** and aborts if any live listing page would 404 after the deploy.
+   Override only to genuinely withdraw a listing:
+   `DEPLOY_ALLOW_REMOVALS=1 npm run deploy`.
+2. **Deploy from a ref that contains all the work.** Check
+   `git rev-list --count origin/main..HEAD` before deploying; if it is
+   non-zero you are about to publish something older than the branch.
+
+The preflight checks the deployed site rather than git on purpose, so it
+protects regardless of branch, worktree or machine.
 
 ## Custom Domain
 

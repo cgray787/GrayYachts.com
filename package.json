@@ -6,12 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "build:cf": "npx opennextjs-cloudflare build",
-    "deploy": "npx opennextjs-cloudflare deploy",
+    "preflight": "tsx scripts/preflight-deploy.ts",
+    "predeploy": "npm run check:brochures && npm run preflight",
+    "deploy": "npx opennextjs-cloudflare build && npx wrangler deploy",
     "preview": "npx opennextjs-cloudflare build && npx wrangler dev",
     "start": "next start",
     "lint": "eslint",
     "check:brochures": "tsx scripts/check-brochures.ts",
-    "brochure": "tsx scripts/generate-brochure.ts"
+    "brochure": "tsx scripts/generate-brochure.ts",
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "ship": "npx opennextjs-cloudflare build && npx wrangler deploy && node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.17.1",
