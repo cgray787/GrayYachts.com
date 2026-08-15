@@ -1,0 +1,455 @@
+<title>FB CRM Walkthrough</title>
+<style>
+  /* Single-theme by choice: this previews a page inside the grayyachts.com
+     portal, which is dark-only. Every colour is painted explicitly so the page
+     holds on either host ground. */
+  :root{
+    --bg:#060a12; --panel:#111827; --panel-2:#0c1220; --line:#1e293b;
+    --line-soft:#141d2b; --gold:#C9A96E; --gold-soft:rgba(201,169,110,.14);
+    --ink:#f1f5f9; --muted:#8892A5; --muted-2:#5d6b7d;
+    --hot:#ef4444; --hot-bg:rgba(239,68,68,.12);
+    --warm:#f59e0b; --warm-bg:rgba(245,158,11,.12);
+    --good:#22c55e; --good-bg:rgba(34,197,94,.12);
+    --cool:#3b82f6; --cool-bg:rgba(59,130,246,.12);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 120px;
+    display:flex;flex-direction:column;gap:34px}
+
+  /* ── review bar ─────────────────────────────────────────── */
+  .bar{position:sticky;top:0;z-index:40;background:rgba(6,10,18,.93);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    margin:-32px -20px 0;padding:12px 20px;display:flex;flex-wrap:wrap;
+    align-items:center;gap:12px}
+  .bar h1{font-family:var(--serif);font-size:19px;font-weight:600;margin:0;flex:1}
+  .bar .hint{color:var(--muted);font-size:12.5px}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    font:inherit;font-size:13px;padding:7px 13px;border-radius:3px;cursor:pointer;
+    transition:border-color .15s,color .15s}
+  .btn:hover{border-color:var(--gold);color:var(--gold)}
+  .btn.primary{background:var(--gold);color:#0b0f17;border-color:var(--gold);font-weight:600}
+  .btn.primary:hover{color:#0b0f17;filter:brightness(1.08)}
+  .btn:focus-visible,.cmt-open:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .count{font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600}
+
+  /* ── commentable section ────────────────────────────────── */
+  .sec{border:1px solid var(--line);border-radius:4px;background:var(--panel-2);
+    overflow:hidden;transition:border-color .15s}
+  .sec[data-has-comment="1"]{border-color:var(--gold)}
+  .sec > header{display:flex;align-items:baseline;gap:12px;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:var(--panel)}
+  .sec > header h2{font-family:var(--serif);font-size:17px;font-weight:600;margin:0;flex:1}
+  .sec > header .tag{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted-2)}
+  .cmt-open{border:1px solid var(--line);background:transparent;color:var(--muted);
+    font:inherit;font-size:12px;padding:4px 10px;border-radius:99px;cursor:pointer}
+  .cmt-open:hover{border-color:var(--gold);color:var(--gold)}
+  .sec[data-has-comment="1"] .cmt-open{border-color:var(--gold);color:var(--gold)}
+  .sec-body{padding:18px}
+  .cmt{border-top:1px solid var(--line);background:var(--panel);padding:14px 18px;
+    display:none;flex-direction:column;gap:9px}
+  .cmt.open{display:flex}
+  .cmt label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .cmt textarea{width:100%;min-height:78px;resize:vertical;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:3px;color:var(--ink);
+    font:inherit;font-size:14px;padding:10px 12px}
+  .cmt textarea:focus{outline:none;border-color:var(--gold)}
+  .cmt .row{display:flex;gap:8px;align-items:center}
+  .saved{color:var(--good);font-size:12px;opacity:0;transition:opacity .2s}
+  .saved.show{opacity:1}
+
+  /* ── queue cards ────────────────────────────────────────── */
+  .stack{display:flex;flex-direction:column;gap:14px}
+  .card{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;
+    background:var(--panel);overflow:hidden}
+  .card.hot{border-color:rgba(239,68,68,.4)}
+  .card .shot{width:150px;flex-shrink:0;background:var(--panel-2);
+    display:flex;align-items:center;justify-content:center;color:var(--muted-2);
+    font-size:11px;letter-spacing:.06em;min-height:132px}
+  .card .body{flex:1;min-width:0;padding:15px 17px;display:flex;flex-direction:column;gap:9px}
+  .card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .ask{font-family:var(--serif);font-size:25px;line-height:1;font-variant-numeric:tabular-nums}
+  .boat{font-size:13.5px;color:var(--ink);margin-top:4px}
+  .meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.07em;
+    text-transform:uppercase;padding:3px 9px;border-radius:2px;white-space:nowrap}
+  .pill.hot{background:var(--hot-bg);color:var(--hot)}
+  .pill.warm{background:var(--warm-bg);color:var(--warm)}
+  .pill.good{background:var(--good-bg);color:var(--good)}
+  .pill.cool{background:var(--cool-bg);color:var(--cool)}
+  .why{font-size:13px;color:var(--ink);border-left:2px solid var(--gold);padding-left:11px}
+  .why em{color:var(--muted);font-style:normal}
+  pre.msg{margin:0;background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+    padding:10px 12px;font:12.5px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;
+    color:var(--ink);overflow-x:auto}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .terms{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+
+  /* ── add lead ───────────────────────────────────────────── */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .field input{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+    color:var(--ink);font:inherit;padding:10px 12px}
+  .field input:focus{outline:none;border-color:var(--gold)}
+  .fetched{border:1px solid var(--line);border-left:2px solid var(--good);
+    border-radius:3px;padding:13px 15px;background:var(--panel);display:grid;
+    grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px}
+  .fetched dt{color:var(--muted);font-size:12px}
+  .fetched dd{margin:0;font-variant-numeric:tabular-nums}
+
+  /* ── profile ────────────────────────────────────────────── */
+  .phead{background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
+    border:1px solid var(--line);border-radius:4px;padding:20px;
+    display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .phead .ask{font-size:34px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:14px}
+  .block{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:15px 17px}
+  .block h3{font-family:var(--serif);font-size:15px;margin:0 0 11px;font-weight:600}
+  dl.rec{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}
+  dl.rec dt{color:var(--muted);font-size:12px;white-space:nowrap}
+  dl.rec dd{margin:0}
+  .thread{display:flex;flex-direction:column;gap:9px}
+  .msg-row{display:flex;gap:9px;font-size:13px}
+  .msg-row .who{color:var(--muted);font-size:11.5px;min-width:58px;padding-top:2px}
+  .bubble{border:1px solid var(--line);border-radius:3px;padding:8px 11px;flex:1;
+    background:var(--panel-2)}
+  .bubble.out{border-color:rgba(201,169,110,.35)}
+
+  /* ── digest ─────────────────────────────────────────────── */
+  .mail{border:1px solid var(--line);border-radius:4px;background:#fff;color:#101c26;
+    padding:22px 24px;font:14px/1.6 var(--sans)}
+  .mail h4{font-family:var(--serif);font-size:20px;margin:0 0 4px;color:#101c26}
+  .mail .sub{color:#5b6674;font-size:13px;margin:0 0 16px}
+  .mail ol{margin:0;padding-left:20px}
+  .mail li{margin-bottom:9px}
+  .mail .m-why{color:#5b6674;font-size:13px}
+  .mail .cta{display:inline-block;margin-top:14px;background:#101c26;color:#fff;
+    padding:9px 16px;border-radius:3px;text-decoration:none;font-size:13.5px}
+
+  .note{color:var(--muted);font-size:12.5px;max-width:66ch}
+  @media (max-width:640px){ .card{flex-direction:column} .card .shot{width:100%;min-height:96px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="bar">
+    <h1>FB CRM — design walkthrough</h1>
+    <span class="hint"><span class="count" id="n">0</span> comments</span>
+    <button class="btn" id="clear">Clear</button>
+    <button class="btn primary" id="copy">Copy all feedback</button>
+  </div>
+
+  <p class="note">
+    Click <strong>Comment</strong> on any section to mark it up. Notes save in this browser,
+    then hit <strong>Copy all feedback</strong> and paste it back to me — I'll make the changes
+    and republish to this same link. Everything below uses your real leads.
+  </p>
+
+  <!-- 1 ────────────────────────────────────────────────── -->
+  <section class="sec" data-key="queue">
+    <header>
+      <h2>Today's queue</h2>
+      <span class="tag">the home screen</span>
+      <button class="cmt-open" type="button">Comment</button>
+    </header>
+    <div class="sec-body">
+      <div class="stack">
+
+        <article class="card hot">
+          <div class="shot">JR Marine 35′</div>
+          <div class="body">
+            <div class="top">
+              <div>
+                <div class="ask">$750,000</div>
+                <div class="boat">2022 JR Marine 35′ Aluminium Catamaran &ldquo;Wired Too&rdquo;</div>
+                <div class="meta"><span>Whittier, AK</span><span>Marvin Kuentzel</span><span>3 touches</span></div>
+              </div>
+              <span class="pill hot">8 days overdue</span>
+            </div>
+            <p class="why">No reply since the opener — <em>nudge him</em></p>
+            <pre class="msg">Thoughts?</pre>
+            <div class="acts">
+              <button class="btn primary" type="button">Sent</button>
+              <button class="btn" type="button">Snooze 7d</button>
+              <button class="btn" type="button">Not interested</button>
+              <span class="terms">Relist $788,000 · you $37,500 · seller nets $750,000</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="shot">Broward 64′</div>
+          <div class="body">
+            <div class="top">
+              <div>
+                <div class="ask">$500,000</div>
+                <div class="boat">1962 Broward Marine 64′ Motor Yacht</div>
+                <div class="meta"><span>Olympia, WA</span><span>Terry Piper</span><span>1 touch</span></div>
+              </div>
+              <span class="pill warm">due today</span>
+            </div>
+            <p class="why">Thread open, no answer yet — <em>send the pitch</em></p>
+            <pre class="msg">Solid boat. Quick question are you firm on the price or open to the right buyer? I'm with Jeff Brown Yachts &amp; GrayYachts.
+We work in the premium marine market out in the PNW.
+I may have a buyer interested</pre>
+            <div class="acts">
+              <button class="btn primary" type="button">Sent</button>
+              <button class="btn" type="button">Snooze 7d</button>
+              <button class="btn" type="button">Not interested</button>
+              <span class="terms">Relist $525,000 · you $25,000 · seller nets $500,000</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="shot">Leopard 44</div>
+          <div class="body">
+            <div class="top">
+              <div>
+                <div class="ask">$599,000</div>
+                <div class="boat">2016 Leopard 44 Catamaran</div>
+                <div class="meta"><span>Poulsbo, WA</span><span>Michael Schiehser</span><span>2 touches</span></div>
+              </div>
+              <span class="pill cool">+29.5% over market</span>
+            </div>
+            <p class="why">Priced ~30% above comparable 2016 Leopard 44s ($449K–$475K) — <em>the repricing conversation</em></p>
+            <pre class="msg">Thoughts?</pre>
+            <div class="acts">
+              <button class="btn primary" type="button">Sent</button>
+              <button class="btn" type="button">Snooze 7d</button>
+              <button class="btn" type="button">Not interested</button>
+              <span class="terms">Relist $629,000 · you $29,950 · seller nets $599,000</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+      <p class="note" style="margin-top:14px">
+        When nothing is due it says <em>&ldquo;Nothing due today.&rdquo;</em> — it never falls back to
+        showing all 97 leads. Ordering is overdue-ness × boat value × how engaged the seller is.
+      </p>
+    </div>
+    <div class="cmt">
+      <label>Your notes on this section</label>
+      <textarea placeholder="e.g. put the phone number on the card, or drop the deal maths"></textarea>
+      <div class="row"><button class="btn" type="button" data-save>Save note</button><span class="saved">Saved</span></div>
+    </div>
+  </section>
+
+  <!-- 2 ────────────────────────────────────────────────── -->
+  <section class="sec" data-key="add">
+    <header>
+      <h2>Add a lead</h2>
+      <span class="tag">paste the URL, nothing else</span>
+      <button class="cmt-open" type="button">Comment</button>
+    </header>
+    <div class="sec-body">
+      <div class="field">
+        <label for="u">Marketplace listing URL</label>
+        <input id="u" type="text" value="https://www.facebook.com/marketplace/item/848772648026818" readonly>
+      </div>
+      <dl class="fetched">
+        <dt>Boat</dt><dd>2016 North River 33 Sounder</dd>
+        <dt>Asking</dt><dd>$395,000</dd>
+        <dt>Location</dt><dd>Anchorage, AK</dd>
+        <dt>Seller</dt><dd>Heath Gerondale</dd>
+        <dt>Photos</dt><dd>1 — listing says &ldquo;PRIVATE SALE, serious inquiries only&rdquo;</dd>
+        <dt>Thread</dt><dd>Found in your inbox — 2 messages imported, stage set to <strong>Opener sent</strong></dd>
+      </dl>
+      <p class="note" style="margin-top:13px">
+        The boat details come straight from Facebook. The conversation is pulled from your
+        Messenger inbox by the extension — you never paste it.
+      </p>
+    </div>
+    <div class="cmt">
+      <label>Your notes on this section</label>
+      <textarea placeholder="e.g. let me override the asking price, or add a Notes field here"></textarea>
+      <div class="row"><button class="btn" type="button" data-save>Save note</button><span class="saved">Saved</span></div>
+    </div>
+  </section>
+
+  <!-- 3 ────────────────────────────────────────────────── -->
+  <section class="sec" data-key="profile">
+    <header>
+      <h2>Lead profile</h2>
+      <span class="tag">the file you come back to</span>
+      <button class="cmt-open" type="button">Comment</button>
+    </header>
+    <div class="sec-body">
+      <div class="phead">
+        <div>
+          <div class="ask">$650,000</div>
+          <div class="boat" style="font-size:15px;margin-top:6px">2020 Coastal Craft 33 ProFish</div>
+          <div class="meta" style="margin-top:6px"><span>Anchorage, AK</span><span>Michael Franz</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <span class="pill hot">broker listed — dead</span>
+          <span class="pill good">7.1% under market</span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="block">
+          <h3>Seller</h3>
+          <dl class="rec">
+            <dt>Name</dt><dd>Michael Franz</dd>
+            <dt>Phone</dt><dd>—</dd>
+            <dt>Messenger</dt><dd>Open thread</dd>
+            <dt>Reached out</dt><dd>1 time</dd>
+            <dt>First contact</dt><dd>7 Aug 2026</dd>
+            <dt>Last reply</dt><dd>7 Aug 2026</dd>
+          </dl>
+        </div>
+
+        <div class="block">
+          <h3>What they want</h3>
+          <dl class="rec">
+            <dt>Motivation</dt><dd>—</dd>
+            <dt>Timeframe</dt><dd>—</dd>
+            <dt>Flexibility</dt><dd>—</dd>
+            <dt>Notes</dt><dd>Confirmed brokered on first contact.</dd>
+          </dl>
+        </div>
+
+        <div class="block">
+          <h3>Market position</h3>
+          <dl class="rec">
+            <dt>Verdict</dt><dd>7.1% under market</dd>
+            <dt>Comps</dt><dd>$675K–$922K</dd>
+            <dt>Angle</dt><dd>Priced below market with 8 photos carrying it</dd>
+            <dt>Your cut</dt><dd>$32,500 at 5%</dd>
+          </dl>
+        </div>
+
+        <div class="block">
+          <h3>Next step</h3>
+          <dl class="rec">
+            <dt>Due</dt><dd>Never — closed</dd>
+            <dt>Reason</dt><dd>Seller confirmed a broker listing</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="block" style="margin-top:14px">
+        <h3>Conversation</h3>
+        <div class="thread">
+          <div class="msg-row"><span class="who">You</span>
+            <div class="bubble out">Is this a broker listing?</div></div>
+          <div class="msg-row"><span class="who">Michael</span>
+            <div class="bubble">yes it is.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cmt">
+      <label>Your notes on this section</label>
+      <textarea placeholder="e.g. move Market position to the top, or add engine hours and year"></textarea>
+      <div class="row"><button class="btn" type="button" data-save>Save note</button><span class="saved">Saved</span></div>
+    </div>
+  </section>
+
+  <!-- 4 ────────────────────────────────────────────────── -->
+  <section class="sec" data-key="digest">
+    <header>
+      <h2>Morning email</h2>
+      <span class="tag">7am, every day</span>
+      <button class="cmt-open" type="button">Comment</button>
+    </header>
+    <div class="sec-body">
+      <div class="mail">
+        <h4>3 sellers need you today</h4>
+        <p class="sub">Gray Yachts · FB CRM · Saturday 15 August</p>
+        <ol>
+          <li><strong>$750,000</strong> — JR Marine 35′ Catamaran, Whittier AK<br>
+            <span class="m-why">8 days overdue · no reply since the opener</span></li>
+          <li><strong>$500,000</strong> — 1962 Broward Marine 64′, Olympia WA<br>
+            <span class="m-why">Due today · send the pitch</span></li>
+          <li><strong>$599,000</strong> — 2016 Leopard 44, Poulsbo WA<br>
+            <span class="m-why">Due today · priced 29.5% over market</span></li>
+        </ol>
+        <a class="cta" href="#">Open the queue</a>
+      </div>
+      <p class="note" style="margin-top:13px">
+        Sent from Cloudflare, not your Mac — so it still arrives on days the laptop is shut.
+      </p>
+    </div>
+    <div class="cmt">
+      <label>Your notes on this section</label>
+      <textarea placeholder="e.g. send it at 6am, or text me instead"></textarea>
+      <div class="row"><button class="btn" type="button" data-save>Save note</button><span class="saved">Saved</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+  const KEY = "fb-crm-mock-comments-v1";
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } };
+  const save = (o) => { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch {} };
+
+  let notes = load();
+
+  function refresh() {
+    let n = 0;
+    document.querySelectorAll(".sec").forEach((sec) => {
+      const k = sec.dataset.key;
+      const v = (notes[k] || "").trim();
+      sec.dataset.hasComment = v ? "1" : "0";
+      sec.querySelector(".cmt-open").textContent = v ? "Comment ✓" : "Comment";
+      if (v) n++;
+    });
+    document.getElementById("n").textContent = n;
+  }
+
+  document.querySelectorAll(".sec").forEach((sec) => {
+    const k = sec.dataset.key;
+    const panel = sec.querySelector(".cmt");
+    const ta = panel.querySelector("textarea");
+    ta.value = notes[k] || "";
+
+    sec.querySelector(".cmt-open").addEventListener("click", () => {
+      panel.classList.toggle("open");
+      if (panel.classList.contains("open")) ta.focus();
+    });
+
+    const commit = () => {
+      notes[k] = ta.value;
+      save(notes);
+      refresh();
+      const flag = panel.querySelector(".saved");
+      flag.classList.add("show");
+      setTimeout(() => flag.classList.remove("show"), 1200);
+    };
+    panel.querySelector("[data-save]").addEventListener("click", commit);
+    ta.addEventListener("blur", commit);
+  });
+
+  document.getElementById("copy").addEventListener("click", async () => {
+    const label = { queue: "Today's queue", add: "Add a lead", profile: "Lead profile", digest: "Morning email" };
+    const out = Object.entries(notes)
+      .filter(([, v]) => (v || "").trim())
+      .map(([k, v]) => `## ${label[k] || k}\n${v.trim()}`)
+      .join("\n\n");
+    const btn = document.getElementById("copy");
+    if (!out) { btn.textContent = "No comments yet"; setTimeout(() => (btn.textContent = "Copy all feedback"), 1400); return; }
+    try {
+      await navigator.clipboard.writeText("FB CRM mock — feedback\n\n" + out);
+      btn.textContent = "Copied";
+    } catch {
+      btn.textContent = "Press ⌘C";
+    }
+    setTimeout(() => (btn.textContent = "Copy all feedback"), 1600);
+  });
+
+  document.getElementById("clear").addEventListener("click", () => {
+    notes = {};
+    save(notes);
+    document.querySelectorAll(".cmt textarea").forEach((t) => (t.value = ""));
+    refresh();
+  });
+
+  refresh();
+</script>
