@@ -203,6 +203,9 @@
   .rvmarquee{display:flex;width:max-content;
     animation:rvscroll var(--dur,60s) linear infinite}
   .rvband:hover .rvmarquee,.rvband:focus-within .rvmarquee{animation-play-state:paused}
+  .rvband.rvsolo::before,.rvband.rvsolo::after{display:none}
+  .rvband.rvsolo .rvcard{width:min(680px,92vw);margin-right:0}
+  .rvband.rvsolo .rvq{font-size:22px}
   @keyframes rvscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .rvcard{position:relative;flex:0 0 auto;width:370px;margin-right:20px;box-sizing:border-box;
     background:linear-gradient(165deg,#16223a 0%,#101a2b 100%);
@@ -354,6 +357,11 @@
      Leave this empty and the testimonials section stays hidden.
      ══════════════════════════════════════════════════════════════════════ -->
 <script type="text/plain" id="testimonials">
+
+"I've known Connor Gray for about a year, while listing our boat for sale with him at Jeff Brown Yachts. Connor is one of the best brokers to use when selling your boat. He's honest, sincere and goes the extra mile. You can't do any better!"
+— John D., August 2026
+stars: 5
+source: Client
 
 </script>
 
@@ -804,13 +812,22 @@ if(REVIEWS.length){
   band.hidden = false;
   const one = REVIEWS.map(reviewCard).join('');
   tr.innerHTML = one;
-  /* repeat until a single pass spans ~2 screens, so the loop never shows a gap,
-     then duplicate that pass — translateX(-50%) lands exactly on the seam. */
-  let guard = 0;
-  while(tr.scrollWidth < innerWidth * 2 && guard++ < 40) tr.insertAdjacentHTML('beforeend', one);
-  const pass = tr.scrollWidth;
-  tr.insertAdjacentHTML('beforeend', tr.innerHTML);
-  tr.style.setProperty('--dur', Math.round(pass / 55) + 's');   /* ~55px per second */
+  /* One review should not scroll past twelve times. Until there are a few,
+     show it once, centred and still. */
+  if(REVIEWS.length < 3){
+    tr.style.animation = 'none';
+    tr.style.width = '100%';
+    tr.style.justifyContent = 'center';
+    band.classList.add('rvsolo');
+  } else {
+    /* repeat until a single pass spans ~2 screens, so the loop never shows a
+       gap, then duplicate that pass — translateX(-50%) lands on the seam. */
+    let guard = 0;
+    while(tr.scrollWidth < innerWidth * 2 && guard++ < 40) tr.insertAdjacentHTML('beforeend', one);
+    const pass = tr.scrollWidth;
+    tr.insertAdjacentHTML('beforeend', tr.innerHTML);
+    tr.style.setProperty('--dur', Math.round(pass / 55) + 's');   /* ~55px per second */
+  }
 }
 
 
