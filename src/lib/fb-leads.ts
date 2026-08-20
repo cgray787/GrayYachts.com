@@ -51,6 +51,19 @@ export type FbLead = {
   nudge_sent_at: string | null;
   terms_sent_at: string | null;
   updated_at: string;
+  // CRM columns (migration 003). next_touch_at is stored, not computed in
+  // the browser, so the queue and a 7am cron read the same rows.
+  next_touch_at: string | null;
+  touch_reason: string | null;
+  touch_count: number;
+  closed_reason: string | null;
+  seller_phone?: string | null;
+  thread_id?: string | null;
+  listed_at?: string | null;
+  wants_timeframe?: string | null;
+  wants_flexibility?: string | null;
+  wants_motivation?: string | null;
+  wants_notes?: string | null;
 };
 
 export type FbLeadMessage = {
@@ -192,4 +205,60 @@ export function liveStep(lead: FbLead): number {
   if (lead.stage === "pitch_sent") return 2;
   if (lead.stage === "nudged") return 3;
   return -1;
+}
+
+const STAGE_WEIGHT: Partial<Record<LeadStage, number>> = {
+  replied: 4,
+  negotiating: 4,
+  terms_sent: 2,
+  pitch_sent: 1.5,
+  nudged: 1.2,
+  opener_sent: 1,
+  new: 1,
+};
+
+/**
+ * Queue ordering: overdue-ness x boat value x how engaged the seller is.
+ *
+ * Value is log-compressed deliberately — a $750k boat is worth more attention
+ * than a $170k one, but not 4.4x more, and raw multiplication buries every
+ * modest lead. Engagement is weighted hardest because a seller who actually
+ * replied is the scarcest thing on the board.
+ *
+ * Returns 0 for anything unscheduled so it can never surface in the queue.
+ */
+export function queuePriority(lead: FbLead, now: number = Date.now()): number {
+  if (!lead.next_touch_at) return 0;
+  const overdueDays = Math.max(0, (now - new Date(lead.next_touch_at).getTime()) / 86_400_000);
+  // sqrt, not linear: with a linear multiplier a 30-day-stale $150k lead scored
+  // ~4x a seller who replied yesterday, burying the only warm conversation on
+  // the board. Staleness still sorts, with diminishing returns — a lead 30 days
+  // cold is not 30x more urgent than one 1 day cold.
+  const urgency = 1 + Math.sqrt(overdueDays);
+  const value = Math.log10(Math.max(lead.ask ?? 1, 1));
+  const weight = STAGE_WEIGHT[lead.stage] ?? 1;
+  return urgency * value * weight;
+}
+
+/** State parsed from the location SUFFIX. A substring test also matches
+ *  "Harbor" and "Portland", which once reported more states than rows. */
+export function leadState(location: string | null): "AK" | "WA" | "OR" | null {
+  if (!location) return null;
+  const m = location.match(/,\s*(AK|WA|OR)\s*$/i);
+  return m ? (m[1].toUpperCase() as "AK" | "WA" | "OR") : null;
+}
+
+/**
+ * Can Connor actually work this lead?
+ *
+ * WA/OR only — an Alaska boat cannot be shown, surveyed or sea-trialled from
+ * Seattle, and there is no local buyer pool for one marketed by a PNW broker.
+ * Under $500k — the tier above that proved broker-saturated (4 of the 8
+ * highest-value leads researched were already on YachtWorld). Not closed.
+ */
+export function isServicable(lead: FbLead): boolean {
+  if (DEAD_STAGES.includes(lead.stage) || lead.closed_reason) return false;
+  const st = leadState(lead.location);
+  if (st !== "WA" && st !== "OR") return false;
+  return (lead.ask ?? 0) > 0 && (lead.ask ?? 0) < 500_000;
 }

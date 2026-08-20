@@ -48,3 +48,5 @@ supabase/.temp/
 
 # Claude Code worktrees / local session state
 .claude/worktrees/
+test-results/
+playwright-report/
