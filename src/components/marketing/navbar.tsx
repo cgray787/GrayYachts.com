@@ -8,8 +8,6 @@ import { Menu, X, LogIn } from "lucide-react";
 const navLinks = [
   { label: "FLEET", href: "/fleet" },
   { label: "COMPARE", href: "/compare" },
-  { label: "CATALOG", href: "/catalog" },
-  { label: "SERVICES", href: "/#services" },
   { label: "CONTACT", href: "/#contact" },
 ];
 
@@ -35,8 +33,20 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-12">
-        {/* Left nav links */}
-        <div className="hidden items-center gap-8 md:flex">
+        {/* Left: brand mark, then nav links */}
+        <div className="flex items-center gap-8">
+          <Link href="/" aria-label="Gray Yachts — home" className="shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo-nav.png"
+              alt="Gray Yachts"
+              width={56}
+              height={56}
+              className="h-14 w-auto transition-opacity duration-300 hover:opacity-80"
+            />
+          </Link>
+
+          <div className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.label}
@@ -46,6 +56,7 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          </div>
         </div>
 
         {/* Mobile menu button */}
@@ -57,22 +68,14 @@ export default function Navbar() {
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
-        {/* Right: Logo + Sign In */}
-        <div className="flex items-center gap-6">
-          <Link
-            href="/login"
-            className="hidden items-center gap-2 text-[11px] font-medium tracking-[0.15em] text-text-secondary transition-colors duration-300 hover:text-gold md:flex"
-          >
-            <LogIn className="h-3.5 w-3.5" />
-            CLIENT LOGIN
-          </Link>
-          <Link
-            href="/"
-            className="font-[family-name:var(--font-cormorant)] text-lg tracking-[0.35em] text-text-primary"
-          >
-            GRAY YACHTS
-          </Link>
-        </div>
+        {/* Right: client login only — the brand mark now anchors the left. */}
+        <Link
+          href="/login"
+          className="hidden items-center gap-2 text-[11px] font-medium tracking-[0.15em] text-text-secondary transition-colors duration-300 hover:text-gold md:flex"
+        >
+          <LogIn className="h-3.5 w-3.5" />
+          CLIENT LOGIN
+        </Link>
       </nav>
 
       {/* Mobile menu */}

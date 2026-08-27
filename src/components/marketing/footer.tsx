@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const services = [
   "Sell-Side Brokerage",
   "Buy-Side Advisory",
@@ -37,12 +39,12 @@ export default function Footer() {
             <ul className="space-y-3">
               {services.map((service) => (
                 <li key={service}>
-                  <a
-                    href="#services"
+                  <Link
+                    href="/#contact"
                     className="text-sm text-text-secondary transition-colors duration-300 hover:text-text-primary"
                   >
                     {service}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

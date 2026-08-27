@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Anchor,
-  Ship,
-  Camera,
-  Shield,
   Phone,
   Mail,
   MapPin,
@@ -46,33 +42,6 @@ const stagger = {
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
 /* ------------------------------------------------------------------ */
-
-const services = [
-  {
-    icon: Ship,
-    title: "Dealership",
-    description:
-      "Full-service new and pre-owned yacht dealership partnerships across the Pacific Northwest's premier marine brands.",
-  },
-  {
-    icon: Anchor,
-    title: "Captain Services",
-    description:
-      "Licensed captains for delivery, sea trials, and owner training — ensuring your vessel is in expert hands at every stage.",
-  },
-  {
-    icon: Shield,
-    title: "Brokerage Listing",
-    description:
-      "Strategic listing representation with cinematic marketing, global syndication, and white-glove negotiation from contract to close.",
-  },
-  {
-    icon: Camera,
-    title: "Photography",
-    description:
-      "Drone cinematography, professional photography, 3D Matterport walkthroughs, and authority content that commands attention.",
-  },
-];
 
 const stats = [
   { value: "$250M+", label: "VESSELS REPRESENTED" },
@@ -435,82 +404,6 @@ export default function HomePage() {
             >
               EXPLORE FULL FLEET <ArrowRight size={14} />
             </Link>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ============================================================ */}
-      {/*  OUR SERVICES — open to everyone. This section used to sit    */}
-      {/*  behind a blurred "Exclusive Member Access" overlay.          */}
-      {/* ============================================================ */}
-      <section id="services" className="relative bg-bg-primary py-28 px-6 lg:px-12">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={stagger}
-          className="mx-auto max-w-6xl"
-        >
-          <motion.p
-            variants={fadeUp}
-            custom={0}
-            className="text-center text-[10px] tracking-[0.35em] text-gold"
-          >
-            OUR SERVICES
-          </motion.p>
-
-          <motion.h2
-            variants={fadeUp}
-            custom={1}
-            className="mt-4 text-center font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl md:text-5xl"
-          >
-            Full-Spectrum Yacht Representation
-          </motion.h2>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="mx-auto mt-4 max-w-xl text-center text-sm text-text-secondary"
-          >
-            From listing to closing, every detail handled with precision and
-            cinematic craft.
-          </motion.p>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-            variants={stagger}
-            className="mt-14 grid gap-6 sm:grid-cols-2"
-          >
-            {services.map((service, i) => (
-              <motion.div
-                key={service.title}
-                variants={fadeUp}
-                custom={i}
-                className="group relative rounded-lg border border-border bg-bg-card p-8 transition-all duration-500 hover:border-border-light hover:bg-bg-card-hover"
-              >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-gold-muted">
-                  <service.icon size={20} className="text-gold" />
-                </div>
-                <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-light text-text-primary">
-                  {service.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-                  {service.description}
-                </p>
-                <Link
-                  href="#contact"
-                  className="mt-5 inline-flex items-center gap-1.5 text-[11px] tracking-[0.15em] text-gold transition-colors duration-300 hover:text-gold-hover"
-                >
-                  Talk to Connor{" "}
-                  <ArrowRight
-                    size={12}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </Link>
-              </motion.div>
-            ))}
           </motion.div>
         </motion.div>
       </section>
