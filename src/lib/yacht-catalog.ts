@@ -1,6 +1,6 @@
 /**
  * Shared yacht-catalog data + helpers used by both the
- * /portal/yacht-catalog management page and the /portal/compare-yachts
+ * /catalog management page and the /compare
  * comparison page. Both pages persist into the same localStorage key, so
  * adding a yacht in one tab is immediately available in the other.
  */

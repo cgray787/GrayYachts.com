@@ -12,7 +12,25 @@ function toLogin(request: NextRequest, reason?: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  const isPortal = request.nextUrl.pathname.startsWith("/portal");
+  const { pathname } = request.nextUrl;
+
+  // The yacht catalog and comparison tools used to live behind the client
+  // portal. They are public now, so keep old bookmarks and inbound links
+  // working. This must run BEFORE the auth check below, otherwise the
+  // redirect would bounce anonymous visitors to /login first.
+  const PUBLIC_TOOL_REDIRECTS: Record<string, string> = {
+    "/portal/compare-yachts": "/compare",
+    "/portal/yacht-catalog": "/catalog",
+  };
+  const movedTo = PUBLIC_TOOL_REDIRECTS[pathname.replace(/\/$/, "")];
+  if (movedTo) {
+    const url = request.nextUrl.clone();
+    url.pathname = movedTo;
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  const isPortal = pathname.startsWith("/portal");
 
   // FAIL CLOSED. This previously returned NextResponse.next() when the env vars
   // were missing, which served the entire client portal with no auth check at

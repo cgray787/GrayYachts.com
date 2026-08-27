@@ -9,8 +9,8 @@ import { YachtImage } from "./yacht-image";
 /**
  * Single row in a catalog list. Draggable into the comparison slots, with
  * inline LEFT / RIGHT pickers and a delete button. `onAssign` is the only
- * thing that's page-specific — on /portal/compare-yachts it sets the slot
- * locally; on /portal/yacht-catalog it persists the slot then navigates to
+ * thing that's page-specific — on /compare it sets the slot
+ * locally; on /catalog it persists the slot then navigates to
  * the comparison page.
  */
 export function CatalogCard({

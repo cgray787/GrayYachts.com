@@ -22,8 +22,9 @@ import {
   saveCatalog,
   scrapeYachtFromUrl,
 } from "@/lib/yacht-catalog";
-import { YachtImage } from "@/components/portal/yacht-image";
-import { CatalogCard } from "@/components/portal/catalog-card";
+import { YachtImage } from "@/components/yachts/yacht-image";
+import { CatalogCard } from "@/components/yachts/catalog-card";
+import { ToolShell } from "@/components/yachts/tool-shell";
 
 
 /* ------------------------------------------------------------------ */
@@ -555,7 +556,7 @@ export default function CompareYachtsPage() {
   const recentRefB = useRef<HTMLDivElement | null>(null);
   // Header-level catalog dropdown — quick read-only view of the catalog
   // anchored to the page title, so the user can pin LEFT/RIGHT without
-  // scrolling. The full management UI lives at /portal/yacht-catalog.
+  // scrolling. The full management UI lives at /catalog.
   const [headerCatalogOpen, setHeaderCatalogOpen] = useState(false);
 
   // Close the Recent dropdown when clicking outside it
@@ -646,6 +647,31 @@ export default function CompareYachtsPage() {
     [catalog]
   );
 
+  // Deep link: the public homepage hands us a listing URL as ?add=<url> so a
+  // visitor can go from "paste a link" to a populated comparison in one step.
+  // Read from window.location rather than useSearchParams — the latter forces
+  // this whole client page under a Suspense boundary at prerender time.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+
+    const incoming = new URLSearchParams(window.location.search).get("add");
+    if (!incoming) return;
+
+    // Drop the param so a refresh doesn't re-scrape the same listing.
+    window.history.replaceState({}, "", window.location.pathname);
+
+    // Fill whichever slot is still empty; default to the left.
+    const slot: "a" | "b" = leftId && !rightId ? "b" : "a";
+    void loadUrlToSlot(incoming, slot, () => {}, () => {});
+    // Intentionally mount-only: the ref guard makes re-runs a no-op anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Drag & drop handlers for comparison slots
   const handleDragOver = (slot: "a" | "b") => (e: DragEvent) => {
     e.preventDefault();
@@ -731,9 +757,20 @@ export default function CompareYachtsPage() {
     (leftYacht.verified === true || (leftYacht.flags?.length ?? 0) === 0) &&
     (rightYacht.verified === true || (rightYacht.flags?.length ?? 0) === 0);
 
+  // See ToolShell: localStorage is invisible to the server, so hold off on
+  // rendering the comparison until the client has mounted.
+  if (!hydrated) {
+    return (
+      <ToolShell
+        title="Compare Yachts"
+        description="Compare any two yachts side-by-side. Paste listing URLs to add yachts to your catalog, then drag them into the comparison slots."
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-primary">
-      <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10">
+      <div className="mx-auto max-w-7xl px-6 pb-24 pt-32 sm:px-10">
         {/* ── Header ── */}
         <div className="mb-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1056,7 +1093,7 @@ export default function CompareYachtsPage() {
         {/* ── Manage catalog link ── */}
         <div className="mt-12 flex items-center justify-center border-t border-border pt-6">
           <Link
-            href="/portal/yacht-catalog"
+            href="/catalog"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-5 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
           >
             <Ship className="h-4 w-4" />
