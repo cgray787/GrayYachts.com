@@ -23,8 +23,8 @@ import {
   scrapeYachtFromUrl,
 } from "@/lib/yacht-catalog";
 import { YachtImage } from "@/components/yachts/yacht-image";
-import { CatalogCard } from "@/components/yachts/catalog-card";
 import { ToolShell } from "@/components/yachts/tool-shell";
+import { CatalogStrip } from "@/components/yachts/catalog-strip";
 
 
 /* ------------------------------------------------------------------ */
@@ -557,7 +557,6 @@ export default function CompareYachtsPage() {
   // Header-level catalog dropdown — quick read-only view of the catalog
   // anchored to the page title, so the user can pin LEFT/RIGHT without
   // scrolling. The full management UI lives at /catalog.
-  const [headerCatalogOpen, setHeaderCatalogOpen] = useState(false);
 
   // Close the Recent dropdown when clicking outside it
   useEffect(() => {
@@ -784,62 +783,18 @@ export default function CompareYachtsPage() {
               </p>
             </div>
 
-            {/* Catalog dropdown anchored to the page title — always one click away */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setHeaderCatalogOpen((o) => !o)}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:border-gold/50 hover:text-gold"
-                title="Show every yacht in your catalog"
-              >
-                <Ship className="h-4 w-4" />
-                Your Catalog
-                <span className="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-primary">
-                  {catalog.length}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform",
-                    headerCatalogOpen && "rotate-180",
-                  )}
-                />
-              </button>
-
-              {headerCatalogOpen && (
-                <div className="absolute right-0 top-full z-30 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-bg-card shadow-xl shadow-black/40 sm:w-96">
-                  <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
-                      {catalog.length} yacht{catalog.length === 1 ? "" : "s"}
-                    </span>
-                    <span className="text-[10px] text-text-secondary">
-                      Click LEFT or RIGHT to compare
-                    </span>
-                  </div>
-                  {catalog.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-xs text-text-secondary">
-                      No yachts yet. Paste a listing URL below to add one.
-                    </div>
-                  ) : (
-                    <div className="max-h-96 space-y-1 overflow-y-auto p-2">
-                      {catalog.map((yacht) => (
-                        <CatalogCard
-                          key={yacht.id}
-                          yacht={yacht}
-                          isActive={yacht.id === leftId || yacht.id === rightId}
-                          onAssign={(slot) => {
-                            handleAssign(yacht.id, slot);
-                            setHeaderCatalogOpen(false);
-                          }}
-                          onRemove={() => handleRemove(yacht.id)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
+
+        {/* ── Catalog rail. Anything added through the URL box below lands   */}
+        {/*    here automatically — it renders straight off `catalog` state.  */}
+        <CatalogStrip
+          catalog={catalog}
+          leftId={leftId}
+          rightId={rightId}
+          onAssign={handleAssign}
+          onRemove={handleRemove}
+        />
 
         {/* ── Quick Compare via URLs ── */}
         <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
