@@ -35,6 +35,31 @@ export type Vessel = {
 
 export const vessels: Vessel[] = [
   {
+    // JBY brokerage listing (seller Shawn Hinz), entered Aug 21 2026.
+    // Current brokerage record is authoritative for public advertising: 2023
+    // Custom Norsco, 38'. A supplied WA registration shows a legacy 2007 DZP,
+    // 32' record and is deliberately NOT used for year/builder/HIN claims here.
+    name: "R/V Poulsbo",
+    slug: "poulsbo",
+    year: 2023,
+    make: "Custom Norsco Aluminum Patrol",
+    length: "38'",
+    location: "Fall City, WA",
+    price: "$300,000",
+    image: "/listings/poulsbo/hero.jpg",
+    href: "/listings/poulsbo.pdf",
+    gallery: [
+      { src: "/listings/poulsbo/hero.jpg", caption: "Dockside Bow Quarter" },
+      { src: "/listings/poulsbo/g1.jpg", caption: "Aft Control Station" },
+      { src: "/listings/poulsbo/i1.jpg", caption: "Cabin Work Space", interior: true },
+      { src: "/listings/poulsbo/i2.jpg", caption: "Cabin Entry & Storage", interior: true },
+      { src: "/listings/poulsbo/i3.jpg", caption: "Forward Crew Berths", interior: true },
+      { src: "/listings/poulsbo/i4.jpg", caption: "Enclosed Head", interior: true },
+      { src: "/listings/poulsbo/i5.jpg", caption: "Main Helm & Survey Electronics", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
+  {
     name: "S/Y Playa Linda",
     slug: "playa-linda",
     year: 1994,

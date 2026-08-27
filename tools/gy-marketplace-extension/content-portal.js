@@ -32,4 +32,14 @@ window.addEventListener("message", async (event) => {
       window.location.origin,
     );
   }
+
+  if (msg.type === "GY_EXT_IMPORT_CHAT") {
+    const res = await chrome.runtime
+      .sendMessage({ type: "GY_IMPORT_CHAT", url: msg.url })
+      .catch((e) => ({ ok: false, reason: String(e?.message || e) }));
+    window.postMessage(
+      { source: "gy-ext", type: "GY_EXT_CHAT", ...res },
+      window.location.origin,
+    );
+  }
 });

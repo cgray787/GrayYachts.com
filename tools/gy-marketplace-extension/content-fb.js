@@ -98,9 +98,37 @@ async function fillAndSend(body) {
     : { ok: false, reason: "Clicked Send but the box still has text — verify manually." };
 }
 
+function readVisibleChat() {
+  if (!location.pathname.startsWith("/messages/")) {
+    return { ok: false, reason: "This is not a Messenger thread." };
+  }
+  if (blocked()) return { ok: false, reason: "Facebook is showing a block/verification screen — stopped." };
+  const root = document.querySelector("[role='main']") || document.body;
+  const candidates = [
+    ...root.querySelectorAll("[data-ad-rendering-role='story_message'], [role='row'], [dir='auto']"),
+  ];
+  const seen = new Set();
+  const messages = [];
+  for (const node of candidates) {
+    if (node.offsetParent === null) continue;
+    const text = (node.innerText || node.textContent || "").trim();
+    if (!text || text.length > 2500 || seen.has(text)) continue;
+    if (/^(Chats|Search Messenger|Marketplace|Send a message|Enter)$/i.test(text)) continue;
+    seen.add(text);
+    const label = (node.getAttribute("aria-label") || "").toLowerCase();
+    const who = label.includes("you sent") || label.startsWith("you:") ? "You" : "Seller";
+    messages.push(`[${who}] ${text}`);
+  }
+  if (!messages.length) return { ok: false, reason: "No visible message text found. Open the thread and try again." };
+  return { ok: true, count: messages.length, transcript: messages.join("\n\n") };
+}
+
 chrome.runtime.onMessage.addListener((msg, _s, reply) => {
   if (msg?.type === "GY_SEND") {
     fillAndSend(msg.body).then(reply);
     return true;
+  }
+  if (msg?.type === "GY_READ_CHAT") {
+    reply(readVisibleChat());
   }
 });

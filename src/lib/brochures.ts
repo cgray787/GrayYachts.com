@@ -17,6 +17,44 @@ export type BrochureContent = {
 };
 
 export const brochures: Record<string, BrochureContent> = {
+  poulsbo: {
+    slug: "poulsbo",
+    tagline: {
+      lead: "A",
+      emphasis: "high-speed aluminum research platform",
+      tail: "— jet driven, survey equipped, shallow-water capable.",
+    },
+    specStrip: [
+      { value: "38' × 12'", label: "Length & Beam" },
+      { value: "1,100hp", label: "Twin Gas Power" },
+      { value: "40 kt", label: "Cruise Speed" },
+      { value: "500 mi", label: "Range" },
+      { value: "2,000 lb", label: "A-Frame Capacity" },
+    ],
+    narrative: [
+      "R/V Poulsbo is a custom 38-foot welded-aluminum patrol and research vessel engineered for sampling, survey, and support work across Puget Sound. Her hull and propulsion package pair offshore strength with the shallow-water access demanded by nearshore field operations.",
+      "Twin 550-horsepower gasoline engines drive waterjets for 1,100 total horsepower, a 40-knot cruise, and close-quarters control without exposed propellers. Five hundred gallons of fuel support an estimated 500-mile range, giving crews the speed and endurance to move between distant work sites in a single operating window.",
+      "The stern working deck centers on a hydraulic A-frame and custom research winch rated for equipment deployments up to 2,000 pounds. The arrangement supports towed video and side-scan sonar, while dedicated bow and stern pole mounts are configured for multibeam and sub-bottom survey equipment. Three-phase power is available for vibracoring and ROV operations.",
+      "Inside, a full cabin provides protected work space, a dinette, crew berths, an enclosed head, and a survey-ready main helm. Radar, VHF, chartplotter, survey sonar, and a Trimble 461 RTK GPS system are joined by inverter and solar systems that provide clean power for sensitive electronics. Offered at $300,000 and available for inspection by appointment.",
+    ],
+    highlights: [
+      "Custom welded-aluminum patrol / research vessel",
+      "Twin 550hp gasoline engines — 1,100hp total",
+      "Waterjet propulsion — offshore & shallow-water capable",
+      "40-knot cruise · estimated 500-mile range",
+      "500-gallon gasoline capacity",
+      "Hydraulic stern A-frame — 2,000 lb capacity",
+      "Custom research winch",
+      "Towed video & side-scan sonar deployment setup",
+      "Bow & stern sonar pole mounts",
+      "Multibeam & sub-bottom survey configured",
+      "Three-phase power for vibracoring and ROVs",
+      "Radar, VHF, chartplotter & Trimble 461 RTK GPS",
+      "Inverter and solar clean-power system",
+      "Crew berths, work space, heater & enclosed head",
+    ],
+    photoCredit: "Puget Sound, WA",
+  },
   "playa-linda": {
     slug: "playa-linda",
     tagline: {

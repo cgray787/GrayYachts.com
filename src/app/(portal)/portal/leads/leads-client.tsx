@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   XCircle,
   Send,
   Radio,
+  Flame,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -31,10 +33,11 @@ import {
 } from "@/lib/fb-leads";
 import { setStage, logSent, logReply, saveNote } from "./actions";
 
-type Tab = "action" | "waiting" | "queue" | "dead" | "all";
+type Tab = "action" | "hot" | "waiting" | "queue" | "dead" | "all";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "action", label: "Needs You" },
+  { key: "hot", label: "Hot Leads" },
   { key: "waiting", label: "Waiting" },
   { key: "queue", label: "Not Contacted" },
   { key: "dead", label: "Dead" },
@@ -43,76 +46,6 @@ const TABS: { key: Tab; label: string }[] = [
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
-/**
- * True once the Gray Yachts Marketplace extension announces itself.
- *
- * A page on grayyachts.com cannot script facebook.com — same-origin policy
- * forbids it. The extension is the only thing that can act in both places, so
- * the button checks for it and degrades to copy-and-open when it is absent.
- */
-function useMarketplaceExtension() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const onMsg = (e: MessageEvent) => {
-      if (e.source !== window) return;
-      const d = e.data as { source?: string; type?: string; ok?: boolean };
-      if (d?.source === "gy-ext" && (d.type === "GY_EXT_READY" || d.type === "GY_EXT_PONG")) {
-        // Latch on. With repeated pings a single failed reply must not undo a
-        // successful handshake.
-        if (d.type === "GY_EXT_READY" || d.ok) setReady(true);
-      }
-    };
-    window.addEventListener("message", onMsg);
-    // Retry the handshake: the content script injects at document_idle, which
-    // can land either side of React mounting. A single ping loses that race
-    // about half the time and the button silently drops to copy-and-paste.
-    const timers = [0, 300, 1000, 2500, 5000].map((ms) =>
-      window.setTimeout(
-        () => window.postMessage({ source: "gy-portal", type: "GY_EXT_PING" }, window.location.origin),
-        ms,
-      ),
-    );
-    return () => {
-      timers.forEach(window.clearTimeout);
-      window.removeEventListener("message", onMsg);
-    };
-  }, []);
-  return ready;
-}
-
-/** Ask the extension to send; resolves with the outcome. */
-function sendViaExtension(
-  url: string,
-  body: string,
-): Promise<{ ok: boolean; reason?: string }> {
-  return new Promise((resolve) => {
-    const requestId = Math.random().toString(36).slice(2);
-    const timer = window.setTimeout(
-      () => resolve({ ok: false, reason: "Extension did not respond." }),
-      120_000,
-    );
-    const onMsg = (e: MessageEvent) => {
-      if (e.source !== window) return;
-      const d = e.data as {
-        source?: string;
-        type?: string;
-        requestId?: string;
-        ok?: boolean;
-        reason?: string;
-      };
-      if (d?.source === "gy-ext" && d.type === "GY_EXT_SENT" && d.requestId === requestId) {
-        window.clearTimeout(timer);
-        window.removeEventListener("message", onMsg);
-        resolve({ ok: !!d.ok, reason: d.reason });
-      }
-    };
-    window.addEventListener("message", onMsg);
-    window.postMessage(
-      { source: "gy-portal", type: "GY_EXT_SEND", requestId, url, body },
-      window.location.origin,
-    );
-  });
-}
 
 /**
  * Lead thumbnail — the RIGHT boat or no boat.
@@ -193,38 +126,20 @@ function SendStepButton({
 }) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const extReady = useMarketplaceExtension();
+  const [readyToLog, setReadyToLog] = useState(false);
   if (!step || !step.body) return null;
 
-  const verb =
+  const sentLabel =
     step.step === "Opener"
-      ? "Send the opener"
+      ? "I sent the opener"
       : step.step === "If private seller"
-        ? "Send the pitch"
+        ? "I sent the pitch"
         : step.step === "No reply"
-          ? "Send the nudge"
-          : "Send the terms";
+          ? "I sent the nudge"
+          : "I sent the terms";
 
   async function go() {
-    // Extension present: it really sends, inside Connor's own FB session.
-    if (extReady) {
-      setSending(true);
-      setStatus("Opening the listing and sending…");
-      const res = await sendViaExtension(lead.url, step!.body);
-      setSending(false);
-      if (res.ok) {
-        setStatus("Sent on Marketplace.");
-        onSend(lead.listing_id, step!.step, step!.body);
-      } else {
-        // Deliberately do NOT log a checkpoint — nothing went out, and a
-        // lead wrongly marked "contacted" is worse than one still queued.
-        setStatus(res.reason || "Could not send — nothing was logged.");
-      }
-      return;
-    }
-
-    // No extension: copy + open, Connor pastes.
+    // Keep the account human-operated: copy + open, then Connor pastes.
     //
     // Open FIRST. window.open() must run synchronously inside the click
     // handler — awaiting the clipboard spends the user-activation token and
@@ -243,19 +158,31 @@ function SendStepButton({
         "Chrome blocked the pop-up. Allow pop-ups for grayyachts.com, or use OPEN LISTING below.",
       );
     }
-    onSend(lead.listing_id, step!.step, step!.body);
+    setReadyToLog(true);
   }
 
   return (
     <div className="mt-3">
-      <button
-        type="button"
-        onClick={go}
-        disabled={pending || sending}
-        className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
-      >
-        {sending ? "SENDING…" : pending ? "LOGGING…" : verb.toUpperCase()} →
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={go}
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover disabled:opacity-60"
+        >
+          COPY &amp; OPEN →
+        </button>
+        {readyToLog && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSend(lead.listing_id, step!.step, step!.body)}
+            className="rounded-md border border-emerald-400/40 px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-emerald-300 hover:bg-emerald-400/10 disabled:opacity-60"
+          >
+            {pending ? "LOGGING…" : sentLabel.toUpperCase()}
+          </button>
+        )}
+      </div>
       <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
         {status ? (
           <span className="text-gold">{status}</span>
@@ -263,10 +190,8 @@ function SendStepButton({
           <span className="text-gold">
             Copied. Paste into the Marketplace thread that just opened, then send.
           </span>
-        ) : extReady ? (
-          <>Sends on Marketplace for you, then marks it sent.</>
         ) : (
-          <>Copies the message, opens the listing, and marks it sent.</>
+          <>Copies the message and opens the listing. You confirm only after sending it.</>
         )}
       </p>
     </div>
@@ -424,7 +349,11 @@ function LeadCard({
                 <p className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-text-primary">
                   {lead.ask_label ?? (lead.ask ? money(lead.ask) : "—")}
                 </p>
-                <h3 className="mt-0.5 text-sm font-medium text-text-primary">{lead.title}</h3>
+                <h3 className="mt-0.5 text-sm font-medium text-text-primary">
+                  <Link href={`/portal/leads/${lead.listing_id}`} className="hover:text-gold">
+                    {lead.title}
+                  </Link>
+                </h3>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3 w-3" /> {lead.location}
@@ -438,6 +367,11 @@ function LeadCard({
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5">
+              {lead.is_hot && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-400/15 px-2.5 py-0.5 text-xs font-medium text-orange-300">
+                  <Flame className="h-3 w-3" /> Hot
+                </span>
+              )}
               <span className={stagePillCls(lead.stage)}>{STAGE_LABEL[lead.stage]}</span>
               {verdict && <span className={verdict.cls}>{verdict.text}</span>}
             </div>
@@ -547,8 +481,8 @@ function LeadCard({
             )}
             {terms && !dead && (
               <span className="text-xs tabular-nums text-text-secondary">
-                Relist {money(terms.relistAt)} · you {money(terms.commission)} · seller nets{" "}
-                {money(terms.sellerNets)}
+                Ask {money(terms.relistAt)} · 10% commission {money(terms.commission)} · estimated
+                proceeds {money(terms.sellerNets)} before negotiation and closing costs
               </span>
             )}
           </div>
@@ -724,6 +658,9 @@ export default function LeadsClient({
       // much as one that replied. Waiting excludes anything that has aged
       // into Needs You, so a lead never appears in both.
       action: byRank.filter((l) => needsYou(l).need),
+      hot: byRank.filter(
+        (l) => l.is_hot && !DEAD_STAGES.includes(l.stage) && l.stage !== "won",
+      ),
       waiting: byRank.filter(
         (l) => WAITING_STAGES.includes(l.stage) && !needsYou(l).need,
       ),
@@ -757,7 +694,7 @@ export default function LeadsClient({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-text-primary lg:text-4xl">
-            FB Marketplace Leads
+            All FB leads
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
             FSBO yacht sellers · Portland OR → Alaska · $150K–$2M

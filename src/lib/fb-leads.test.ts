@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { queuePriority, isServicable, type FbLead } from "./fb-leads";
+import {
+  dealTerms,
+  liveStep,
+  messageScript,
+  nextAction,
+  queuePriority,
+  isServicable,
+  todaysQueue,
+  visibleQueue,
+  type FbLead,
+} from "./fb-leads";
+import { facebookListingId } from "./facebook-marketplace";
 
 const lead = (over: Partial<FbLead>): FbLead =>
   ({
@@ -69,6 +80,12 @@ describe("queuePriority", () => {
     const replied = lead({ ask: 150000, stage: "replied", next_touch_at: daysAgo(1) });
     expect(queuePriority(replied)).toBeGreaterThan(queuePriority(stale));
   });
+
+  it("ranks an explicitly hot lead above an otherwise identical lead", () => {
+    const hot = lead({ is_hot: true, next_touch_at: daysAgo(1) });
+    const normal = lead({ is_hot: false, next_touch_at: daysAgo(1) });
+    expect(queuePriority(hot)).toBeGreaterThan(queuePriority(normal));
+  });
 });
 
 describe("isServicable", () => {
@@ -94,9 +111,103 @@ describe("isServicable", () => {
     );
   });
 
+  it("rejects won and research-disqualified rows from the private-sale queue", () => {
+    expect(isServicable(lead({ stage: "won" }))).toBe(false);
+    expect(
+      isServicable(lead({ disqualify_reason: "Already broker-represented" })),
+    ).toBe(false);
+  });
+
+  it("rejects an explicitly broker-listed row from the private-sale queue", () => {
+    expect(isServicable(lead({ is_broker_listed: true }))).toBe(false);
+  });
+
   it("does not mistake 'Harbor' or 'Portland' for an Oregon suffix", () => {
     // The substring bug: '%OR%' matched Harbor/Portland and returned more
     // states than there were rows.
     expect(isServicable(lead({ location: "Harbor Springs, MI", ask: 200000 }))).toBe(false);
+  });
+});
+
+describe("messageScript", () => {
+  it("leads with the real YachtWorld access advantage instead of a phantom buyer", () => {
+    const script = messageScript(lead({ stage: "replied" }));
+    const pitch = script.find((step) => step.step === "If private seller")?.body ?? "";
+
+    expect(pitch).toContain("YachtWorld");
+    expect(pitch).toContain("professional photo and video");
+    expect(pitch).not.toContain("I may have a buyer");
+  });
+
+  it("does not inflate the ask or promise that the seller nets the full ask", () => {
+    expect(dealTerms(500_000)).toEqual({
+      relistAt: 500_000,
+      commission: 50_000,
+      sellerNets: 450_000,
+    });
+  });
+
+  it("explains the co-broke structure without making a guaranteed-net promise", () => {
+    const terms = messageScript(lead({ ask: 500_000 }))
+      .find((step) => step.step === "Terms")?.body ?? "";
+
+    expect(terms).toContain("10% total commission");
+    expect(terms).toContain("5% reserved for the buyer's broker");
+    expect(terms).not.toContain("your full asking price");
+  });
+
+  it("does not jump from an unanswered nudge directly to terms", () => {
+    expect(liveStep(lead({ stage: "nudged" }))).toBe(-1);
+  });
+
+  it("routes a pitch reply to a personal response instead of replaying the pitch", () => {
+    const pitchReply = lead({ stage: "pitch_replied" });
+    expect(liveStep(pitchReply)).toBe(-1);
+    expect(nextAction(pitchReply)).toContain("personally");
+  });
+});
+
+describe("todaysQueue", () => {
+  it("keeps only due, workable leads and orders the warmest opportunity first", () => {
+    const now = new Date("2026-08-20T12:00:00Z").getTime();
+    const due = new Date(now - 86_400_000).toISOString();
+    const future = new Date(now + 86_400_000).toISOString();
+    const leads = [
+      lead({ listing_id: "silent", next_touch_at: due }),
+      lead({ listing_id: "reply", stage: "replied", next_touch_at: due }),
+      lead({ listing_id: "future", next_touch_at: future }),
+      lead({ listing_id: "alaska", location: "Juneau, AK", next_touch_at: due }),
+      lead({ listing_id: "closed", stage: "dead", next_touch_at: due }),
+    ];
+
+    expect(todaysQueue(leads, now).map((item) => item.listing_id)).toEqual([
+      "reply",
+      "silent",
+    ]);
+  });
+
+  it("derives from refreshed props while keeping completed cards dismissed", () => {
+    const now = new Date("2026-08-20T12:00:00Z").getTime();
+    const due = new Date(now - 86_400_000).toISOString();
+    const refreshed = [
+      lead({ listing_id: "done", next_touch_at: due }),
+      lead({ listing_id: "newly-due", next_touch_at: due }),
+    ];
+
+    expect(visibleQueue(refreshed, ["done"], now).map((item) => item.listing_id)).toEqual([
+      "newly-due",
+    ]);
+  });
+});
+
+describe("facebookListingId", () => {
+  it("extracts a Marketplace item id from a pasted Facebook URL", () => {
+    expect(
+      facebookListingId("https://www.facebook.com/marketplace/item/1229456801958441/?ref=share"),
+    ).toBe("1229456801958441");
+  });
+
+  it("rejects non-Marketplace Facebook URLs", () => {
+    expect(facebookListingId("https://www.facebook.com/messages/t/123")).toBeNull();
   });
 });

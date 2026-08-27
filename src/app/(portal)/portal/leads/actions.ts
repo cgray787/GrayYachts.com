@@ -8,7 +8,7 @@ import { isAdmin } from "@/lib/admin";
 import { STAGES, type LeadStage } from "@/lib/fb-leads";
 
 /** Every mutation re-checks the caller. Server actions are public endpoints —
- *  the page-level gate does not protect them. */
+ * the page-level gate does not protect them. */
 async function requireAdmin() {
   const supabase = await createClient();
   const {
@@ -46,24 +46,15 @@ export async function setStage(listingId: string, stage: string) {
 export async function logSent(listingId: string, step: string, body: string) {
   await requireAdmin();
   const db = createAdminClient();
+  const { error } = await db.rpc("fb_lead_log_sent", {
+    p_listing_id: listingId,
+    p_step: step,
+    p_body: body,
+  });
+  if (error) throw new Error(error.message);
 
-  const { error: msgError } = await db
-    .from("fb_lead_messages")
-    .insert({ listing_id: listingId, direction: "out", step, body });
-  if (msgError) throw new Error(msgError.message);
-
-  const stage: LeadStage =
-    step === "Opener"
-      ? "opener_sent"
-      : step === "If private seller"
-        ? "pitch_sent"
-        : step === "No reply"
-          ? "nudged"
-          : step === "Terms"
-            ? "terms_sent"
-            : "opener_sent";
-
-  await setStage(listingId, stage);
+  revalidatePath("/portal/leads");
+  revalidatePath("/portal/leads/all");
 }
 
 /**
@@ -95,4 +86,40 @@ export async function saveNote(listingId: string, note: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/portal/leads");
+}
+
+export async function snooze(listingId: string, days: number) {
+  await requireAdmin();
+  if (!Number.isInteger(days) || days < 1 || days > 365) throw new Error("bad snooze");
+
+  const until = new Date(Date.now() + days * 86_400_000).toISOString();
+  const db = createAdminClient();
+  const { error } = await db
+    .from("fb_leads")
+    .update({ next_touch_at: until, touch_reason: `Snoozed ${days}d` })
+    .eq("listing_id", listingId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/portal/leads");
+}
+
+const CLOSE_REASONS = ["broker", "not_interested", "sold_elsewhere", "won"] as const;
+
+export async function closeLead(listingId: string, reason: string) {
+  await requireAdmin();
+  if (!CLOSE_REASONS.includes(reason as (typeof CLOSE_REASONS)[number])) {
+    throw new Error(`bad close reason: ${reason}`);
+  }
+
+  const stage: LeadStage =
+    reason === "won" ? "won" : reason === "broker" ? "broker_dead" : "dead";
+  const db = createAdminClient();
+  const { error } = await db
+    .from("fb_leads")
+    .update({ closed_reason: reason, stage })
+    .eq("listing_id", listingId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/portal/leads");
+  revalidatePath("/portal/leads/all");
 }

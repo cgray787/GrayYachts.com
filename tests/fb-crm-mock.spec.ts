@@ -32,9 +32,9 @@ test("queue shows real leads with a reason and a ready message", async ({ page }
   // deal-terms line and again in the digest, so an unscoped getByText is
   // ambiguous under strict mode.
   const first = cards.first();
-  await expect(first.locator(".ask")).toHaveText("$750,000");
-  await expect(first.locator(".boat")).toContainText("JR Marine");
-  await expect(first.locator(".pill")).toHaveText("8 days overdue");
+  await expect(first.locator(".ask")).toHaveText("$389,000");
+  await expect(first.locator(".boat")).toContainText("Jeanneau");
+  await expect(first.locator(".pill")).toHaveText("due today");
 
   // Every card must carry the "why" and a copyable message — without those the
   // queue is just a list, which is the thing this design exists to avoid.

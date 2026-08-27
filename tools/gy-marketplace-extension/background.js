@@ -66,6 +66,20 @@ async function sendOpener({ url, body }) {
   }
 }
 
+async function importChat({ url }) {
+  if (!/^https:\/\/(www\.|web\.)?facebook\.com\/messages\//i.test(url || "")) {
+    return { ok: false, reason: "Paste a Facebook Messenger thread URL." };
+  }
+  const tab = await chrome.tabs.create({ url, active: false });
+  try {
+    await waitForTab(tab.id);
+    const res = await chrome.tabs.sendMessage(tab.id, { type: "GY_READ_CHAT" });
+    return res?.ok ? res : { ok: false, reason: res?.reason || "Could not read the chat." };
+  } catch (e) {
+    return { ok: false, reason: String(e.message || e) };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg?.type === "GY_SEND_OPENER") {
     sendOpener(msg).then(reply);
@@ -75,6 +89,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     getState().then((s) =>
       reply({ ok: true, version: chrome.runtime.getManifest().version, sentToday: s.sent, cap: DAILY_CAP }),
     );
+    return true;
+  }
+  if (msg?.type === "GY_IMPORT_CHAT") {
+    importChat(msg).then(reply);
     return true;
   }
 });

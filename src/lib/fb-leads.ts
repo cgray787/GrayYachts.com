@@ -13,6 +13,7 @@ export const STAGES = [
   "opener_sent",
   "replied",
   "pitch_sent",
+  "pitch_replied",
   "nudged",
   "terms_sent",
   "negotiating",
@@ -57,6 +58,17 @@ export type FbLead = {
   touch_reason: string | null;
   touch_count: number;
   closed_reason: string | null;
+  is_hot: boolean;
+  hot_since: string | null;
+  image_path: string | null;
+  reminder_email_id: string | null;
+  reminder_scheduled_at: string | null;
+  listing_description: string | null;
+  messenger_url: string | null;
+  seller_profile_url: string | null;
+  is_broker_listed: boolean;
+  broker_name: string | null;
+  scraped_at: string | null;
   seller_phone?: string | null;
   thread_id?: string | null;
   listed_at?: string | null;
@@ -80,6 +92,7 @@ export const STAGE_LABEL: Record<LeadStage, string> = {
   opener_sent: "Opener sent — awaiting reply",
   replied: "Replied — needs your move",
   pitch_sent: "Pitch sent",
+  pitch_replied: "Pitch replied — respond personally",
   nudged: "Nudged",
   terms_sent: "Terms sent",
   negotiating: "Negotiating",
@@ -89,7 +102,7 @@ export const STAGE_LABEL: Record<LeadStage, string> = {
 };
 
 export const DEAD_STAGES: LeadStage[] = ["broker_dead", "dead"];
-export const ACTION_STAGES: LeadStage[] = ["replied", "negotiating"];
+export const ACTION_STAGES: LeadStage[] = ["replied", "pitch_replied", "negotiating"];
 export const WAITING_STAGES: LeadStage[] = ["opener_sent", "pitch_sent", "nudged", "terms_sent"];
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -147,12 +160,14 @@ export function nextAction(lead: FbLead): string | null {
       return "Private seller confirmed — send the pitch";
     case "pitch_sent":
       return "Waiting — send “Thoughts?” if it goes quiet";
+    case "pitch_replied":
+      return "Respond personally — qualify their goals and timing";
     case "nudged":
-      return "Waiting on reply";
+      return "Waiting on reply — long-tail follow-up stays automatic";
     case "terms_sent":
-      return "Waiting on their answer to 5% / 5%";
+      return "Waiting on their answer to the listing plan";
     case "negotiating":
-      return "Close it";
+      return "Work through the listing terms";
     default:
       return null;
   }
@@ -160,14 +175,14 @@ export function nextAction(lead: FbLead): string | null {
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString();
 
-/** Relist 5% over ask; 5% commission off the current listing price; seller nets
- *  their full original ask. */
+/** Conventional 10% listing commission at the seller's current ask. Half is
+ * reserved for the buyer's broker so the co-broke network is paid to show it. */
 export function dealTerms(ask: number | null) {
   if (!ask) return null;
   return {
-    relistAt: Math.round((ask * 1.05) / 1000) * 1000,
-    commission: Math.round(ask * 0.05),
-    sellerNets: ask,
+    relistAt: ask,
+    commission: Math.round(ask * 0.1),
+    sellerNets: Math.round(ask * 0.9),
   };
 }
 
@@ -180,19 +195,21 @@ export function messageScript(lead: FbLead): ScriptStep[] {
     {
       step: "If private seller",
       body:
-        "Solid boat. Quick question are you firm on the price or open to the right buyer? I'm with Jeff Brown Yachts & GrayYachts.\n" +
-        "We work in the premium marine market out in the PNW.\n" +
-        "I may have a buyer interested",
+        "Thanks for confirming. Private sellers can't list directly on YachtWorld — that's one place I can materially widen the buyer pool for you.\n" +
+        "I'm with Jeff Brown Yachts and Gray Yachts in the PNW, and I also handle the professional photo and video package.\n" +
+        "Would you be open to a quick conversation about what I would do differently to market the boat?",
     },
     { step: "No reply", body: "Thoughts?" },
     {
       step: "Terms",
       body: t
-        ? `Here's how I'd structure it — I'd price the boat higher to factor in an extra 5%, so it lists at ${money(
+        ? `Here's how I'd structure it: keep the working price at ${money(
             t.relistAt
-          )}. My commission is 5%, taken off your current listing price. You'd net ${money(
+          )} with a 10% total commission — 5% reserved for the buyer's broker so the co-broke network is motivated to show the boat. At that price, before negotiation and closing costs, commission would be ${money(
+            t.commission
+          )} and estimated seller proceeds would be ${money(
             t.sellerNets
-          )} — your full asking price. Let me know if this is something that would work for you?`
+          )}. Would you be open to reviewing the full marketing plan and listing terms together?`
         : "",
     },
   ];
@@ -203,12 +220,12 @@ export function liveStep(lead: FbLead): number {
   if (lead.stage === "new") return 0;
   if (lead.stage === "replied") return 1;
   if (lead.stage === "pitch_sent") return 2;
-  if (lead.stage === "nudged") return 3;
   return -1;
 }
 
 const STAGE_WEIGHT: Partial<Record<LeadStage, number>> = {
   replied: 4,
+  pitch_replied: 4,
   negotiating: 4,
   terms_sent: 2,
   pitch_sent: 1.5,
@@ -237,7 +254,8 @@ export function queuePriority(lead: FbLead, now: number = Date.now()): number {
   const urgency = 1 + Math.sqrt(overdueDays);
   const value = Math.log10(Math.max(lead.ask ?? 1, 1));
   const weight = STAGE_WEIGHT[lead.stage] ?? 1;
-  return urgency * value * weight;
+  const hot = lead.is_hot ? 2 : 1;
+  return urgency * value * weight * hot;
 }
 
 /** State parsed from the location SUFFIX. A substring test also matches
@@ -257,8 +275,40 @@ export function leadState(location: string | null): "AK" | "WA" | "OR" | null {
  * highest-value leads researched were already on YachtWorld). Not closed.
  */
 export function isServicable(lead: FbLead): boolean {
-  if (DEAD_STAGES.includes(lead.stage) || lead.closed_reason) return false;
+  if (
+    DEAD_STAGES.includes(lead.stage) ||
+    lead.stage === "won" ||
+    lead.is_broker_listed ||
+    lead.closed_reason ||
+    lead.disqualify_reason
+  ) {
+    return false;
+  }
   const st = leadState(lead.location);
   if (st !== "WA" && st !== "OR") return false;
   return (lead.ask ?? 0) > 0 && (lead.ask ?? 0) < 500_000;
+}
+
+/** The actual home-screen workload: due now, workable from the PNW, warmest
+ * opportunity first. Future, closed and geographically impractical rows stay
+ * available in the full list without turning the home screen into a database. */
+export function todaysQueue(leads: FbLead[], now: number = Date.now()): FbLead[] {
+  return leads
+    .filter((lead) => {
+      if (!lead.next_touch_at || !isServicable(lead)) return false;
+      const dueAt = new Date(lead.next_touch_at).getTime();
+      return Number.isFinite(dueAt) && dueAt <= now;
+    })
+    .sort((a, b) => queuePriority(b, now) - queuePriority(a, now));
+}
+
+/** Re-derive from each refreshed server payload while retaining the immediate
+ * optimistic dismissal of cards already completed in this browser. */
+export function visibleQueue(
+  leads: FbLead[],
+  dismissedListingIds: string[],
+  now: number = Date.now(),
+): FbLead[] {
+  const dismissed = new Set(dismissedListingIds);
+  return todaysQueue(leads, now).filter((lead) => !dismissed.has(lead.listing_id));
 }
