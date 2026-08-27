@@ -50,3 +50,4 @@ supabase/.temp/
 .claude/worktrees/
 test-results/
 playwright-report/
+/.wrangler/
