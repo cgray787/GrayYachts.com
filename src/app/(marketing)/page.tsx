@@ -161,16 +161,24 @@ export default function HomePage() {
           <motion.p
             variants={fadeUp}
             custom={2}
-            className="mt-8 max-w-xl text-sm leading-relaxed text-text-secondary sm:text-base"
+            className="mt-8 max-w-2xl font-[family-name:var(--font-cormorant)] text-2xl font-light leading-snug text-text-primary sm:text-3xl md:text-4xl"
           >
-            Browse the fleet, build a shortlist, and compare any two yachts on
-            the market side by side. No account, no gatekeeping — just the
-            numbers you need to choose the right boat.
+            Find and compare yachts of your liking.
+          </motion.p>
+
+          <motion.p
+            variants={fadeUp}
+            custom={3}
+            className="mt-5 max-w-xl text-sm leading-relaxed text-text-secondary sm:text-base"
+          >
+            Browse the fleet, build a shortlist, and put any two boats side by
+            side. No account, no gatekeeping — just the numbers you need to
+            choose the right one.
           </motion.p>
 
           <motion.div
             variants={fadeUp}
-            custom={3}
+            custom={4}
             className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
           >
             <Link
