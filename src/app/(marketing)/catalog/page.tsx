@@ -9,7 +9,8 @@ import {
   Plus,
   Ship,
 } from "lucide-react";
-import { CatalogCard } from "@/components/portal/catalog-card";
+import { CatalogCard } from "@/components/yachts/catalog-card";
+import { ToolShell } from "@/components/yachts/tool-shell";
 import {
   loadCatalog,
   saveCatalog,
@@ -23,7 +24,7 @@ import {
  * they've pulled in from YachtWorld, BoatTrader, brokerage URLs, etc.
  *
  * This page manages the catalog (add / list / remove). Comparison happens
- * on /portal/compare-yachts; clicking LEFT or RIGHT here pins the yacht to
+ * on /compare; clicking LEFT or RIGHT here pins the yacht to
  * that slot and routes to the comparison page so the cards render
  * immediately.
  */
@@ -142,12 +143,27 @@ export default function YachtCatalogPage() {
         setRightId(yachtId);
       }
     }
-    router.push("/portal/compare-yachts");
+    router.push("/compare");
   };
+
+  // See ToolShell: localStorage is invisible to the server, so hold off on
+  // rendering the catalog until the client has mounted.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  if (!hydrated) {
+    return (
+      <ToolShell
+        title="Yacht Catalog"
+        description="Your personal collection of yacht listings. Add yachts from any broker URL, then pin them for a side-by-side comparison."
+        maxWidth="max-w-5xl"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <div className="mx-auto max-w-5xl px-6 py-12 sm:px-10">
+      <div className="mx-auto max-w-5xl px-6 pb-24 pt-32 sm:px-10">
         {/* ── Header ── */}
         <div className="mb-10">
           <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-light tracking-wide text-text-primary sm:text-5xl">

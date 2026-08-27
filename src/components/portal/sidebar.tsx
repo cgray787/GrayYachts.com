@@ -30,12 +30,12 @@ const navItems = [
   },
   {
     label: "Yacht Catalog",
-    href: "/portal/yacht-catalog",
+    href: "/catalog",
     icon: Ship,
   },
   {
     label: "Compare Yachts",
-    href: "/portal/compare-yachts",
+    href: "/compare",
     icon: Columns2,
   },
   {
