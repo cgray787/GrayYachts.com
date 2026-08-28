@@ -39,10 +39,25 @@ const stagger = {
 /*  Data                                                               */
 /* ------------------------------------------------------------------ */
 
-const stats = [
-  { value: "$250M+", label: "VESSELS REPRESENTED" },
-  { value: "15+", label: "YEARS EXPERIENCE" },
-  { value: "PNW", label: "EXCLUSIVE TERRITORY" },
+const proofPoints = [
+  {
+    eyebrow: "BROKER-LED",
+    title: "Valuations grounded in the market",
+    description:
+      "Your estimate is reviewed against current listings and recent sold comps — not produced by a generic calculator.",
+  },
+  {
+    eyebrow: "BUILT TO BE SEEN",
+    title: "Cinematic listing presentation",
+    description:
+      "Professional photography, video, drone media, and digital walkthroughs give serious buyers a reason to engage.",
+  },
+  {
+    eyebrow: "PACIFIC NORTHWEST",
+    title: "Local knowledge, clear guidance",
+    description:
+      "Practical advice for the region's boats, buyers, marinas, and market — from first conversation through closing.",
+  },
 ];
 
 
@@ -58,8 +73,15 @@ export default function HomePage() {
       {/*  HERO                                                        */}
       {/* ============================================================ */}
       <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060a12] via-[#0a1422] to-[#0c1a2e]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#060a12_75%)]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/sell/img/hero.jpg"
+          alt="Motor yacht underway"
+          className="absolute inset-0 h-full w-full object-cover object-[58%_center]"
+        />
+        <div className="absolute inset-0 bg-[#040812]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#040812]/65 via-transparent to-[#060a12]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#040812]/65 via-transparent to-[#040812]/30" />
 
         <motion.div
           initial="hidden"
@@ -67,28 +89,29 @@ export default function HomePage() {
           variants={stagger}
           className="relative z-10 flex flex-col items-center px-6 text-center"
         >
-          <motion.h1
+          <motion.p
             variants={fadeUp}
             custom={0}
-            className="font-[family-name:var(--font-cormorant)] text-5xl font-light tracking-[0.3em] text-text-primary sm:text-7xl md:text-8xl"
+            className="text-[10px] font-semibold tracking-[0.38em] text-gold sm:text-xs"
           >
-            GRAY YACHTS
+            GRAY YACHTS · PACIFIC NORTHWEST
+          </motion.p>
+
+          <motion.h1
+            variants={fadeUp}
+            custom={1}
+            className="mt-6 max-w-5xl font-[family-name:var(--font-cormorant)] text-5xl font-light leading-[0.95] text-white sm:text-7xl md:text-8xl"
+          >
+            Buy well. Sell with confidence.
           </motion.h1>
 
           <motion.p
             variants={fadeUp}
-            custom={1}
-            className="mt-6 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
-          >
-            PACIFIC NORTHWEST&apos;S PREMIER YACHT EXPERIENCE
-          </motion.p>
-
-          <motion.p
-            variants={fadeUp}
             custom={2}
-            className="mt-8 max-w-2xl font-[family-name:var(--font-cormorant)] text-2xl font-light leading-snug text-text-primary sm:text-3xl md:text-4xl"
+            className="mt-7 max-w-2xl text-sm leading-relaxed text-white/75 sm:text-base md:text-lg"
           >
-            Explore the fleet, or find out what yours is worth.
+            Yacht brokerage and cinematic marketing for owners and buyers
+            across the Pacific Northwest.
           </motion.p>
 
           {/* Two paths, one per audience: buyers go to the fleet, owners go to
@@ -104,14 +127,14 @@ export default function HomePage() {
               className="inline-flex items-center justify-center gap-2.5 bg-gold px-9 py-4 text-[11px] font-semibold tracking-[0.25em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
             >
               <Ship size={14} />
-              EXPLORE YACHTS
+              BROWSE YACHTS
             </Link>
             <a
               href="/sell"
               className="inline-flex items-center justify-center gap-2.5 border border-gold/50 px-9 py-4 text-[11px] font-medium tracking-[0.25em] text-gold transition-all duration-300 hover:border-gold hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold"
             >
               <LineChart size={14} />
-              GET AN EVALUATION
+              VALUE MY YACHT
             </a>
           </motion.div>
 
@@ -120,7 +143,7 @@ export default function HomePage() {
             custom={4}
             className="mt-6 text-xs text-text-secondary"
           >
-            Free market valuation &middot; about 60 seconds &middot; no obligation
+            Broker-reviewed valuation &middot; about 60 seconds &middot; no obligation
           </motion.p>
         </motion.div>
 
@@ -173,9 +196,9 @@ export default function HomePage() {
             custom={2}
             className="mt-5 text-sm leading-relaxed text-text-secondary sm:text-base"
           >
-            Six quick questions and you will get a real Pacific Northwest
-            market valuation with recent sold comps — read by a working
-            broker, not generated by an algorithm.
+            Answer six quick questions and receive a Pacific Northwest market
+            opinion informed by current listings and recent sold comps —
+            reviewed by a broker, not generated by a generic calculator.
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3}>
@@ -183,7 +206,7 @@ export default function HomePage() {
               href="/sell"
               className="mt-9 inline-flex items-center gap-2.5 bg-gold px-9 py-3.5 text-[11px] font-semibold tracking-[0.25em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
             >
-              GET AN EVALUATION <ArrowRight size={14} />
+              VALUE MY YACHT <ArrowRight size={14} />
             </a>
           </motion.div>
 
@@ -232,31 +255,50 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/*  STATS                                                       */}
+      {/*  CREDIBILITY                                                 */}
       {/* ============================================================ */}
-      <section className="border-y border-border bg-bg-secondary py-24 px-6 lg:px-12">
+      <section className="border-y border-border bg-bg-primary py-24 px-6 lg:px-12">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
           variants={stagger}
-          className="mx-auto grid max-w-5xl gap-12 sm:grid-cols-3"
+          className="mx-auto max-w-6xl"
         >
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              variants={fadeUp}
-              custom={i}
-              className="text-center"
-            >
-              <p className="font-[family-name:var(--font-cormorant)] text-5xl font-light text-text-primary md:text-6xl">
-                {stat.value}
-              </p>
-              <p className="mt-3 text-[10px] tracking-[0.3em] text-text-secondary">
-                {stat.label}
-              </p>
-            </motion.div>
-          ))}
+          <motion.p
+            variants={fadeUp}
+            custom={0}
+            className="text-center text-[10px] tracking-[0.35em] text-gold"
+          >
+            THE GRAY YACHTS APPROACH
+          </motion.p>
+          <motion.h2
+            variants={fadeUp}
+            custom={1}
+            className="mt-4 text-center font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary sm:text-4xl"
+          >
+            Clear advice. Strong presentation. No guesswork.
+          </motion.h2>
+          <div className="mt-14 grid gap-px overflow-hidden border border-border bg-border md:grid-cols-3">
+            {proofPoints.map((point, i) => (
+              <motion.article
+                key={point.eyebrow}
+                variants={fadeUp}
+                custom={i + 2}
+                className="bg-bg-secondary p-8 sm:p-10"
+              >
+                <p className="text-[10px] font-semibold tracking-[0.25em] text-gold">
+                  {point.eyebrow}
+                </p>
+                <h3 className="mt-4 font-[family-name:var(--font-cormorant)] text-2xl font-light leading-tight text-text-primary">
+                  {point.title}
+                </h3>
+                <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+                  {point.description}
+                </p>
+              </motion.article>
+            ))}
+          </div>
         </motion.div>
       </section>
 
@@ -311,7 +353,7 @@ export default function HomePage() {
             custom={3}
             className="mt-2 text-sm tracking-wide text-gold"
           >
-            Premier Yacht Broker &middot; Pacific Northwest
+            Yacht Broker &middot; Pacific Northwest
           </motion.p>
 
           <motion.p
@@ -319,12 +361,10 @@ export default function HomePage() {
             custom={4}
             className="mt-6 text-sm leading-relaxed text-text-secondary"
           >
-            With over fifteen years navigating the Pacific Northwest marine
-            market, Connor Gray brings an unmatched combination of market
-            knowledge, cinematic marketing capability, and white-glove client
-            service to every engagement. Whether you&apos;re listing a vessel or
-            searching for your next acquisition, Gray Yachts delivers a
-            brokerage experience without parallel.
+            Connor Gray helps owners and buyers make clear, well-supported
+            decisions in the Pacific Northwest yacht market. Each engagement
+            combines responsive brokerage guidance with polished digital
+            presentation — from the first conversation through closing.
           </motion.p>
 
           <motion.div variants={fadeUp} custom={5}>
@@ -333,7 +373,7 @@ export default function HomePage() {
               className="mt-8 inline-flex items-center gap-2.5 bg-gold px-10 py-3.5 text-[11px] font-semibold tracking-[0.25em] text-bg-primary transition-colors duration-300 hover:bg-gold-hover"
             >
               <Phone size={14} />
-              CALL NOW
+              CALL CONNOR
             </a>
           </motion.div>
 

@@ -8,6 +8,7 @@ import { Menu, X, LogIn } from "lucide-react";
 const navLinks = [
   { label: "FLEET", href: "/fleet" },
   { label: "COMPARE", href: "/compare" },
+  { label: "SELL", href: "/sell", accent: true },
   { label: "CONTACT", href: "/#contact" },
 ];
 
@@ -51,7 +52,11 @@ export default function Navbar() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-[11px] font-medium tracking-[0.2em] text-text-secondary transition-colors duration-300 hover:text-text-primary"
+              className={`text-[11px] font-medium tracking-[0.2em] transition-colors duration-300 ${
+                link.accent
+                  ? "text-gold hover:text-gold-hover"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
             >
               {link.label}
             </Link>
@@ -94,7 +99,11 @@ export default function Navbar() {
                   key={link.label}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary"
+                  className={`text-[11px] font-medium tracking-[0.2em] ${
+                    link.accent
+                      ? "text-gold hover:text-gold-hover"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
                 >
                   {link.label}
                 </Link>
