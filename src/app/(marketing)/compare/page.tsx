@@ -21,6 +21,7 @@ import {
   loadCatalog,
   saveCatalog,
   scrapeYachtFromUrl,
+  compareKnownSpec,
   comparePrice,
 } from "@/lib/yacht-catalog";
 import { YachtImage } from "@/components/yachts/yacht-image";
@@ -33,12 +34,6 @@ import { CatalogStrip } from "@/components/yachts/catalog-strip";
 /* ------------------------------------------------------------------ */
 
 type Winner = "a" | "b" | "tie";
-
-function compareSpec(a: number, b: number, lowerIsBetter = false): Winner {
-  if (a === b) return "tie";
-  if (lowerIsBetter) return a < b ? "a" : "b";
-  return a > b ? "a" : "b";
-}
 
 interface SpecField {
   label: string;
@@ -278,7 +273,7 @@ function ComparisonTable({
 
             let winner: Winner | undefined;
             if (!field.isLocation && leftNum !== 0 && rightNum !== 0) {
-              winner = compareSpec(leftNum, rightNum, field.lowerIsBetter);
+              winner = compareKnownSpec(leftNum, rightNum, field.lowerIsBetter);
             }
 
             return (
@@ -428,8 +423,10 @@ function ComparisonCard({
             if (!field.isLocation && typeof yacht[field.numKey] === "number") {
               // Compare this card's value vs the other card's value
               // Result "a" means first arg wins => this card wins => side wins
-              const raw = compareSpec(myNum, otherNum, field.lowerIsBetter);
-              winner = raw === "a" ? side : raw === "b" ? (side === "a" ? "b" : "a") : "tie";
+              const raw = compareKnownSpec(myNum, otherNum, field.lowerIsBetter);
+              if (raw) {
+                winner = raw === "a" ? side : raw === "b" ? (side === "a" ? "b" : "a") : "tie";
+              }
             }
 
             return (

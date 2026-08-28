@@ -7,7 +7,11 @@ import {
   maxPlausibleSpeed,
   speedIsEnginePower,
 } from "@/lib/scrape-sanity";
-import { comparePrice } from "@/lib/yacht-catalog";
+import {
+  compareKnownSpec,
+  comparePrice,
+  formatCabinsAndGuests,
+} from "@/lib/yacht-catalog";
 
 /**
  * These lock down the rule the comparison card depends on: never show a number
@@ -318,5 +322,27 @@ describe("comparePrice — the double-(lower) bug", () => {
 
   it("is a tie on equal prices", () => {
     expect(comparePrice(500000, 500000)).toBe("tie");
+  });
+});
+
+describe("formatCabinsAndGuests", () => {
+  it("does not invent two guests per cabin when capacity is missing", () => {
+    expect(formatCabinsAndGuests(2, null)).toBe("2 cabins");
+  });
+
+  it("includes guest capacity only when the listing provides it", () => {
+    expect(formatCabinsAndGuests(2, 4)).toBe("2 cabins / 4 guests");
+  });
+});
+
+describe("compareKnownSpec", () => {
+  it("does not award a comparison win to an unknown zero placeholder", () => {
+    expect(compareKnownSpec(0, 1450, true)).toBeUndefined();
+    expect(compareKnownSpec(12, 0)).toBeUndefined();
+  });
+
+  it("compares two known values", () => {
+    expect(compareKnownSpec(500, 1450, true)).toBe("a");
+    expect(compareKnownSpec(20, 12)).toBe("a");
   });
 });

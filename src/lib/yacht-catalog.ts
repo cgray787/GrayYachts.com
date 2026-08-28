@@ -308,6 +308,27 @@ export function extractFirstNumber(text: string): number {
   return m ? parseFloat(m[1]) : 0;
 }
 
+export function formatCabinsAndGuests(
+  cabins: number | null,
+  guests: number | null,
+): string {
+  if (!cabins) return "N/A";
+  const cabinText = `${cabins} cabin${cabins === 1 ? "" : "s"}`;
+  if (!guests) return cabinText;
+  return `${cabinText} / ${guests} guest${guests === 1 ? "" : "s"}`;
+}
+
+export function compareKnownSpec(
+  a: number,
+  b: number,
+  lowerIsBetter = false,
+): "a" | "b" | "tie" | undefined {
+  if (!(a > 0) || !(b > 0)) return undefined;
+  if (a === b) return "tie";
+  if (lowerIsBetter) return a < b ? "a" : "b";
+  return a > b ? "a" : "b";
+}
+
 export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   // Check if URL matches a seed yacht (so demo URLs don't hit the API)
   const seed = SEED_YACHTS.find(
@@ -334,7 +355,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   const lengthFt = data.lengthFt ?? (data.lengthM ? Math.round(data.lengthM * 3.281 * 10) / 10 : null);
   const beamFt = data.beamFt ?? (data.beamM ? Math.round(data.beamM * 3.281 * 10) / 10 : null);
   const cabinsN = data.cabins ?? 0;
-  const guestsN = data.guests ?? (cabinsN ? cabinsN * 2 : 0);
+  const guestsN = data.guests ?? 0;
 
   return {
     id: `scraped-${Date.now()}-${Math.abs(hash)}`,
@@ -352,9 +373,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     beamNum: beamM ?? 0,
     maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
     maxSpeedNum: data.maxSpeed ?? 0,
-    cabins: cabinsN
-      ? `${cabinsN} cabin${cabinsN === 1 ? "" : "s"} / ${guestsN} guest${guestsN === 1 ? "" : "s"}`
-      : "N/A",
+    cabins: formatCabinsAndGuests(cabinsN || null, guestsN || null),
     cabinsNum: cabinsN,
     range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",
     rangeNum: data.range ?? 0,
