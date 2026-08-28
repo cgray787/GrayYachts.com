@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  extractListingTableFacts,
+  isUsableListingHtml,
+} from "@/lib/listing-html";
 import { runSanityChecks } from "@/lib/scrape-sanity";
 import type { ScrapedYacht } from "@/lib/scrape-sanity";
 
@@ -775,7 +779,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
         const firecrawlExtract = json?.data?.extract ?? null;
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
-        const validHtml = html.length > 500 && !html.includes("cf-challenge") ? html : null;
+        const validHtml = isUsableListingHtml(html) ? html : null;
         return { html: validHtml, markdown, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
       }
     } catch { /* fall through to other strategies */ }
@@ -787,12 +791,12 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
       headers: FETCH_HEADERS,
       signal: AbortSignal.timeout(8000),
     });
-    if (res.ok) {
-      const html = await res.text();
-      // Check for Cloudflare challenge pages
-      if (html.length > 500 && !html.includes("Just a moment...") && !html.includes("cf-challenge")) {
-        return { html };
-      }
+    const html = await res.text();
+    // Some listing sites return HTTP 403 while still rendering the complete
+    // listing. Judge the body, not the status code: boats.com includes its
+    // real spec tables alongside Cloudflare's injected challenge script.
+    if (isUsableListingHtml(html)) {
+      return { html };
     }
   } catch { /* try next */ }
 
@@ -808,7 +812,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
     });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500 && !html.includes("Target URL returned error")) {
+      if (isUsableListingHtml(html) && !html.includes("Target URL returned error")) {
         return { html };
       }
     }
@@ -822,7 +826,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
     });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500 && !html.includes("Just a moment...")) {
+      if (isUsableListingHtml(html)) {
         return { html };
       }
     }
@@ -1524,13 +1528,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
      such a page as if no HTML came back at all: the URL slug alone usually
      carries the real year, builder and model, so the fallback is better data
      than the challenge page could ever give. */
-  const challengeTitle = html ? extractTitle(html) : null;
-  const isChallengePage =
-    !!html &&
-    (/security verification|just a moment|are you a human|checking your browser|captcha|access denied|request blocked|enable javascript|attention required|403 forbidden|robot check/i.test(
-      challengeTitle ?? "",
-    ) ||
-      /cf-browser-verification|challenge-platform|px-captcha|_Incapsula_/i.test(html.slice(0, 6000)));
+  const isChallengePage = !!html && !isUsableListingHtml(html);
 
   if (isChallengePage) {
     console.warn("[scrape-yacht] blocked by a bot check, falling back to URL parsing:", url);
@@ -1538,6 +1536,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   }
 
   if (html) {
+    const tableFacts = extractListingTableFacts(html);
     const jsonLd = extractJsonLd(html);
     const og = extractOg(html);
     const title = extractTitle(html);
@@ -1549,27 +1548,27 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     htmlModel = nameData.model;
 
     const priceData = extractPrice(html, jsonLd);
-    htmlPrice = priceData.price;
-    htmlPriceNum = priceData.priceNum;
+    htmlPrice = tableFacts.price ?? priceData.price;
+    htmlPriceNum = tableFacts.priceNum ?? priceData.priceNum;
 
     const length = extractLength(html, jsonLd);
-    htmlLengthFt = length.ft;
-    htmlLengthM = length.m;
+    htmlLengthFt = tableFacts.lengthFt ?? length.ft;
+    htmlLengthM = htmlLengthFt ? ftToM(htmlLengthFt) : length.m;
 
     const beam = extractBeam(html);
-    htmlBeamFt = beam.ft;
-    htmlBeamM = beam.m;
+    htmlBeamFt = tableFacts.beamFt ?? beam.ft;
+    htmlBeamM = htmlBeamFt ? ftToM(htmlBeamFt) : beam.m;
 
-    htmlYear = extractYear(html, jsonLd);
+    htmlYear = tableFacts.year ?? extractYear(html, jsonLd);
     htmlSpeed = extractSpeed(html);
-    htmlCabins = extractCabins(html);
+    htmlCabins = tableFacts.cabins ?? extractCabins(html);
     htmlGuests = extractGuests(html);
     htmlRange = extractRange(html);
-    htmlEngine = extractEngine(html);
+    htmlEngine = tableFacts.engine ?? extractEngine(html);
     htmlEngineHours = extractEngineHours(html);
-    htmlLocation = extractLocation(html, jsonLd);
-    htmlImageUrl = extractImage(html, og, jsonLd);
-    htmlType = firstMatch(html,
+    htmlLocation = tableFacts.location ?? extractLocation(html, jsonLd);
+    htmlImageUrl = tableFacts.imageUrl ?? extractImage(html, og, jsonLd);
+    htmlType = tableFacts.type ?? firstMatch(html,
       /(?:boat|vessel|hull)\s*type[^>]*?[:\-]\s*([^<,]{3,30})/i,
       /(?:motor\s*yacht|sailing\s*yacht|catamaran|sportfish|trawler|center\s*console|flybridge|express)/i,
     );
@@ -1853,13 +1852,17 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
 
   const finalImageUrl = (() => {
-    // Firecrawl-only picture source:
+    // Verified picture sources only:
     //   1. Firecrawl og:image URL (proper hero photo from page metadata)
-    //   2. Firecrawl full-page screenshot (visual capture of the listing)
-    //   3. Branded Unsplash fallback
+    //   2. First gallery image from HTML that matched the listing URL
+    //   3. Firecrawl full-page screenshot (visual capture of the listing)
+    //   4. Branded Unsplash fallback
     const ogImage = fetchResult.firecrawlImageUrl;
     if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
       return ogImage;
+    }
+    if (htmlImageUrl && !/logo|icon|sprite|placeholder|default/i.test(htmlImageUrl)) {
+      return htmlImageUrl;
     }
     return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
   })();
@@ -1977,8 +1980,10 @@ export async function GET(request: NextRequest) {
      v2: reject site-brand names, uncorroborated years, implausible speeds,
          and isolated numbers on pages that are not single listings.
      v3: sail-aware speed ceiling, and reject a top speed that is really the
-         engine's horsepower read twice. */
-  const SCRAPE_LOGIC_VERSION = 3;
+         engine's horsepower read twice.
+     v4: accept complete rendered listing bodies that include challenge code,
+         and parse collapsed specification tables as structured facts. */
+  const SCRAPE_LOGIC_VERSION = 4;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });
