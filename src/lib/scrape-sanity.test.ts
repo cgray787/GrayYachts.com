@@ -6,7 +6,7 @@ import {
   hostBrandTokens,
   maxPlausibleSpeed,
   speedIsEnginePower,
-} from "@/app/api/scrape-yacht/route";
+} from "@/lib/scrape-sanity";
 import { comparePrice } from "@/lib/yacht-catalog";
 
 /**
