@@ -15,12 +15,13 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Gray Yachts — Pacific Northwest's Premier Yacht Experience",
+  metadataBase: new URL("https://grayyachts.com"),
+  title: "Gray Yachts — Pacific Northwest Yacht Brokerage",
   description:
     "Cinematic yacht brokerage in the Pacific Northwest. Sell-side advisory, buy-side representation, drone cinematography, and full-spectrum yacht services.",
   openGraph: {
     title: "Gray Yachts",
-    description: "Pacific Northwest's Premier Yacht Experience. Brokerage, cinematography, and full-spectrum yacht services.",
+    description: "Pacific Northwest yacht brokerage, cinematic listing presentation, and buyer representation.",
     url: "https://grayyachts.com",
     siteName: "Gray Yachts",
     locale: "en_US",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gray Yachts — Pacific Northwest's Premier Yacht Experience",
+    title: "Gray Yachts — Pacific Northwest Yacht Brokerage",
     description: "Cinematic yacht brokerage in the Pacific Northwest.",
   },
 };
