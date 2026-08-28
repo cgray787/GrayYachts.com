@@ -2001,7 +2001,16 @@ export function isSiteBrandName(name: string | null, host: string | null): boole
  * tri-deck reported at 80 knots is not a fast yacht, it is a number scraped
  * off the wrong part of the page.
  */
-export function maxPlausibleSpeed(lengthFt: number | null): number {
+export function maxPlausibleSpeed(
+  lengthFt: number | null,
+  type?: string | null,
+): number {
+  /* A sailing yacht is bounded by hull speed, not horsepower. A 44 ft cruiser
+     does about 7 knots and motors at about the same, so the planing-hull
+     ceilings below are meaningless for her — they let "56 knots" onto a Hunter
+     44's card. Nothing under sail in a brokerage listing exceeds ~20 kn. */
+  if (type && /sail|sloop|ketch|yawl|catamaran\s*sail|schooner/i.test(type)) return 20;
+
   // With no length there is nothing to sanity-check against, so hold the line
   // at roughly the fastest thing a brokerage actually lists.
   if (lengthFt === null) return 60;
@@ -2009,6 +2018,24 @@ export function maxPlausibleSpeed(lengthFt: number | null): number {
   if (lengthFt < 80) return 55;
   if (lengthFt < 120) return 45;
   return 35;
+}
+
+/**
+ * True when the "top speed" is really the engine's horsepower.
+ *
+ * "1x Yanmar 4JH4E 56hp" alongside maxSpeed 56 is not a coincidence — the
+ * extractor grabbed the same number twice. Any speed that reappears as a
+ * horsepower figure in the engine string is discarded rather than shown.
+ */
+export function speedIsEnginePower(
+  maxSpeed: number | null,
+  engine: string | null,
+): boolean {
+  if (maxSpeed === null || !engine) return false;
+  const hp = [...engine.matchAll(/(\d{2,4})\s*(?:hp|bhp|horsepower)\b/gi)].map((m) =>
+    parseInt(m[1], 10),
+  );
+  return hp.includes(Math.round(maxSpeed));
 }
 
 export function runSanityChecks(
@@ -2057,10 +2084,18 @@ export function runSanityChecks(
       y.beamM = null;
     }
   }
-  const speedCap = maxPlausibleSpeed(y.lengthFt);
+  // The engine's horsepower is not the boat's top speed.
+  if (speedIsEnginePower(y.maxSpeed, y.engine)) {
+    flags.push(
+      `maxSpeed: ${y.maxSpeed} kn is the engine's horsepower read twice ("${y.engine}") — discarded`,
+    );
+    y.maxSpeed = null;
+  }
+
+  const speedCap = maxPlausibleSpeed(y.lengthFt, y.type);
   if (y.maxSpeed !== null && (y.maxSpeed < 4 || y.maxSpeed > speedCap)) {
     flags.push(
-      `maxSpeed: ${y.maxSpeed} kn is not plausible for a ${y.lengthFt ? `${Math.round(y.lengthFt)} ft ` : ""}hull (cap ${speedCap} kn) — discarded`,
+      `maxSpeed: ${y.maxSpeed} kn is not plausible for a ${y.lengthFt ? `${Math.round(y.lengthFt)} ft ` : ""}${y.type ? `${y.type.toLowerCase()} ` : "hull "}(cap ${speedCap} kn) — discarded`,
     );
     y.maxSpeed = null;
   }
@@ -2242,8 +2277,10 @@ export async function GET(request: NextRequest) {
      shipped today would keep serving yesterday's bad payload for a full day —
      which is exactly how a corrected listing would still look broken.
      v2: reject site-brand names, uncorroborated years, implausible speeds,
-         and isolated numbers on pages that are not single listings. */
-  const SCRAPE_LOGIC_VERSION = 2;
+         and isolated numbers on pages that are not single listings.
+     v3: sail-aware speed ceiling, and reject a top speed that is really the
+         engine's horsepower read twice. */
+  const SCRAPE_LOGIC_VERSION = 3;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });

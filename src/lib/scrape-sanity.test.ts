@@ -5,6 +5,7 @@ import {
   isSiteBrandName,
   hostBrandTokens,
   maxPlausibleSpeed,
+  speedIsEnginePower,
 } from "@/app/api/scrape-yacht/route";
 
 /**
@@ -95,6 +96,72 @@ describe("maxPlausibleSpeed", () => {
   it("scales the ceiling down as hulls get longer", () => {
     expect(maxPlausibleSpeed(40)).toBeGreaterThan(maxPlausibleSpeed(100));
     expect(maxPlausibleSpeed(145)).toBeLessThan(50);
+  });
+});
+
+describe("speedIsEnginePower", () => {
+  it("catches horsepower reappearing as top speed", () => {
+    expect(speedIsEnginePower(56, "1x Yanmar 4JH4E 56hp")).toBe(true);
+    expect(speedIsEnginePower(600, "Triple Mercury Verado 600 V12 600 HP")).toBe(true);
+  });
+
+  it("leaves a genuine speed alone", () => {
+    expect(speedIsEnginePower(32, "Twin MAN V12-1900 (2 x 1900 HP)")).toBe(false);
+    expect(speedIsEnginePower(18, null)).toBe(false);
+  });
+});
+
+describe("maxPlausibleSpeed — sail", () => {
+  it("holds a sailing yacht to hull speed", () => {
+    expect(maxPlausibleSpeed(44, "Sailing Yacht")).toBeLessThanOrEqual(20);
+    expect(maxPlausibleSpeed(44, "Sloop")).toBeLessThanOrEqual(20);
+  });
+
+  it("still allows a fast planing powerboat", () => {
+    expect(maxPlausibleSpeed(42, "Center Console")).toBeGreaterThan(50);
+  });
+});
+
+describe("runSanityChecks — the Hunter 44 incident", () => {
+  it("discards 56 knots that is really the Yanmar's 56hp", () => {
+    const out = runSanityChecks(
+      draft({
+        name: '2007 Hunter 44 Deck Salon "Whitehawk"',
+        builder: "Hunter",
+        type: "Sailing Yacht",
+        year: 2007,
+        lengthFt: 43.17,
+        priceNum: 149000,
+        engine: "1x Yanmar 4JH4E 56hp",
+        maxSpeed: 56,
+        location: "Seattle, WA",
+      }),
+      ctx(),
+    );
+    expect(out.maxSpeed).toBeNull();
+    expect(out.flags.join(" ")).toMatch(/horsepower/);
+    expect(out.confidence).not.toBe("high");
+  });
+
+  it("keeps a real sailing speed", () => {
+    const out = runSanityChecks(
+      draft({ type: "Sailing Yacht", lengthFt: 44, maxSpeed: 8, engine: "1x Yanmar 4JH4E 56hp" }),
+      ctx(),
+    );
+    expect(out.maxSpeed).toBe(8);
+  });
+
+  it("keeps a fast center console at its real speed", () => {
+    const out = runSanityChecks(
+      draft({
+        type: "Center Console",
+        lengthFt: 41.58,
+        maxSpeed: 57,
+        engine: "Triple Mercury Verado 600 V12",
+      }),
+      ctx(),
+    );
+    expect(out.maxSpeed).toBe(57);
   });
 });
 

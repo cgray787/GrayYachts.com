@@ -350,7 +350,9 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     beamNum: beamM ?? 0,
     maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
     maxSpeedNum: data.maxSpeed ?? 0,
-    cabins: cabinsN ? `${cabinsN} cabins / ${guestsN} guests` : "N/A",
+    cabins: cabinsN
+      ? `${cabinsN} cabin${cabinsN === 1 ? "" : "s"} / ${guestsN} guest${guestsN === 1 ? "" : "s"}`
+      : "N/A",
     cabinsNum: cabinsN,
     range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",
     rangeNum: data.range ?? 0,
