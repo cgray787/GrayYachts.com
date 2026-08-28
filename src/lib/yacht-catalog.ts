@@ -294,7 +294,9 @@ export function saveCatalog(catalog: YachtListing[]) {
  * signed-URL expiry. Bump the version when proxy logic changes so existing
  * edge cache entries don't keep serving the old image.
  */
-const IMAGE_PROXY_VERSION = 4;
+// v5: the proxy now answers every failure with a placeholder image instead of
+// JSON, so a listing whose photo cannot be fetched still renders something.
+const IMAGE_PROXY_VERSION = 5;
 export function yachtImageSrc(listingUrl: string): string {
   return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}&v=${IMAGE_PROXY_VERSION}`;
 }

@@ -30,6 +30,58 @@ function badRequest(msg: string, status = 400): NextResponse {
 }
 
 /**
+ * This endpoint is the `src` of an <img>. A browser handed JSON there fires
+ * `onError`, the component hides the tag, and the card renders as a bare
+ * gradient — which is how a listing ends up with no picture at all. Every
+ * outcome an ordinary visitor can reach therefore has to be image bytes.
+ *
+ * The placeholder is generated locally rather than fetched, so it cannot fail
+ * for the same reasons the real photo just did, and it is deliberately styled
+ * like the rest of the card so a missing photo reads as intentional.
+ *
+ * Cached for minutes, not the seven days a real photo gets: a hot-link block
+ * or a timeout is usually transient, and caching the failure would keep the
+ * photo missing long after the cause cleared.
+ */
+const FALLBACK_CACHE_SECONDS = 600;
+
+function placeholderImage(reason: string): NextResponse {
+  /* Wide and sparse on purpose. The card's hero slot is about 3.3:1 and the
+     catalog thumbnail about 2.2:1, both filled with object-cover — a 4:3 image
+     gets blown up and centre-cropped, which turned an earlier version of this
+     into a giant line drawing with the caption sliced off. A 3:1 canvas with a
+     small, centred mark survives the crop at either size. */
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Photo unavailable">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c1a2e"/>
+      <stop offset="100%" stop-color="#060a12"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#g)"/>
+  <g fill="none" stroke="#C9A96E" stroke-opacity="0.45" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M556 176h88l-12 26h-64z"/>
+    <path d="M600 176v-32"/>
+    <path d="M600 148l22 22h-22"/>
+    <path d="M560 214c7 5 14 5 21 0s14-5 21 0 14 5 21 0 14-5 21 0"/>
+  </g>
+  <text x="600" y="252" text-anchor="middle" fill="#8892A5"
+        font-family="Inter,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif"
+        font-size="15" letter-spacing="1.5">Photo unavailable</text>
+</svg>`;
+  return new NextResponse(svg, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": `public, max-age=${FALLBACK_CACHE_SECONDS}, s-maxage=${FALLBACK_CACHE_SECONDS}`,
+      "X-Content-Type-Options": "nosniff",
+      // Why the real photo is missing, for debugging from the network tab.
+      "X-Image-Fallback": reason.slice(0, 120),
+    },
+  });
+}
+
+/**
  * Fetch an attacker-influenced URL safely: reject non-HTTP(S) and
  * private/loopback/link-local hosts up front, then follow up to 4
  * redirects manually, re-running the same check on every hop. This
@@ -87,7 +139,7 @@ export async function GET(request: NextRequest) {
   // best image we could find, plus which backend served it.
   const lookup = await heroImageFor(listingUrl);
   if (!lookup) {
-    return badRequest("No image found", 502);
+    return placeholderImage("no image found on the listing page");
   }
 
   // Pull the actual bytes from the (possibly signed/expiring) upstream
@@ -110,12 +162,12 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.startsWith("Disallowed")) {
-      return badRequest(`Rejected upstream URL: ${msg}`, 400);
+      return placeholderImage(`rejected upstream URL: ${msg}`);
     }
-    return badRequest("Image fetch timeout", 504);
+    return placeholderImage("upstream image fetch timed out");
   }
   if (!imgRes.ok) {
-    return badRequest(`Upstream image returned ${imgRes.status}`, 502);
+    return placeholderImage(`upstream image returned ${imgRes.status}`);
   }
 
   const contentType = imgRes.headers.get("content-type") || "image/png";
@@ -124,10 +176,8 @@ export async function GET(request: NextRequest) {
   // a "hot-link not allowed" HTML page on 200) or when the extracted
   // src was actually a page link the regex picked up incorrectly.
   if (!/^image\//i.test(contentType)) {
-    return badRequest(
-      `Upstream returned non-image content-type: ${contentType}`,
-      502
-    );
+    // Some hosts answer a hot-link with a 200 HTML "not allowed" page.
+    return placeholderImage(`upstream returned non-image content-type: ${contentType}`);
   }
 
   const buf = await imgRes.arrayBuffer();
