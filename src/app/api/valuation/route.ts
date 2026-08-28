@@ -25,6 +25,7 @@ const ORDER = [
   ["length", "Length"],
   ["brand", "Brand"],
   ["year_make_model", "Year, make & model"],
+  ["engine_hours", "Engine hours"],
   ["condition", "Condition"],
 ] as const;
 
@@ -88,6 +89,35 @@ export async function POST(req: Request) {
   const vessel =
     String(body.year_make_model ?? body.brand ?? "vessel").trim() || "vessel";
 
+  /* Photos arrive already downscaled to ~1600px JPEG by the browser, so three
+     of them land well inside Resend's 40MB attachment ceiling. Re-check here
+     anyway: the client is not a trust boundary, and an oversized payload would
+     fail at the provider with a far less obvious error than this one. */
+  const MAX_PHOTOS = 3;
+  const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+  const rawPhotos = Array.isArray(body.photos) ? body.photos : [];
+  const attachments: { filename: string; content: string }[] = [];
+  let photoBytes = 0;
+
+  for (const p of rawPhotos.slice(0, MAX_PHOTOS)) {
+    if (!p || typeof p !== "object") continue;
+    const { filename, content } = p as { filename?: unknown; content?: unknown };
+    if (typeof content !== "string" || !content) continue;
+    // base64 decodes to roughly 3/4 of its own length.
+    photoBytes += Math.floor(content.length * 0.75);
+    if (photoBytes > MAX_PHOTO_BYTES) {
+      console.error("[valuation] photos exceeded size cap — dropping the rest");
+      break;
+    }
+    attachments.push({
+      filename:
+        typeof filename === "string" && /^[\w.-]{1,64}$/.test(filename)
+          ? filename
+          : `yacht-${attachments.length + 1}.jpg`,
+      content,
+    });
+  }
+
   const answers = ORDER.filter(([k]) => body[k])
     .map(([k, label]) => `<tr><td style="padding:4px 14px 4px 0;color:#8892A5">${label}</td><td style="padding:4px 0;color:#0f172a"><strong>${esc(body[k])}</strong></td></tr>`)
     .join("");
@@ -110,6 +140,15 @@ export async function POST(req: Request) {
     </p>
 
     <table style="border-collapse:collapse;font-size:14px;margin-bottom:20px">${answers}</table>
+
+    ${
+      attachments.length
+        ? `<p style="margin:0 0 18px;font-size:14px;color:#0f172a">
+             <strong>${attachments.length} photo${attachments.length === 1 ? "" : "s"} attached</strong>
+             &mdash; they asked for a full market comp.
+           </p>`
+        : ""
+    }
 
     ${
       attribution
@@ -135,6 +174,7 @@ export async function POST(req: Request) {
       reply_to: email,
       subject: `New valuation request — ${name} (${vessel})`,
       html,
+      ...(attachments.length ? { attachments } : {}),
     }),
   });
 
