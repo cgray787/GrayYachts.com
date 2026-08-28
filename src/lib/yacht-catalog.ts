@@ -369,3 +369,19 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     edited: [],
   };
 }
+
+/**
+ * Which of two listings is the cheaper one, relative to the FIRST argument:
+ * "a" = the first, "b" = the second, "tie" = no winner.
+ *
+ * Two traps this closes. A missing price is stored as 0, so a plain numeric
+ * compare ranked a "price on request" listing as the cheapest boat on the
+ * page. And the result is argument-relative, not slot-relative — reading it as
+ * a slot is what made the right-hand card announce "(lower)" every time it
+ * lost, so both cards claimed the lower price at once.
+ */
+export function comparePrice(mine: number, theirs: number): "a" | "b" | "tie" {
+  if (!(mine > 0) || !(theirs > 0)) return "tie";
+  if (mine === theirs) return "tie";
+  return mine < theirs ? "a" : "b";
+}

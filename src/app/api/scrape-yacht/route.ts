@@ -1868,31 +1868,19 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     return parts.length > 0 ? parts.join(" ") : "Unknown Yacht";
   })();
 
-  // Price estimation for "Price on Request" listings
-  let finalPrice = vision?.price ?? ai?.price ?? htmlPrice ?? null;
-  let finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
-
-  if (!finalPriceNum && mergedLengthFt) {
-    const currentYear = new Date().getFullYear();
-    const yachtYear = vision?.year || ai?.year || htmlYear || urlData.year || currentYear;
-    const age = Math.max(0, currentYear - yachtYear);
-
-    // Base price per foot by size bracket
-    let pricePerFt: number;
-    if (mergedLengthFt < 30) pricePerFt = 500;
-    else if (mergedLengthFt < 50) pricePerFt = 1500;
-    else if (mergedLengthFt < 80) pricePerFt = 3000;
-    else if (mergedLengthFt < 100) pricePerFt = 6000;
-    else pricePerFt = 15000;
-
-    let estimated = pricePerFt * mergedLengthFt;
-    // Depreciate 3% per year, floor at 30% of new
-    const depreciationFactor = Math.max(0.30, Math.pow(0.97, age));
-    estimated = Math.round(estimated * depreciationFactor / 1000) * 1000;
-
-    finalPrice = `~$${estimated.toLocaleString()} (estimated)`;
-    finalPriceNum = estimated;
-  }
+  /* Price comes from the listing or not at all.
+     There used to be a $/ft × depreciation estimator here for "price on
+     request" listings. It had to go. The comparison marks the cheaper boat
+     with a green "(lower)" badge computed from priceNum, so an invented price
+     did not merely display a wrong number — it decided which vessel looked
+     like better value. It was also wildly wrong at the top of the range: the
+     brackets stop at $15k/ft, which valued a 131 ft Benetti Oasis at $1.7M
+     against a real market around $28M, and rendered that as the "lower" price
+     beside a genuine asking figure.
+     A labelled guess is still a guess. "Price on request" is the truth, and it
+     leaves priceNum null so the comparison declines to pick a winner. */
+  const finalPrice = vision?.price ?? ai?.price ?? htmlPrice ?? null;
+  const finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
 
   const finalImageUrl = (() => {
     // Firecrawl-only picture source:

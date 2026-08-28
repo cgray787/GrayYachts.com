@@ -7,6 +7,7 @@ import {
   maxPlausibleSpeed,
   speedIsEnginePower,
 } from "@/app/api/scrape-yacht/route";
+import { comparePrice } from "@/lib/yacht-catalog";
 
 /**
  * These lock down the rule the comparison card depends on: never show a number
@@ -300,5 +301,22 @@ describe("runSanityChecks — the YachtWay incident", () => {
     expect(out.confidence).toBe("high");
     expect(out.name).toBe("I Love This Boat");
     expect(out.maxSpeed).toBe(18);
+  });
+});
+
+describe("comparePrice — the double-(lower) bug", () => {
+  it("names only the genuinely cheaper boat", () => {
+    expect(comparePrice(149000, 849000)).toBe("a");
+    expect(comparePrice(849000, 149000)).toBe("b");
+  });
+
+  it("declines to pick a winner when a price is missing", () => {
+    // Missing prices are stored as 0; a plain compare made them "cheapest".
+    expect(comparePrice(0, 849000)).toBe("tie");
+    expect(comparePrice(849000, 0)).toBe("tie");
+  });
+
+  it("is a tie on equal prices", () => {
+    expect(comparePrice(500000, 500000)).toBe("tie");
   });
 });
