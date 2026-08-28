@@ -1516,7 +1516,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   // Try to fetch HTML for richer data (but don't fail if blocked)
   const fetchResult = await tryFetchHtml(url);
-  const html = fetchResult.html;
+  let html = fetchResult.html;
 
   // Vision extraction: send the Firecrawl screenshot to Claude Haiku 4.5 and
   // read specs the same way a human would. Highest-quality source when present.
@@ -1546,11 +1546,32 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   let htmlLocation: string | null = null;
   let htmlImageUrl: string | null = null;
   let htmlType: string | null = null;
+  let pageTitle: string | null = null;
+
+  /* A bot check, captcha or error page is still 200 OK with a <title>, and
+     mining it produces confident nonsense — Boat Trader's interstitial put
+     "Performing security verification" on a card as the vessel's name. Treat
+     such a page as if no HTML came back at all: the URL slug alone usually
+     carries the real year, builder and model, so the fallback is better data
+     than the challenge page could ever give. */
+  const challengeTitle = html ? extractTitle(html) : null;
+  const isChallengePage =
+    !!html &&
+    (/security verification|just a moment|are you a human|checking your browser|captcha|access denied|request blocked|enable javascript|attention required|403 forbidden|robot check/i.test(
+      challengeTitle ?? "",
+    ) ||
+      /cf-browser-verification|challenge-platform|px-captcha|_Incapsula_/i.test(html.slice(0, 6000)));
+
+  if (isChallengePage) {
+    console.warn("[scrape-yacht] blocked by a bot check, falling back to URL parsing:", url);
+    html = null;
+  }
 
   if (html) {
     const jsonLd = extractJsonLd(html);
     const og = extractOg(html);
     const title = extractTitle(html);
+    pageTitle = title;
 
     const nameData = extractNameAndBuilder(html, og, jsonLd, title);
     htmlName = nameData.name;
@@ -1705,6 +1726,10 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     if (!val) return false;
     if (val.length > 80) return false;
     if (/[{}<>="\/\\]|function|class=|style=|data-|\.js|\.css|\.jpg|\.png|\.com\/|width|height|padding|margin|display|position|action=|label=|href|src=|react-|select\s/i.test(val)) return false;
+    // A long unbroken run of base64-ish characters is an encoded blob, not a
+    // spec. This is how the inner bytes of an inline SVG data URI ended up
+    // rendering as the engine on a comparison card.
+    if (val.length >= 24 && !/\s/.test(val) && /^[A-Za-z0-9+/=]+$/.test(val)) return false;
     return true;
   }
 
@@ -1907,7 +1932,14 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     confidence: "high",
   };
 
-  return runSanityChecks(draft, { inferredLengthFt, urlLengthFt: urlData.lengthFt ?? null, urlYear: urlData.year ?? null });
+  return runSanityChecks(draft, {
+    inferredLengthFt,
+    urlLengthFt: urlData.lengthFt ?? null,
+    urlYear: urlData.year ?? null,
+    host: (() => { try { return new URL(url).hostname; } catch { return null; } })(),
+    pageTitle,
+    sourceUrl: url,
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -1930,11 +1962,72 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
  * "Needs review" banner whenever flags.length > 0, so the user knows to
  * sanity-check the card before sharing it with a client.
  */
-function runSanityChecks(
+export function hostBrandTokens(host: string | null): string[] {
+  if (!host) return [];
+  const GENERIC = new Set([
+    "com","net","org","co","uk","us","io","ca","au","biz","info","www","the",
+  ]);
+  return host
+    .toLowerCase()
+    .split(".")
+    .filter((label) => label.length > 2 && !GENERIC.has(label));
+}
+
+/** Normalise for comparison: "YachtWay" and "yacht-way" both become "yachtway". */
+function squash(v: string): string {
+  return v.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * True when a candidate vessel name is really the website's own brand.
+ *
+ * This is the failure that put "YachtWay" on a comparison card as though it
+ * were the boat: the page title on a thin listing is often just the site name,
+ * and the existing phrase blocklist ("boats for sale", "search"…) cannot know
+ * what any given site is called. Deriving the brand from the hostname covers
+ * every site without a hand-maintained list.
+ */
+export function isSiteBrandName(name: string | null, host: string | null): boolean {
+  if (!name) return false;
+  const n = squash(name);
+  if (!n) return false;
+  return hostBrandTokens(host).some(
+    (tok) => n === squash(tok) || n === squash(tok) + "yachts" || n === squash(tok) + "yacht",
+  );
+}
+
+/**
+ * Highest speed worth believing for a hull of a given length. A 145 ft
+ * tri-deck reported at 80 knots is not a fast yacht, it is a number scraped
+ * off the wrong part of the page.
+ */
+export function maxPlausibleSpeed(lengthFt: number | null): number {
+  // With no length there is nothing to sanity-check against, so hold the line
+  // at roughly the fastest thing a brokerage actually lists.
+  if (lengthFt === null) return 60;
+  if (lengthFt < 50) return 70;
+  if (lengthFt < 80) return 55;
+  if (lengthFt < 120) return 45;
+  return 35;
+}
+
+export function runSanityChecks(
   y: ScrapedYacht,
-  ctx: { inferredLengthFt: number | null; urlLengthFt: number | null; urlYear: number | null },
+  ctx: {
+    inferredLengthFt: number | null;
+    urlLengthFt: number | null;
+    urlYear: number | null;
+    host?: string | null;
+    pageTitle?: string | null;
+    sourceUrl?: string | null;
+  },
 ): ScrapedYacht {
   const flags: string[] = [];
+
+  // The site's own brand is not the name of a boat. Note it now, but rebuild
+  // the replacement at the very end — the year and other fields it draws on
+  // have not been validated yet at this point.
+  const brandName = isSiteBrandName(y.name, ctx.host ?? null) ? y.name : null;
 
   // Length cross-check against URL-derived anchor (model number).
   const anchorFt = ctx.urlLengthFt ?? ctx.inferredLengthFt;
@@ -1964,8 +2057,11 @@ function runSanityChecks(
       y.beamM = null;
     }
   }
-  if (y.maxSpeed !== null && (y.maxSpeed < 4 || y.maxSpeed > 90)) {
-    flags.push(`maxSpeed: ${y.maxSpeed} kn is outside 4–90 kn — discarded`);
+  const speedCap = maxPlausibleSpeed(y.lengthFt);
+  if (y.maxSpeed !== null && (y.maxSpeed < 4 || y.maxSpeed > speedCap)) {
+    flags.push(
+      `maxSpeed: ${y.maxSpeed} kn is not plausible for a ${y.lengthFt ? `${Math.round(y.lengthFt)} ft ` : ""}hull (cap ${speedCap} kn) — discarded`,
+    );
     y.maxSpeed = null;
   }
   if (y.range !== null && (y.range < 30 || y.range > 12000)) {
@@ -1990,6 +2086,35 @@ function runSanityChecks(
     if (y.year < 1900 || y.year > currentYear + 2) {
       flags.push(`year: ${y.year} is outside 1900–${currentYear + 2} — discarded`);
       y.year = null;
+    } else if (y.year >= currentYear) {
+      /* A current-or-future model year is legitimate for a new boat, but it is
+         also exactly what a footer copyright line looks like — that is how a
+         2002 Christensen came back as a 2026. Believe it only when the year is
+         corroborated somewhere that describes the vessel: the URL slug or the
+         page title. A genuine new-model listing says so in both. */
+      const corroborated =
+        ctx.urlYear === y.year ||
+        (ctx.pageTitle ?? "").includes(String(y.year)) ||
+        (ctx.sourceUrl ?? "").includes(String(y.year));
+      if (!corroborated) {
+        flags.push(
+          `year: ${y.year} appears only in page furniture (likely a copyright line), not in the title or URL — discarded`,
+        );
+        y.year = null;
+      }
+    }
+  }
+
+  /* Near-zero hours on a boat that is not nearly new is a mis-read, not a
+     barely-used vessel. A 2002 hull reported at 24 hours is the scraper
+     picking up an unrelated number. */
+  if (y.engineHours !== null && y.year !== null) {
+    const age = new Date().getFullYear() - y.year;
+    if (age > 5 && y.engineHours < 100) {
+      flags.push(
+        `engineHours: ${y.engineHours} hrs is not credible on a ${y.year} vessel — discarded`,
+      );
+      y.engineHours = null;
     }
   }
   if (y.cabins !== null && (y.cabins < 0 || y.cabins > 30)) {
@@ -2001,6 +2126,48 @@ function runSanityChecks(
     y.guests = null;
   }
 
+  /* If none of length, price or year could be read, this page did not parse as
+     a single vessel listing — it is a model/marketing/search page. Whatever
+     isolated numbers did come back are noise scraped from unrelated copy (that
+     is where "80 knots" and "24 engine hours" came from on a 145 ft tri-deck).
+     Showing one plausible-looking number next to a row of N/A invites more
+     trust than the page has earned, so they all go. */
+  if (y.lengthFt === null && y.priceNum === null && y.year === null) {
+    const dropped: string[] = [];
+    const speculative = ["maxSpeed", "engineHours", "range", "cabins", "guests", "beamFt", "beamM"] as const;
+    for (const f of speculative) {
+      if (y[f] !== null && y[f] !== undefined) { dropped.push(f); (y[f] as unknown) = null; }
+    }
+    flags.push(
+      dropped.length
+        ? `page did not read as a single vessel listing — discarded unsupported ${dropped.join(", ")}`
+        : `page did not read as a single vessel listing`,
+    );
+  }
+
+  // Now that every field has been validated, rebuild a name if the scraper
+  // had handed us the website's own brand.
+  if (brandName !== null) {
+    const rebuilt = [y.year, y.builder, y.model].filter(Boolean).join(" ").trim();
+    flags.push(
+      `name: "${brandName}" is the website's own name, not the vessel — ${rebuilt ? `replaced with "${rebuilt}"` : "no vessel name could be read"}`,
+    );
+    y.name = rebuilt || "Unknown listing";
+  }
+
+  /* A price we calculated from length and age is a guess, not an asking price.
+     It was previously counted as a filled critical field, so a listing whose
+     price we invented could report "high confidence, no flags" — the card then
+     showed a dollar figure with no hint it was ours. On big hulls the formula
+     is off by an order of magnitude, which next to a real asking price reads
+     as a bargain. Always flag it. */
+  const priceWasEstimated = typeof y.price === "string" && /\(estimated\)/i.test(y.price);
+  if (priceWasEstimated) {
+    flags.push(
+      `price: no asking price was published — ${y.price} is our own estimate from length and age, not the broker's figure`,
+    );
+  }
+
   // Critical-field coverage → coarse confidence rollup.
   const critical = [y.lengthFt, y.year, y.priceNum, y.engine, y.location];
   const filled = critical.filter((v) => v !== null && v !== undefined && v !== "").length;
@@ -2008,6 +2175,16 @@ function runSanityChecks(
   if (flags.length === 0 && filled >= 4) confidence = "high";
   else if (flags.length <= 1 && filled >= 3) confidence = "medium";
   else confidence = "low";
+
+  /* The card keys its warning banner off `flags`, so a low-confidence result
+     with an empty flags array renders as though nothing were wrong — which is
+     how a page that yielded almost no real data still looked presentable.
+     Low confidence must always carry a reason the reader can see. */
+  if (confidence === "low" && flags.length === 0) {
+    flags.push(
+      `only ${filled} of ${critical.length} key fields could be read from this page — treat every value as unconfirmed`,
+    );
+  }
 
   return { ...y, flags, confidence };
 }
@@ -2060,7 +2237,16 @@ export async function GET(request: NextRequest) {
   const edgeCache: Cache | undefined = (globalThis as unknown as {
     caches?: { default?: Cache };
   }).caches?.default;
-  const cacheKey = new Request(request.url, { method: "GET" });
+  /* Bump when extraction or sanity logic changes. The cache holds responses
+     for 24h keyed on the request URL, so without a version in the key a fix
+     shipped today would keep serving yesterday's bad payload for a full day —
+     which is exactly how a corrected listing would still look broken.
+     v2: reject site-brand names, uncorroborated years, implausible speeds,
+         and isolated numbers on pages that are not single listings. */
+  const SCRAPE_LOGIC_VERSION = 2;
+  const versionedUrl =
+    request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
+  const cacheKey = new Request(versionedUrl, { method: "GET" });
   if (edgeCache) {
     const cached = await edgeCache.match(cacheKey);
     if (cached) return cached;
