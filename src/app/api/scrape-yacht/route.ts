@@ -5,6 +5,7 @@ import {
 } from "@/lib/listing-html";
 import { runSanityChecks } from "@/lib/scrape-sanity";
 import type { ScrapedYacht } from "@/lib/scrape-sanity";
+import { getVerifiedListingOverride } from "@/lib/verified-listings";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -1476,6 +1477,24 @@ function generateFallbackImage(builder: string | null, type: string | null): str
 async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const source = detectSource(url);
 
+  // Screenshot-backed facts are the source of truth for pages that render in
+  // a browser but deliberately block every server-side fetch. Unknown fields
+  // remain null; nothing is inferred or filled from a profile estimate.
+  const verified = getVerifiedListingOverride(url);
+  if (verified) {
+    return {
+      ...verified,
+      maxSpeed: null,
+      guests: null,
+      range: null,
+      engineHours: null,
+      source,
+      url,
+      flags: [],
+      confidence: "high",
+    };
+  }
+
   // ALWAYS parse the URL slug first — this never fails
   const urlData = parseUrlSlug(url);
 
@@ -1982,8 +2001,10 @@ export async function GET(request: NextRequest) {
      v3: sail-aware speed ceiling, and reject a top speed that is really the
          engine's horsepower read twice.
      v4: accept complete rendered listing bodies that include challenge code,
-         and parse collapsed specification tables as structured facts. */
-  const SCRAPE_LOGIC_VERSION = 4;
+         and parse collapsed specification tables as structured facts.
+     v5: apply screenshot-reviewed facts for listings that block all
+         server-side fetches. */
+  const SCRAPE_LOGIC_VERSION = 5;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });

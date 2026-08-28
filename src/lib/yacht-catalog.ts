@@ -250,9 +250,8 @@ export const SEED_YACHTS: YachtListing[] = [
   },
 ];
 
-// v7: rendered-table extraction (including complete boats.com listings that
-// contain Cloudflare challenge scripts) plus exact gallery imagery.
-export const STORAGE_KEY = "gy-compare-catalog-v7";
+// v8: screenshot-reviewed overrides for listings that block server fetching.
+export const STORAGE_KEY = "gy-compare-catalog-v8";
 
 /** localStorage key holding which catalog yachts are pinned to LEFT/RIGHT. */
 export const SLOTS_KEY = "gy-compare-slots";
@@ -316,7 +315,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   );
   if (seed) return { ...seed };
 
-  const res = await fetch(`/api/scrape-yacht?logic=4&url=${encodeURIComponent(url)}`);
+  const res = await fetch(`/api/scrape-yacht?logic=5&url=${encodeURIComponent(url)}`);
   const data: ScrapeResult = await res.json();
 
   if (!res.ok || data.error) {
