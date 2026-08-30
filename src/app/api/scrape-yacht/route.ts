@@ -605,6 +605,76 @@ interface VisionExtract {
   type?: string | null;
 }
 
+interface WorkersAiBinding {
+  run(model: string, input: Record<string, unknown>): Promise<unknown>;
+}
+
+function parseVisionJson(text: string): VisionExtract | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]) as VisionExtract;
+  } catch {
+    return null;
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+async function extractWithWorkersAi(
+  screenshotUrl: string,
+  prompt: string,
+): Promise<VisionExtract | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const context = await getCloudflareContext({ async: true });
+    const ai = (context.env as unknown as Record<string, unknown>).AI as
+      | WorkersAiBinding
+      | undefined;
+    if (!ai) return null;
+
+    const imageResponse = await fetch(screenshotUrl, {
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!imageResponse.ok) return null;
+    const mime = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
+    const bytes = new Uint8Array(await imageResponse.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > 12_000_000) return null;
+    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
+
+    const result = await ai.run("@cf/meta/llama-4-scout-17b-16e-instruct", {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+      guided_json: YACHT_EXTRACT_SCHEMA,
+      max_tokens: 1024,
+      temperature: 0,
+    });
+    const response = (result as { response?: string })?.response ?? "";
+    const parsed = parseVisionJson(response);
+    console.log("[scrape-yacht] workers-ai vision", {
+      screenshotBytes: bytes.length,
+      parsed: !!parsed,
+    });
+    return parsed;
+  } catch (error) {
+    console.warn("[scrape-yacht] workers-ai vision exception", error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
 /**
  * First-principles extraction: ship the page screenshot to Claude Haiku 4.5
  * vision and read specs the same way a human would. Bypasses all HTML
@@ -614,9 +684,6 @@ interface VisionExtract {
  * callers must fall through to regex/markdown extractors.
  */
 async function extractWithVision(screenshotUrl: string): Promise<VisionExtract | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
   const prompt = `You are reading a screenshot of a single yacht/boat listing page. Extract the specifications visible in the screenshot and return them as a single JSON object with EXACTLY these keys (use null for anything not visible):
 
 {
@@ -653,6 +720,12 @@ Rules:
 - Engine: capture the count + make + model + total HP exactly as written (e.g. quad/triple/twin/single). Do not collapse a quad-engine setup into a twin.
 - Return ONLY the JSON object, no prose, no markdown fences.`;
 
+  const workersResult = await extractWithWorkersAi(screenshotUrl, prompt);
+  if (workersResult) return workersResult;
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -683,9 +756,8 @@ Rules:
     }
     const json = await res.json() as { content?: Array<{ type: string; text?: string }> };
     const text = json.content?.find(c => c.type === "text")?.text ?? "";
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    const parsed = JSON.parse(match[0]) as VisionExtract;
+    const parsed = parseVisionJson(text);
+    if (!parsed) return null;
 
     // Sanity scrubs — treat 0/empty/"N/A" as null (Haiku occasionally slips)
     const clean = <T,>(v: T): T | null => {

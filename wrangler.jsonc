@@ -8,6 +8,9 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://eorkwxzhtidstznpzlyg.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcmt3eHpodGlkc3R6bnB6bHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NzA3MzAsImV4cCI6MjA4OTU0NjczMH0.2mPq25_musLoqHLZCzzLFjj_70fcNs5nYwJd9H94aEE",
