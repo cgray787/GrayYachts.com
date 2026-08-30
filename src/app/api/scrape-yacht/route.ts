@@ -619,6 +619,14 @@ function parseVisionJson(text: string): VisionExtract | null {
   }
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
 async function extractWithWorkersAi(
   screenshotUrl: string,
   prompt: string,
@@ -637,10 +645,19 @@ async function extractWithWorkersAi(
     if (!imageResponse.ok) return null;
     const bytes = new Uint8Array(await imageResponse.arrayBuffer());
     if (bytes.length === 0 || bytes.length > 8_000_000) return null;
+    const mime = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
+    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
 
-    const result = await ai.run("@cf/llava-hf/llava-1.5-7b-hf", {
-      prompt,
-      image: Array.from(bytes),
+    const result = await ai.run("@cf/meta/llama-4-scout-17b-16e-instruct", {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
       max_tokens: 1024,
       temperature: 0,
     });
@@ -1904,28 +1921,59 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     if (ai.engineHours && (ai.engineHours < 1 || ai.engineHours > 50000)) ai.engineHours = null;
   }
 
-  // Await vision extraction (kicked off in parallel earlier)
-  const vision = await visionPromise;
+  // Screenshot vision is a fallback, never the authority over structured page
+  // data. Reject the whole vision result when it describes a different boat —
+  // small vision models can otherwise echo examples from the prompt.
+  const rawVision = await visionPromise;
+  const vision = (() => {
+    if (!rawVision) return null;
+    const expectedTokens = (urlData.builder ?? "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 3);
+    const visionText = [rawVision.name, rawVision.builder, rawVision.model]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    if (expectedTokens.length > 0 && !expectedTokens.some((token) => visionText.includes(token))) {
+      console.warn("[scrape-yacht] rejected screenshot vision: builder mismatch", url);
+      return null;
+    }
+    if (urlData.year && rawVision.year && urlData.year !== rawVision.year) {
+      console.warn("[scrape-yacht] rejected screenshot vision: year mismatch", url);
+      return null;
+    }
+    const lengthAnchor = urlData.lengthFt ?? inferredLengthFt;
+    if (lengthAnchor && rawVision.lengthFt) {
+      const ratio = rawVision.lengthFt / lengthAnchor;
+      if (ratio < 0.75 || ratio > 1.25) {
+        console.warn("[scrape-yacht] rejected screenshot vision: length mismatch", url);
+        return null;
+      }
+    }
+    return rawVision;
+  })();
 
-  // Merge priority: Vision (Claude Haiku on screenshot) > Firecrawl AI extract > HTML scraped > validated spec database > inferred > URL-parsed > profile > defaults
-  const mergedLengthFt = vision?.lengthFt ?? ai?.lengthFt ?? htmlLengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
-  const mergedLengthM = vision?.lengthM ?? ai?.lengthM ?? htmlLengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
+  // Merge priority: Firecrawl structured extract > matching HTML > validated
+  // screenshot vision > databases/URL anchors. Vision fills gaps only.
+  const mergedLengthFt = ai?.lengthFt ?? htmlLengthFt ?? vision?.lengthFt ?? trustedSpecLengthFt ?? inferredLengthFt ?? urlData.lengthFt ?? null;
+  const mergedLengthM = ai?.lengthM ?? htmlLengthM ?? vision?.lengthM ?? trustedSpecLengthM ?? (mergedLengthFt ? ftToM(mergedLengthFt) : null) ?? urlData.lengthM ?? null;
 
   // Final sanity: beam should always be < length
-  let finalBeamFt = vision?.beamFt ?? ai?.beamFt ?? htmlBeamFt ?? specData.beamFt ?? profileData.beamFt ?? null;
-  let finalBeamM = vision?.beamM ?? ai?.beamM ?? htmlBeamM ?? specData.beamM ?? profileData.beamM ?? null;
+  let finalBeamFt = ai?.beamFt ?? htmlBeamFt ?? vision?.beamFt ?? specData.beamFt ?? profileData.beamFt ?? null;
+  let finalBeamM = ai?.beamM ?? htmlBeamM ?? vision?.beamM ?? specData.beamM ?? profileData.beamM ?? null;
   if (finalBeamFt && mergedLengthFt && finalBeamFt >= mergedLengthFt * 0.5) {
     finalBeamFt = null; finalBeamM = null;
   }
 
-  // Build the name: prefer Vision > AI extract > HTML > URL-parsed
+  // Build the name from structured sources before screenshot vision.
   const finalName = (() => {
-    if (vision?.name && vision.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(vision.name)) return vision.name;
     if (ai?.name && ai.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(ai.name)) return ai.name;
     if (htmlName && htmlName !== "Unknown Yacht" && htmlName.length > 5 &&
         isClean(htmlName) && !/yacht sales|boats for sale|not found|error|^boats?$/i.test(htmlName)) {
       return htmlName;
     }
+    if (vision?.name && vision.name.length > 3 && !/boats?\s+for\s+sale|search|results|browse/i.test(vision.name)) return vision.name;
     if (urlData.name) return urlData.name;
     const parts = [urlData.year, urlData.builder, urlData.model].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "Unknown Yacht";
@@ -1942,8 +1990,8 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
      beside a genuine asking figure.
      A labelled guess is still a guess. "Price on request" is the truth, and it
      leaves priceNum null so the comparison declines to pick a winner. */
-  const finalPrice = vision?.price ?? ai?.price ?? htmlPrice ?? null;
-  const finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
+  const finalPrice = ai?.price ?? htmlPrice ?? vision?.price ?? null;
+  const finalPriceNum = ai?.priceNum ?? htmlPriceNum ?? vision?.priceNum ?? null;
 
   const finalImageUrl = (() => {
     // Verified picture sources only:
@@ -1963,23 +2011,23 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
 
   const draft: ScrapedYacht = {
     name: finalName,
-    builder: vision?.builder || ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || null,
-    model: vision?.model || ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || null,
-    type: vision?.type || ai?.type || (isClean(htmlType) ? htmlType : null) || specData.type || profileData.type || null,
-    year: vision?.year || ai?.year || htmlYear || urlData.year || null,
+    builder: ai?.builder || (isClean(htmlBuilder) ? htmlBuilder : null) || urlData.builder || vision?.builder || null,
+    model: ai?.model || (isClean(htmlModel) ? htmlModel : null) || urlData.model || vision?.model || null,
+    type: ai?.type || (isClean(htmlType) ? htmlType : null) || vision?.type || specData.type || profileData.type || null,
+    year: ai?.year || htmlYear || urlData.year || vision?.year || null,
     price: finalPrice,
     priceNum: finalPriceNum,
     lengthFt: mergedLengthFt,
     lengthM: mergedLengthM,
     beamFt: finalBeamFt,
     beamM: finalBeamM,
-    maxSpeed: vision?.maxSpeed ?? ai?.maxSpeed ?? htmlSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
-    cabins: vision?.cabins ?? ai?.cabins ?? htmlCabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
-    guests: vision?.guests ?? ai?.guests ?? htmlGuests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
-    range: vision?.range ?? ai?.range ?? htmlRange ?? specData.range ?? profileData.range ?? null,
-    engine: (vision?.engine && vision.engine.length > 2 ? vision.engine : null) ?? (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? specData.engine ?? profileData.engine ?? null,
-    engineHours: vision?.engineHours ?? ai?.engineHours ?? htmlEngineHours ?? null,
-    location: (vision?.location && vision.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(vision.location) ? vision.location : null) ?? (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? null,
+    maxSpeed: ai?.maxSpeed ?? htmlSpeed ?? vision?.maxSpeed ?? specData.maxSpeed ?? profileData.maxSpeed ?? null,
+    cabins: ai?.cabins ?? htmlCabins ?? vision?.cabins ?? ((specData.cabins && (specData.cabins > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.cabins : null) ?? profileData.cabins ?? null,
+    guests: ai?.guests ?? htmlGuests ?? vision?.guests ?? ((specData.guests && (specData.guests > 1 || (mergedLengthFt ?? 0) < 50)) ? specData.guests : null) ?? profileData.guests ?? null,
+    range: ai?.range ?? htmlRange ?? vision?.range ?? specData.range ?? profileData.range ?? null,
+    engine: (ai?.engine && ai.engine !== "various" && ai.engine.length > 2 ? ai.engine : null) ?? (isClean(htmlEngine) ? htmlEngine : null) ?? (vision?.engine && vision.engine.length > 2 ? vision.engine : null) ?? specData.engine ?? profileData.engine ?? null,
+    engineHours: ai?.engineHours ?? htmlEngineHours ?? vision?.engineHours ?? null,
+    location: (ai?.location && ai.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(ai.location) ? ai.location : null) ?? (isClean(htmlLocation) ? htmlLocation : null) ?? (vision?.location && vision.location.length < 60 && !/various|multiple|n\/a|unknown/i.test(vision.location) ? vision.location : null) ?? null,
     imageUrl: finalImageUrl,
     source,
     url,
