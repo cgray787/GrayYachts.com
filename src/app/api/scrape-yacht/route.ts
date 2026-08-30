@@ -638,7 +638,7 @@ async function extractWithWorkersAi(
     const bytes = new Uint8Array(await imageResponse.arrayBuffer());
     if (bytes.length === 0 || bytes.length > 8_000_000) return null;
 
-    const result = await ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+    const result = await ai.run("@cf/moondream/moondream3.1-9B-A2B", {
       prompt,
       image: Array.from(bytes),
       max_tokens: 1024,
