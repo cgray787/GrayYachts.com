@@ -651,6 +651,7 @@ async function extractWithWorkersAi(
       screenshotBytes: bytes.length,
       parsed: !!parsed,
       response: parsed ? undefined : response.slice(0, 500),
+      raw: response ? undefined : JSON.stringify(result).slice(0, 500),
     });
     return parsed;
   } catch (error) {
