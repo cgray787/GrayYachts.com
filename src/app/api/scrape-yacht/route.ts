@@ -644,7 +644,8 @@ async function extractWithWorkersAi(
       max_tokens: 1024,
       temperature: 0,
     });
-    const response = (result as { response?: string })?.response ?? "";
+    const output = result as { response?: string; description?: string };
+    const response = output.response ?? output.description ?? "";
     const parsed = parseVisionJson(response);
     console.log("[scrape-yacht] workers-ai vision", {
       screenshotBytes: bytes.length,
