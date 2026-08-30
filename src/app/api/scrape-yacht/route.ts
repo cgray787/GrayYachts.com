@@ -841,7 +841,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
             prompt: "This is a yacht/boat listing page. Extract ALL available specifications for THIS specific yacht. Look EVERYWHERE on the page: specification tables, sidebars, collapsed/tabbed sections (Specs, Features, Details, Equipment), AND the long-form prose description — descriptions sometimes state cruising speed, range, or engine in sentences. The length is LOA or Length Overall (convert meters to feet if needed). Beam is the width. Engine: capture the exact count + make + model + total HP as printed on the page (e.g. preserve quad/triple/twin/single — do not collapse a quad into a twin). Cabins = staterooms. Guests = sleeping capacity. maxSpeed and range can appear anywhere in description text — but only capture them if they are explicitly stated for THIS yacht; never guess or use a typical value. imageUrl MUST be the URL of the hero/primary photo of THIS yacht (from the photo gallery); never a logo, icon, or placeholder. Return null for any field genuinely not mentioned — do NOT return 0, empty strings, placeholder values, or invented numbers.",
           },
         }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(60000),
       });
       if (res.ok) {
         const json = await res.json() as {
