@@ -676,7 +676,11 @@ Rules:
       }),
       signal: AbortSignal.timeout(25000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text();
+      console.warn("[scrape-yacht] vision failed", res.status, body.slice(0, 200));
+      return null;
+    }
     const json = await res.json() as { content?: Array<{ type: string; text?: string }> };
     const text = json.content?.find(c => c.type === "text")?.text ?? "";
     const match = text.match(/\{[\s\S]*\}/);
@@ -708,7 +712,8 @@ Rules:
       location: clean(parsed.location),
       type: clean(parsed.type),
     };
-  } catch {
+  } catch (error) {
+    console.warn("[scrape-yacht] vision exception", error instanceof Error ? error.message : String(error));
     return null;
   }
 }
@@ -781,9 +786,22 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
         const validHtml = isUsableListingHtml(html) ? html : null;
+        console.log("[scrape-yacht] firecrawl result", {
+          html: html.length,
+          validHtml: !!validHtml,
+          markdown: markdown?.length ?? 0,
+          extract: !!firecrawlExtract,
+          screenshot: !!firecrawlScreenshot,
+          ogImage: !!firecrawlImageUrl,
+        });
         return { html: validHtml, markdown, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
       }
-    } catch { /* fall through to other strategies */ }
+      const body = await res.text();
+      console.warn("[scrape-yacht] firecrawl failed", res.status, body.slice(0, 200));
+    } catch (error) {
+      console.warn("[scrape-yacht] firecrawl exception", error instanceof Error ? error.message : String(error));
+      /* fall through to other strategies */
+    }
   }
 
   // Strategy 1: Direct fetch
