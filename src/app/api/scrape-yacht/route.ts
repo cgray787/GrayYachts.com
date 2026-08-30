@@ -619,14 +619,6 @@ function parseVisionJson(text: string): VisionExtract | null {
   }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  return btoa(binary);
-}
-
 async function extractWithWorkersAi(
   screenshotUrl: string,
   prompt: string,
@@ -643,22 +635,12 @@ async function extractWithWorkersAi(
       signal: AbortSignal.timeout(20000),
     });
     if (!imageResponse.ok) return null;
-    const mime = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
     const bytes = new Uint8Array(await imageResponse.arrayBuffer());
-    if (bytes.length === 0 || bytes.length > 12_000_000) return null;
-    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
+    if (bytes.length === 0 || bytes.length > 8_000_000) return null;
 
-    const result = await ai.run("@cf/meta/llama-4-scout-17b-16e-instruct", {
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-      guided_json: YACHT_EXTRACT_SCHEMA,
+    const result = await ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+      prompt,
+      image: Array.from(bytes),
       max_tokens: 1024,
       temperature: 0,
     });
