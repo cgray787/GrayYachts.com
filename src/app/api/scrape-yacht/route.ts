@@ -649,6 +649,7 @@ async function extractWithWorkersAi(
     console.log("[scrape-yacht] workers-ai vision", {
       screenshotBytes: bytes.length,
       parsed: !!parsed,
+      response: parsed ? undefined : response.slice(0, 500),
     });
     return parsed;
   } catch (error) {
