@@ -717,11 +717,16 @@ Rules:
 - Engine: capture the count + make + model + total HP exactly as written (e.g. quad/triple/twin/single). Do not collapse a quad-engine setup into a twin.
 - Return ONLY the JSON object, no prose, no markdown fences.`;
 
-  const workersResult = await extractWithWorkersAi(screenshotUrl, prompt);
+  // The account is licensed for Workers AI vision, but the available small
+  // model is not reliable enough on compressed full-page screenshots. Keep
+  // it opt-in until a model passes the listing regression set.
+  const workersResult = process.env.ENABLE_WORKERS_VISION === "true"
+    ? await extractWithWorkersAi(screenshotUrl, prompt)
+    : null;
   if (workersResult) return workersResult;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey || process.env.ENABLE_ANTHROPIC_VISION !== "true") return null;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1914,6 +1919,24 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     if (ai.range && (ai.range < 10 || ai.range > 20000)) ai.range = null;
     // Engine hours (1-50000)
     if (ai.engineHours && (ai.engineHours < 1 || ai.engineHours > 50000)) ai.engineHours = null;
+
+    // Firecrawl's extractor may fill a plausible value that was never printed
+    // on the listing. Require the rendered HTML/markdown to contain the same
+    // number beside the relevant label before allowing these fields through.
+    const sourceText = `${md ?? ""}\n${(html ?? "").replace(/<[^>]*>/g, " ")}`
+      .replace(/\s+/g, " ");
+    const explicitlyMentions = (labels: string, value: number, units = "") => {
+      const number = String(value).replace(".", "\\.");
+      return new RegExp(
+        `(?:${labels})[^0-9]{0,40}${number}(?:\\s*(?:${units}))?|${number}(?:\\s*(?:${units}))?[^a-z]{0,30}(?:${labels})`,
+        "i",
+      ).test(sourceText);
+    };
+    if (ai.cabins && !explicitlyMentions("cabins?|staterooms?", ai.cabins)) ai.cabins = null;
+    if (ai.guests && !explicitlyMentions("guests?|sleeps?|sleeping capacity|passengers?|berths?", ai.guests)) ai.guests = null;
+    if (ai.maxSpeed && !explicitlyMentions("max(?:imum)? speed|top speed|cruising speed", ai.maxSpeed, "knots?|kn|kts")) ai.maxSpeed = null;
+    if (ai.range && !explicitlyMentions("(?:cruising )?range", ai.range, "nm|nmi|nautical miles?")) ai.range = null;
+    if (ai.engineHours && !explicitlyMentions("engine hours?|hours on (?:the )?engine", ai.engineHours, "hours?|hrs?")) ai.engineHours = null;
   }
 
   // Screenshot vision is a fallback, never the authority over structured page
@@ -2123,8 +2146,10 @@ export async function GET(request: NextRequest) {
      v5: apply screenshot-reviewed facts for listings that block all
          server-side fetches.
      v6: use Firecrawl browser screenshots with Workers AI vision, with a
-         longer render window for bot-protected pages. */
-  const SCRAPE_LOGIC_VERSION = 6;
+         longer render window for bot-protected pages.
+     v7: require every AI-only numeric field to be corroborated in the
+         rendered page text; unknowns stay null. */
+  const SCRAPE_LOGIC_VERSION = 7;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });

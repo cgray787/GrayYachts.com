@@ -250,8 +250,8 @@ export const SEED_YACHTS: YachtListing[] = [
   },
 ];
 
-// v9: browser screenshot extraction for arbitrary pasted listing URLs.
-export const STORAGE_KEY = "gy-compare-catalog-v9";
+// v10: rendered-page corroboration; AI-only guesses are discarded.
+export const STORAGE_KEY = "gy-compare-catalog-v10";
 
 /** localStorage key holding which catalog yachts are pinned to LEFT/RIGHT. */
 export const SLOTS_KEY = "gy-compare-slots";
@@ -336,7 +336,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   );
   if (seed) return { ...seed };
 
-  const res = await fetch(`/api/scrape-yacht?logic=6&url=${encodeURIComponent(url)}`);
+  const res = await fetch(`/api/scrape-yacht?logic=7&url=${encodeURIComponent(url)}`);
   const data: ScrapeResult = await res.json();
 
   if (!res.ok || data.error) {
