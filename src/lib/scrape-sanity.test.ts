@@ -11,6 +11,7 @@ import {
   compareKnownSpec,
   comparePrice,
   formatCabinsAndGuests,
+  yachtImageSrc,
 } from "@/lib/yacht-catalog";
 
 /**
@@ -344,5 +345,20 @@ describe("compareKnownSpec", () => {
   it("compares two known values", () => {
     expect(compareKnownSpec(500, 1450, true)).toBe("a");
     expect(compareKnownSpec(20, 12)).toBe("a");
+  });
+});
+
+describe("yachtImageSrc", () => {
+  it("passes the scraper's exact gallery image through the stable proxy", () => {
+    const src = yachtImageSrc(
+      "https://example.com/listing/boat",
+      "https://cdn.example.com/boat-hero.jpg",
+    );
+    expect(src).toContain("image=https%3A%2F%2Fcdn.example.com%2Fboat-hero.jpg");
+  });
+
+  it("falls back to listing lookup when no exact image was extracted", () => {
+    const src = yachtImageSrc("https://example.com/listing/boat", null);
+    expect(src).not.toContain("image=");
   });
 });

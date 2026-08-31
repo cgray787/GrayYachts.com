@@ -18,7 +18,7 @@
  * provider for every listing in a session. Workers recycle isolates
  * often enough that recovery is automatic.
  */
-import { GENERIC_IMAGE_RE, assertPublicHttpUrl } from "@/lib/scrape-shared";
+import { GENERIC_IMAGE_RE } from "@/lib/scrape-shared";
 
 const EXHAUSTION_MARKERS = [
   "402",
@@ -399,7 +399,6 @@ export interface HeroLookup {
     | "jina-html"
     | "jina-markdown"
     | "firecrawl-og"
-    | "firecrawl-screenshot"
     | "serpapi-google-images";
 }
 
@@ -466,19 +465,15 @@ export async function heroImageFor(
   }
 
   // 4. Firecrawl — paid; their managed browser farm passes Cloudflare
-  //    Turnstile where Jina can't. Hands back either og:image or a
-  //    full-page screenshot URL. Skipped automatically once the
-  //    circuit breaker has marked it dead for the rest of the isolate.
+  //    Turnstile where Jina can't. Only accept the listing's og:image here.
+  //    A full-page screenshot is evidence for spec extraction, never a hero
+  //    photo — inserting it into the card is the bug this chain must prevent.
   if (!dead.has("firecrawl")) {
     try {
       const fc = await tryFirecrawl(listingUrl, firecrawlTimeout);
       if (fc?.ogImage && !GENERIC_IMAGE_RE.test(fc.ogImage)) {
         lastUsed = "firecrawl-og";
         return { imageUrl: fc.ogImage, provider: "firecrawl-og" };
-      }
-      if (fc?.screenshot) {
-        lastUsed = "firecrawl-screenshot";
-        return { imageUrl: fc.screenshot, provider: "firecrawl-screenshot" };
       }
     } catch (err) {
       if (isExhaustion(err)) dead.add("firecrawl");

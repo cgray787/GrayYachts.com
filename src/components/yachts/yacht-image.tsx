@@ -20,7 +20,7 @@ export function YachtImage({
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
-      src={yachtImageSrc(yacht.url)}
+      src={yachtImageSrc(yacht.url, yacht.imageUrl)}
       alt={yacht.name}
       loading="lazy"
       className={cn("absolute inset-0 h-full w-full object-cover", className)}

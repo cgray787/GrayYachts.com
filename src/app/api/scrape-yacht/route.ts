@@ -1512,57 +1512,6 @@ function inferLengthFromModel(model: string | null, builder: string | null): num
 }
 
 /* ------------------------------------------------------------------ */
-/*  Fallback image — curated yacht photos by type                      */
-/* ------------------------------------------------------------------ */
-
-/** Curated Unsplash photo IDs by yacht type — free, high-quality, reliable */
-const FALLBACK_IMAGES: Record<string, string[]> = {
-  "Motor Yacht": [
-    "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&h=500&fit=crop",
-  ],
-  "Sailing Yacht": [
-    "https://images.unsplash.com/photo-1534854638093-bada1813ca19?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1559304022-afbf28bc53e0?w=800&h=500&fit=crop",
-  ],
-  "Catamaran": [
-    "https://images.unsplash.com/photo-1605005997079-d4443d180c65?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=500&fit=crop",
-  ],
-  "Sportfisher": [
-    "https://images.unsplash.com/photo-1544551763-77932f4e30c8?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800&h=500&fit=crop",
-  ],
-  "Center Console": [
-    "https://images.unsplash.com/photo-1551524164-687a55dd1126?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1544551763-77932f4e30c8?w=800&h=500&fit=crop",
-  ],
-  "Trawler": [
-    "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
-  ],
-};
-
-const DEFAULT_YACHT_IMAGES = [
-  "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&h=500&fit=crop",
-  "https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&h=500&fit=crop",
-  "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&h=500&fit=crop",
-];
-
-function generateFallbackImage(builder: string | null, type: string | null): string {
-  const images = (type && FALLBACK_IMAGES[type]) || DEFAULT_YACHT_IMAGES;
-  // Deterministic selection based on builder name for consistency
-  let hash = 0;
-  const seed = builder || "yacht";
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  }
-  return images[Math.abs(hash) % images.length];
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main scraper — URL parsing + optional HTML scraping                */
 /* ------------------------------------------------------------------ */
 
@@ -2012,11 +1961,8 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const finalPriceNum = ai?.priceNum ?? htmlPriceNum ?? vision?.priceNum ?? null;
 
   const finalImageUrl = (() => {
-    // Verified picture sources only:
-    //   1. Firecrawl og:image URL (proper hero photo from page metadata)
-    //   2. First gallery image from HTML that matched the listing URL
-    //   3. Firecrawl full-page screenshot (visual capture of the listing)
-    //   4. Branded Unsplash fallback
+    // Only exact listing-photo URLs belong in the card. Full-page screenshots
+    // remain evidence for spec extraction and are never rendered as heroes.
     const ogImage = fetchResult.firecrawlImageUrl;
     if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
       return ogImage;
@@ -2024,7 +1970,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     if (htmlImageUrl && !/logo|icon|sprite|placeholder|default/i.test(htmlImageUrl)) {
       return htmlImageUrl;
     }
-    return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
+    return null;
   })();
 
   const draft: ScrapedYacht = {

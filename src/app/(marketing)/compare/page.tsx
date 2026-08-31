@@ -369,7 +369,7 @@ function ComparisonCard({
       <ReviewBanner yacht={yacht} onMarkVerified={onMarkVerified} />
 
       {/* Yacht image / gradient fallback */}
-      <div className={cn("relative h-44 w-full bg-gradient-to-br", yacht.gradient)}>
+      <div className={cn("relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br", yacht.gradient)}>
         <YachtImage yacht={yacht} />
         <span
           className={cn(

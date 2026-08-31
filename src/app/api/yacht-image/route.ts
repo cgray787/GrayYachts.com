@@ -107,6 +107,7 @@ async function safeFetchPublic(
 
 export async function GET(request: NextRequest) {
   const listingUrl = request.nextUrl.searchParams.get("url");
+  const exactImageUrl = request.nextUrl.searchParams.get("image");
   if (!listingUrl) return badRequest("Missing url parameter");
 
   let parsed: URL;
@@ -135,9 +136,20 @@ export async function GET(request: NextRequest) {
     if (cached) return cached;
   }
 
-  // Provider chain: direct → jina → firecrawl. Returns the URL of the
-  // best image we could find, plus which backend served it.
-  const lookup = await heroImageFor(listingUrl);
+  // Prefer the exact gallery/og:image already extracted alongside the specs.
+  // Only fall back to a fresh provider lookup when no exact image was stored.
+  let lookup: { imageUrl: string; provider: string } | null = null;
+  if (exactImageUrl) {
+    try {
+      const exact = new URL(exactImageUrl);
+      if ((exact.protocol === "https:" || exact.protocol === "http:") && !isPrivateHost(exact.hostname)) {
+        lookup = { imageUrl: exactImageUrl, provider: "scrape-exact" };
+      }
+    } catch {
+      // Invalid exact image URL: continue into the provider lookup.
+    }
+  }
+  if (!lookup) lookup = await heroImageFor(listingUrl);
   if (!lookup) {
     return placeholderImage("no image found on the listing page");
   }

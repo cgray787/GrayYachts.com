@@ -294,11 +294,17 @@ export function saveCatalog(catalog: YachtListing[]) {
  * signed-URL expiry. Bump the version when proxy logic changes so existing
  * edge cache entries don't keep serving the old image.
  */
-// v5: the proxy now answers every failure with a placeholder image instead of
-// JSON, so a listing whose photo cannot be fetched still renders something.
-const IMAGE_PROXY_VERSION = 5;
-export function yachtImageSrc(listingUrl: string): string {
-  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}&v=${IMAGE_PROXY_VERSION}`;
+// v6: prefer the exact gallery/og:image captured during the specification
+// scrape. The proxy re-hosts it and never uses a full webpage screenshot.
+const IMAGE_PROXY_VERSION = 6;
+export function yachtImageSrc(
+  listingUrl: string,
+  exactImageUrl: string | null = null,
+): string {
+  const image = exactImageUrl
+    ? `&image=${encodeURIComponent(exactImageUrl)}`
+    : "";
+  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}${image}&v=${IMAGE_PROXY_VERSION}`;
 }
 
 /** Pull the first numeric value out of a display string like "12.5m (40 ft)" or "$2,000,000". */
