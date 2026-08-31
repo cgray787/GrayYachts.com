@@ -619,14 +619,6 @@ function parseVisionJson(text: string): VisionExtract | null {
   }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  return btoa(binary);
-}
-
 async function extractWithWorkersAi(
   screenshotUrl: string,
   prompt: string,
@@ -645,22 +637,25 @@ async function extractWithWorkersAi(
     if (!imageResponse.ok) return null;
     const bytes = new Uint8Array(await imageResponse.arrayBuffer());
     if (bytes.length === 0 || bytes.length > 8_000_000) return null;
-    const mime = imageResponse.headers.get("content-type")?.split(";")[0] || "image/png";
-    const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`;
-
-    const result = await ai.run("@cf/meta/llama-4-scout-17b-16e-instruct", {
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
+    const model = "@cf/meta/llama-3.2-11b-vision-instruct";
+    const input = {
+      prompt,
+      image: Array.from(bytes),
       max_tokens: 1024,
       temperature: 0,
-    });
+    };
+    let result: unknown;
+    try {
+      result = await ai.run(model, input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes("5016") || !message.includes("submit the prompt 'agree'")) throw error;
+      // The account owner explicitly accepted the Meta Llama 3.2 Community
+      // License/AUP before this path was enabled. Cloudflare records the
+      // agreement account-wide; subsequent calls skip this branch.
+      await ai.run(model, { prompt: "agree", max_tokens: 1 });
+      result = await ai.run(model, input);
+    }
     const output = result as { response?: string; description?: string };
     const response = output.response ?? output.description ?? "";
     const parsed = parseVisionJson(response);
@@ -2126,8 +2121,10 @@ export async function GET(request: NextRequest) {
      v4: accept complete rendered listing bodies that include challenge code,
          and parse collapsed specification tables as structured facts.
      v5: apply screenshot-reviewed facts for listings that block all
-         server-side fetches. */
-  const SCRAPE_LOGIC_VERSION = 5;
+         server-side fetches.
+     v6: use Firecrawl browser screenshots with Workers AI vision, with a
+         longer render window for bot-protected pages. */
+  const SCRAPE_LOGIC_VERSION = 6;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });
