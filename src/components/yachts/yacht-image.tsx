@@ -17,20 +17,33 @@ export function YachtImage({
   className?: string;
 }) {
   if (!yacht.url) return null;
+  const src = yachtImageSrc(yacht.url, yacht.imageUrl);
   return (
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img
-      src={yachtImageSrc(yacht.url, yacht.imageUrl)}
-      alt={yacht.name}
-      loading="lazy"
-      className={cn("absolute inset-0 h-full w-full object-cover", className)}
-      onError={(e) => {
-        const img = e.target as HTMLImageElement;
-        img.style.display = "none";
-        if (typeof window !== "undefined") {
-          console.warn("[YachtImage] failed to load", img.src);
-        }
-      }}
-    />
+    <>
+      {/* A blurred copy fills the cinematic frame without forcing a portrait
+          or tall-mast source into an aggressive crop. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={yacht.name}
+        loading="lazy"
+        className={cn("absolute inset-0 z-[1] h-full w-full object-contain", className)}
+        onError={(e) => {
+          const img = e.target as HTMLImageElement;
+          img.style.display = "none";
+          if (typeof window !== "undefined") {
+            console.warn("[YachtImage] failed to load", img.src);
+          }
+        }}
+      />
+    </>
   );
 }
