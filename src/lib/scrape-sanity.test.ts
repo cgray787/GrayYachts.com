@@ -361,4 +361,12 @@ describe("yachtImageSrc", () => {
     const src = yachtImageSrc("https://example.com/listing/boat", null);
     expect(src).not.toContain("image=");
   });
+
+  it("never reuses a stale Firecrawl webpage screenshot as a boat photo", () => {
+    const src = yachtImageSrc(
+      "https://example.com/listing/boat",
+      "https://storage.googleapis.com/firecrawl-scrape-media/screenshot-123.png",
+    );
+    expect(src).not.toContain("image=");
+  });
 });

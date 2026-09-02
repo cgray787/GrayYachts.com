@@ -301,8 +301,13 @@ export function yachtImageSrc(
   listingUrl: string,
   exactImageUrl: string | null = null,
 ): string {
-  const image = exactImageUrl
-    ? `&image=${encodeURIComponent(exactImageUrl)}`
+  const usableExactImage =
+    exactImageUrl &&
+    !/firecrawl-scrape-media\/screenshot-|\/screenshot-[a-f0-9-]+\.(?:png|jpe?g)/i.test(exactImageUrl)
+      ? exactImageUrl
+      : null;
+  const image = usableExactImage
+    ? `&image=${encodeURIComponent(usableExactImage)}`
     : "";
   return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}${image}&v=${IMAGE_PROXY_VERSION}`;
 }
