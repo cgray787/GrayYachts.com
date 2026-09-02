@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { heroImageFor, providerStats } from "@/lib/scrape-providers";
+import {
+  heroImageFor,
+  modelReferenceImageFor,
+  providerStats,
+} from "@/lib/scrape-providers";
 import { assertPublicHttpUrl, isPrivateHost } from "@/lib/scrape-shared";
 
 /**
@@ -154,43 +158,44 @@ export async function GET(request: NextRequest) {
     return placeholderImage("no image found on the listing page");
   }
 
-  // Pull the actual bytes from the (possibly signed/expiring) upstream
-  // URL so we can re-host them under our stable URL. The `lookup.imageUrl`
-  // came from attacker-controlled HTML (og:image, JSON-LD, etc.), so
-  // we walk redirects manually and re-validate every hop against
-  // private hosts — see safeFetchPublic.
-  let imgRes: Response;
-  try {
-    imgRes = await safeFetchPublic(lookup.imageUrl, {
-      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
-      headers: {
-        // Some CDNs gate hot-linking on a Referer matching their host.
-        // Sending the listing page as Referer is the friendliest hint.
-        Referer: listingUrl,
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.startsWith("Disallowed")) {
-      return placeholderImage(`rejected upstream URL: ${msg}`);
-    }
-    return placeholderImage("upstream image fetch timed out");
-  }
-  if (!imgRes.ok) {
-    return placeholderImage(`upstream image returned ${imgRes.status}`);
+  // Pull the actual bytes from each candidate. If an exact or page-derived
+  // URL hot-links to HTML/403, retry with a clean model-reference image before
+  // giving up to the branded placeholder.
+  const candidates = [lookup];
+  if (lookup.provider !== "serpapi-google-images") {
+    const reference = await modelReferenceImageFor(listingUrl);
+    if (reference) candidates.push(reference);
   }
 
-  const contentType = imgRes.headers.get("content-type") || "image/png";
-  // Reject upstream responses that aren't actually images. This happens
-  // when a fallback <img> URL points at an HTML page (some sites serve
-  // a "hot-link not allowed" HTML page on 200) or when the extracted
-  // src was actually a page link the regex picked up incorrectly.
-  if (!/^image\//i.test(contentType)) {
-    // Some hosts answer a hot-link with a 200 HTML "not allowed" page.
-    return placeholderImage(`upstream returned non-image content-type: ${contentType}`);
+  let imgRes: Response | null = null;
+  let activeLookup = lookup;
+  let failureReason = "no usable image bytes";
+  for (const candidate of candidates) {
+    try {
+      const upstream = await safeFetchPublic(candidate.imageUrl, {
+        signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
+        headers: {
+          Referer: listingUrl,
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      });
+      const type = upstream.headers.get("content-type") || "";
+      if (upstream.ok && /^image\//i.test(type)) {
+        imgRes = upstream;
+        activeLookup = candidate;
+        break;
+      }
+      failureReason = upstream.ok
+        ? `upstream returned non-image content-type: ${type}`
+        : `upstream image returned ${upstream.status}`;
+    } catch (err) {
+      failureReason = err instanceof Error ? err.message : String(err);
+    }
   }
+  if (!imgRes) return placeholderImage(failureReason);
+
+  const contentType = imgRes.headers.get("content-type") || "image/png";
 
   const buf = await imgRes.arrayBuffer();
 
@@ -202,7 +207,7 @@ export async function GET(request: NextRequest) {
       "X-Content-Type-Options": "nosniff",
       // Surface which provider served the image — useful for debugging
       // when something looks off in the Compare Yachts UI.
-      "X-Image-Provider": lookup.provider,
+      "X-Image-Provider": activeLookup.provider,
       "X-Image-Provider-Stats": JSON.stringify(providerStats()),
     },
   });

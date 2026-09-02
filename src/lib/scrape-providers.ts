@@ -402,6 +402,22 @@ export interface HeroLookup {
     | "serpapi-google-images";
 }
 
+export async function modelReferenceImageFor(
+  listingUrl: string,
+  timeoutMs = 20_000,
+): Promise<HeroLookup | null> {
+  if (dead.has("serpapi")) return null;
+  try {
+    const url = await trySerpApi(listingUrl, timeoutMs);
+    if (!url) return null;
+    lastUsed = "serpapi-google-images";
+    return { imageUrl: url, provider: "serpapi-google-images" };
+  } catch (err) {
+    if (isExhaustion(err)) dead.add("serpapi");
+    return null;
+  }
+}
+
 /**
  * Find a hero image URL for a yacht listing. Tries the cheap providers
  * first, falls back to Firecrawl screenshot only as a last resort.
@@ -486,17 +502,8 @@ export async function heroImageFor(
   //    used only when every site-direct provider above has failed
   //    (typically on Cloudflare-Turnstile-protected listings with
   //    Firecrawl out of credits).
-  if (!dead.has("serpapi")) {
-    try {
-      const url = await trySerpApi(listingUrl, jinaTimeout);
-      if (url) {
-        lastUsed = "serpapi-google-images";
-        return { imageUrl: url, provider: "serpapi-google-images" };
-      }
-    } catch (err) {
-      if (isExhaustion(err)) dead.add("serpapi");
-    }
-  }
+  const reference = await modelReferenceImageFor(listingUrl, jinaTimeout);
+  if (reference) return reference;
 
   return null;
 }

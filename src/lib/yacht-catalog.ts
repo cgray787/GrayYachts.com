@@ -294,9 +294,8 @@ export function saveCatalog(catalog: YachtListing[]) {
  * signed-URL expiry. Bump the version when proxy logic changes so existing
  * edge cache entries don't keep serving the old image.
  */
-// v6: prefer the exact gallery/og:image captured during the specification
-// scrape. The proxy re-hosts it and never uses a full webpage screenshot.
-const IMAGE_PROXY_VERSION = 6;
+// v7: retry failed/hot-linked exact photos with a clean model-reference image.
+const IMAGE_PROXY_VERSION = 7;
 export function yachtImageSrc(
   listingUrl: string,
   exactImageUrl: string | null = null,
