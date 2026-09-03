@@ -28,14 +28,14 @@ export function YachtImage({
         alt=""
         aria-hidden="true"
         loading="lazy"
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+        className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={yacht.name}
         loading="lazy"
-        className={cn("absolute inset-0 z-[1] h-full w-full object-contain", className)}
+        className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain", className)}
         onError={(e) => {
           const img = e.target as HTMLImageElement;
           img.style.display = "none";

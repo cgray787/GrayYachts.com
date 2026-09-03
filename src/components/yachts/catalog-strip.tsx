@@ -73,7 +73,7 @@ export function CatalogStrip({
                 >
                   <YachtImage yacht={yacht} />
                   {(isLeft || isRight) && (
-                    <span className="absolute left-1.5 top-1.5 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold text-bg-primary">
+                    <span className="absolute left-1.5 top-1.5 z-10 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold text-bg-primary">
                       {isLeft ? "LEFT" : "RIGHT"}
                     </span>
                   )}
@@ -81,7 +81,7 @@ export function CatalogStrip({
                     type="button"
                     onClick={() => onRemove(yacht.id)}
                     aria-label={`Remove ${yacht.name} from your catalog`}
-                    className="absolute right-1.5 top-1.5 rounded bg-bg-primary/80 p-1 text-text-secondary opacity-0 transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute right-1.5 top-1.5 z-20 rounded bg-bg-primary/80 p-1 text-text-secondary opacity-0 transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     <X className="h-3 w-3" />
                   </button>
