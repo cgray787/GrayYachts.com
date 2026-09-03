@@ -31,6 +31,13 @@ export type Vessel = {
    * shows a "360° TOUR" button. Leave unset until a tour is published.
    */
   tour3DUrl?: string;
+  /**
+   * Path to a self-hosted walkthrough video for this vessel, e.g.
+   * "/listings/<slug>/walkthrough.mp4". Rendered as an inline player on the
+   * vessel page under the gallery. Shot vertical (9:16), so the player is
+   * capped to a phone-shaped column rather than stretched full width.
+   */
+  videoUrl?: string;
 };
 
 export const vessels: Vessel[] = [
@@ -373,8 +380,8 @@ export const vessels: Vessel[] = [
     // there is no signed price, length or location on file.
     //   price:    $575,000 — supplied directly by Connor 2026-08-05.
     //   length:   "54'" is still INFERRED from the 548 model designation.
-    //   location: "Puget Sound, WA" is still a placeholder — the photos
-    //             show an unidentified marina.
+    //   location: Anacortes, WA — confirmed by Connor 2026-09-02
+    //             (was a "Puget Sound, WA" placeholder).
     // Model confirmed as an Ocean Alexander 548 from the engraved
     // electrical panel in IMG_3747. Length + location still need confirming.
     name: "Ocean Alexander 548",
@@ -382,7 +389,7 @@ export const vessels: Vessel[] = [
     year: 1996,
     make: "Ocean Alexander 548",
     length: "54'",
-    location: "Puget Sound, WA",
+    location: "Anacortes, WA",
     price: "$575,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
@@ -438,6 +445,7 @@ export const vessels: Vessel[] = [
       { src: "/listings/blue-pearl/i6.jpg", caption: "Head", interior: true },
     ],
     badge: "NEW LISTING",
+    videoUrl: "/listings/blue-pearl/walkthrough.mp4",
   },
 ];
 
