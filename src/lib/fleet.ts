@@ -409,8 +409,10 @@ export const vessels: Vessel[] = [
     // elbows and Ts, plus updated distributors, plugs and wires.
     //   length: 35'5" is DERIVED from the 10.8 metre model designation —
     //           confirm against the signed listing agreement.
-    // ⚠️ Comparable 1987 Trojan 10.8M listings were observed at $35–36k;
-    //    the $150,000 asking price is Connor's and was flagged to him.
+    // Price context: comparable 1987 Trojan 10.8M listings sit at $35–36k.
+    // The $150,000 ask reflects an owner refit of $400,000+ (rebuilt and
+    // upgraded throughout) — per Connor 2026-09-02. Supporting receipts /
+    // upgrade schedule should be attached to the survey packet.
     name: "M/Y Blue Pearl",
     slug: "blue-pearl",
     year: 1987,
