@@ -408,6 +408,7 @@ export const vessels: Vessel[] = [
       { src: "/listings/ocean-alexander-548/i6.jpg", caption: "Guest Cabin", interior: true },
     ],
     badge: "NEW LISTING",
+    videoUrl: "/listings/ocean-alexander-548/walkthrough.mp4",
   },
   {
     // JBY open listing, seller Glenn Becker. Entered 2026-09-02.
