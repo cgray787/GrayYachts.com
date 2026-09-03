@@ -552,6 +552,41 @@ export const brochures: Record<string, BrochureContent> = {
       "Broad foredeck & generous flybridge seating",
     ],
   },
+  "blue-pearl": {
+    slug: "blue-pearl",
+    tagline: {
+      lead: "A",
+      emphasis: "well-kept Anacortes",
+      tail: "flybridge cruiser — twin gas power with the hard work already done.",
+    },
+    specStrip: [
+      { value: "35'5\"", label: "Length" },
+      { value: "1987", label: "Year Built" },
+      { value: "Crusader", label: "Twin 350hp Gas" },
+      { value: "919", label: "Engine Hours" },
+      { value: "Fiberglass", label: "Construction" },
+    ],
+    narrative: [
+      "Blue Pearl is a 1987 Trojan 10.8 Meter International lying in Anacortes, Washington — the gateway to the San Juans and one of the best-placed home ports in the Pacific Northwest. The 10.8 Meter International was Trojan's take on the classic American flybridge cruiser: a wide, stable hull, a genuinely usable aft cockpit, and an interior that lives far larger than its 35 feet suggest.",
+      "Power is a pair of Crusader 350hp 7.4L V8 gas engines showing 919 hours — low time for the vintage. Critically for a gas boat of this age, the maintenance that matters has already been done: new exhaust risers, elbows and Ts, along with updated distributors, plugs and wires. That is the expensive, unglamorous work most buyers inherit as a to-do list, and here it is behind you.",
+      "Aboard, the layout runs from a full flybridge helm down through a bright salon and dinette, into a galley set below, with a private stateroom and enclosed head forward. The aft cockpit carries a tender and still leaves room to fish or entertain. She is a straightforward, honest cruiser for the San Juans and the Gulf Islands — ready to use rather than a project.",
+    ],
+    highlights: [
+      "Twin Crusader 350hp 7.4L V8 gas — 919 hours",
+      "New exhaust risers, elbows & Ts",
+      "Updated distributors, plugs & wires",
+      "Full flybridge helm with wraparound seating",
+      "Bimini & full canvas enclosure",
+      "Salon with convertible dinette",
+      "Galley down with generous counter space",
+      "Private stateroom forward",
+      "Enclosed head with sink & vanity",
+      "Teak-look cockpit sole",
+      "Tender carried aft on the swim platform",
+      "Lying Anacortes, WA — San Juans on your doorstep",
+    ],
+    photoCredit: "Anacortes, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

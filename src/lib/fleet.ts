@@ -402,6 +402,41 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
   },
+  {
+    // JBY open listing, seller Glenn Becker. Entered 2026-09-02.
+    // Facts supplied directly by Connor: $150,000 · Anacortes WA · twin
+    // Crusader 350 hp (7.4L V8) gas, 919 hours, with new exhaust risers,
+    // elbows and Ts, plus updated distributors, plugs and wires.
+    //   length: 35'5" is DERIVED from the 10.8 metre model designation —
+    //           confirm against the signed listing agreement.
+    // ⚠️ Comparable 1987 Trojan 10.8M listings were observed at $35–36k;
+    //    the $150,000 asking price is Connor's and was flagged to him.
+    name: "M/Y Blue Pearl",
+    slug: "blue-pearl",
+    year: 1987,
+    make: "Trojan 10.8 Meter International",
+    length: "35'5\"",
+    location: "Anacortes, WA",
+    price: "$150,000",
+    image: "/listings/blue-pearl/hero.jpg",
+    href: "/listings/blue-pearl.pdf",
+    gallery: [
+      { src: "/listings/blue-pearl/hero.jpg", caption: "Dockside Profile" },
+      { src: "/listings/blue-pearl/g1.jpg", caption: "Bow Quarter" },
+      { src: "/listings/blue-pearl/g2.jpg", caption: "Starboard Profile" },
+      { src: "/listings/blue-pearl/g3.jpg", caption: "Aft Cockpit & Tender" },
+      { src: "/listings/blue-pearl/g4.jpg", caption: "Foredeck" },
+      { src: "/listings/blue-pearl/g5.jpg", caption: "Engine Room" },
+      { src: "/listings/blue-pearl/g6.jpg", caption: "Machinery Space" },
+      { src: "/listings/blue-pearl/i1.jpg", caption: "Flybridge Helm", interior: true },
+      { src: "/listings/blue-pearl/i2.jpg", caption: "Salon", interior: true },
+      { src: "/listings/blue-pearl/i3.jpg", caption: "Salon Dinette", interior: true },
+      { src: "/listings/blue-pearl/i4.jpg", caption: "Galley", interior: true },
+      { src: "/listings/blue-pearl/i5.jpg", caption: "Stateroom", interior: true },
+      { src: "/listings/blue-pearl/i6.jpg", caption: "Head", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {
