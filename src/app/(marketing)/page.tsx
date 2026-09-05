@@ -58,8 +58,22 @@ export default function HomePage() {
       {/*  HERO                                                        */}
       {/* ============================================================ */}
       <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060a12] via-[#0a1422] to-[#0c1a2e]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#060a12_75%)]" />
+        {/* The hero used to be two bare CSS gradients with no vessel in it at
+            all, while /sell opened on a mega yacht. This is that same shot and
+            the same navy wash, so both entry points read as one brand.
+
+            It deliberately points at the file public/sell.html already
+            preloads rather than a second copy: one asset, no drift, and it is
+            already warm in the CDN. Swap the photo and both pages change —
+            that coupling is the point. Decorative only, hence alt="". */}
+        <img
+          src="/sell/img/hero.jpg"
+          alt=""
+          aria-hidden="true"
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover object-[center_40%]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,10,18,0.72)_0%,rgba(6,10,18,0.80)_45%,rgba(6,10,18,0.97)_100%)]" />
 
         <motion.div
           initial="hidden"
