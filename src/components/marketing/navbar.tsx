@@ -5,9 +5,16 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogIn } from "lucide-react";
 
-const navLinks = [
+type NavLink = { label: string; href: string; plainAnchor?: boolean };
+
+const navLinks: NavLink[] = [
   { label: "FLEET", href: "/fleet" },
   { label: "COMPARE", href: "/compare" },
+  // /sell is public/sell.html, served by Cloudflare's asset handler rather
+  // than the Next router. next/link would treat it as an app route and
+  // prefetch /sell?_rsc=…, which 404s; a plain anchor does a normal document
+  // load.
+  { label: "SELL", href: "/sell", plainAnchor: true },
   { label: "CONTACT", href: "/#contact" },
 ];
 
@@ -47,15 +54,19 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="text-[11px] font-medium tracking-[0.2em] text-text-secondary transition-colors duration-300 hover:text-text-primary"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const cls =
+              "text-[11px] font-medium tracking-[0.2em] text-text-secondary transition-colors duration-300 hover:text-text-primary";
+            return link.plainAnchor ? (
+              <a key={link.label} href={link.href} className={cls}>
+                {link.label}
+              </a>
+            ) : (
+              <Link key={link.label} href={link.href} className={cls}>
+                {link.label}
+              </Link>
+            );
+          })}
           </div>
         </div>
 
@@ -89,16 +100,29 @@ export default function Navbar() {
             className="border-b border-border bg-bg-primary/95 backdrop-blur-md px-6 pb-6 md:hidden"
           >
             <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const cls =
+                  "text-[11px] font-medium tracking-[0.2em] text-text-secondary hover:text-text-primary";
+                return link.plainAnchor ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cls}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cls}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
