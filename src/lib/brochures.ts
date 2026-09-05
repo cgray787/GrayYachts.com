@@ -552,6 +552,47 @@ export const brochures: Record<string, BrochureContent> = {
       "Broad foredeck & generous flybridge seating",
     ],
   },
+  "blue-pearl": {
+    slug: "blue-pearl",
+    tagline: {
+      lead: "A",
+      emphasis: "no-expense-spared refit",
+      tail: "— over $400,000 invested in a classic Trojan flybridge cruiser.",
+    },
+    specStrip: [
+      { value: "35'5\"", label: "Length" },
+      { value: "1987", label: "Year Built" },
+      { value: "Crusader", label: "Twin 350hp Gas" },
+      { value: "919", label: "Engine Hours" },
+      { value: "$400K+", label: "Owner Invested" },
+    ],
+    narrative: [
+      "Blue Pearl is a 1987 Trojan 10.8 Meter International lying in Anacortes, Washington — the gateway to the San Juans and one of the best-placed home ports in the Pacific Northwest. The 10.8 Meter International was Trojan's take on the classic American flybridge cruiser: a wide, stable hull, a genuinely usable aft cockpit, and an interior that lives far larger than its 35 feet suggest.",
+      "What sets this particular boat apart is what has been put into her. The current owner has invested over $400,000 rebuilding and upgrading the vessel — effectively every inch of her — sparing no expense along the way. That figure is multiples of the asking price, and the work is documented rather than described: a new 350-gallon fuel tank, a new Sterling inverter system, a ProMariner battery charging system, a new Isotemp water heater, new Garmin chartplotter and sonar, and an automatic Halon fire-suppression system in the engine room.",
+      "Power is a pair of Crusader 350hp 7.4L V8 gas engines showing just 919 hours — genuinely low time. The systems work that matters most on a gas boat of this age has been done: new exhaust risers, elbows and Ts, plus updated distributors, plugs and wires. Running gear has had the same treatment — dripless shaft seals, a new strut and bushings, and new Nibral propellers, with a spare set of Nibral props plus prop and hub pullers included in the sale.",
+      "The refit runs right through the boat: new high-pressure water pump and plumbing, new faucets, new LED lighting and hardware, new bilge pumps and horn, new antennas on polished stainless mounts, a new tender, and new upholstery, canvas, carpet and flooring throughout. Aboard, the layout runs from a full flybridge helm down through a bright salon and dinette, into a galley set below, with a private stateroom and enclosed head forward. This is not a list of deferred jobs dressed up as maintenance history — it is a boat that has already had the money spent on her, and she is ready to cruise the San Juans today.",
+    ],
+    highlights: [
+      "Over $400,000 invested — rebuilt throughout",
+      "Twin Crusader 350hp 7.4L V8 gas — 919 hours",
+      "New exhaust risers, elbows & Ts",
+      "Updated distributors, plugs & wires",
+      "New 350-gallon fuel tank",
+      "Automatic Halon fire suppression — engine room",
+      "New Sterling inverter system",
+      "New ProMariner battery charging system",
+      "New Garmin chartplotter & sonar",
+      "New Isotemp water heater",
+      "Dripless shaft seals, new strut & bushings",
+      "New Nibral props + spare set & pullers included",
+      "New high-pressure water pump, plumbing & faucets",
+      "New LED lighting, antennas & stainless hardware",
+      "New upholstery, canvas, carpet & flooring",
+      "New bilge pumps, horn & tender",
+      "Lying Anacortes, WA — San Juans on your doorstep",
+    ],
+    photoCredit: "Anacortes, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

@@ -159,6 +159,31 @@ export default async function ListingPage({
           <ListingGallery photos={vessel.gallery} alt={vessel.name} badge={vessel.badge} />
         </div>
 
+        {/* Walkthrough video — vertical (9:16), so cap the width and centre it
+            rather than letting a phone-shaped clip span the whole column. */}
+        {vessel.videoUrl && (
+          <section className="mt-16">
+            <p className="text-center text-[10px] tracking-[0.25em] text-text-secondary">
+              WALKTHROUGH
+            </p>
+            <h2 className="mt-3 text-center font-[family-name:var(--font-cormorant)] text-3xl font-light text-text-primary">
+              Step Aboard {vessel.name}
+            </h2>
+            <div className="mx-auto mt-7 w-full max-w-[380px]">
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                poster={vessel.image}
+                className="w-full rounded-2xl border border-border bg-black shadow-lg"
+              >
+                <source src={vessel.videoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </section>
+        )}
+
         {/* Spec bar */}
         {/* Equal-width columns rather than content-width ones, so the five
             specs sit on a uniform rhythm instead of a ragged flex row. */}

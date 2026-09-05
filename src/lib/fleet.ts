@@ -31,6 +31,13 @@ export type Vessel = {
    * shows a "360° TOUR" button. Leave unset until a tour is published.
    */
   tour3DUrl?: string;
+  /**
+   * Path to a self-hosted walkthrough video for this vessel, e.g.
+   * "/listings/<slug>/walkthrough.mp4". Rendered as an inline player on the
+   * vessel page under the gallery. Shot vertical (9:16), so the player is
+   * capped to a phone-shaped column rather than stretched full width.
+   */
+  videoUrl?: string;
 };
 
 export const vessels: Vessel[] = [
@@ -373,8 +380,8 @@ export const vessels: Vessel[] = [
     // there is no signed price, length or location on file.
     //   price:    $575,000 — supplied directly by Connor 2026-08-05.
     //   length:   "54'" is still INFERRED from the 548 model designation.
-    //   location: "Puget Sound, WA" is still a placeholder — the photos
-    //             show an unidentified marina.
+    //   location: Anacortes, WA — confirmed by Connor 2026-09-02
+    //             (was a "Puget Sound, WA" placeholder).
     // Model confirmed as an Ocean Alexander 548 from the engraved
     // electrical panel in IMG_3747. Length + location still need confirming.
     name: "Ocean Alexander 548",
@@ -382,7 +389,7 @@ export const vessels: Vessel[] = [
     year: 1996,
     make: "Ocean Alexander 548",
     length: "54'",
-    location: "Puget Sound, WA",
+    location: "Anacortes, WA",
     price: "$575,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
@@ -401,6 +408,45 @@ export const vessels: Vessel[] = [
       { src: "/listings/ocean-alexander-548/i6.jpg", caption: "Guest Cabin", interior: true },
     ],
     badge: "NEW LISTING",
+    videoUrl: "/listings/ocean-alexander-548/walkthrough.mp4",
+  },
+  {
+    // JBY open listing, seller Glenn Becker. Entered 2026-09-02.
+    // Facts supplied directly by Connor: $150,000 · Anacortes WA · twin
+    // Crusader 350 hp (7.4L V8) gas, 919 hours, with new exhaust risers,
+    // elbows and Ts, plus updated distributors, plugs and wires.
+    //   length: 35'5" is DERIVED from the 10.8 metre model designation —
+    //           confirm against the signed listing agreement.
+    // Price context: comparable 1987 Trojan 10.8M listings sit at $35–36k.
+    // The $150,000 ask reflects an owner refit of $400,000+ (rebuilt and
+    // upgraded throughout) — per Connor 2026-09-02. Supporting receipts /
+    // upgrade schedule should be attached to the survey packet.
+    name: "M/Y Blue Pearl",
+    slug: "blue-pearl",
+    year: 1987,
+    make: "Trojan 10.8 Meter International",
+    length: "35'5\"",
+    location: "Anacortes, WA",
+    price: "$150,000",
+    image: "/listings/blue-pearl/hero.jpg",
+    href: "/listings/blue-pearl.pdf",
+    gallery: [
+      { src: "/listings/blue-pearl/hero.jpg", caption: "Dockside Profile" },
+      { src: "/listings/blue-pearl/g1.jpg", caption: "Bow Quarter" },
+      { src: "/listings/blue-pearl/g2.jpg", caption: "Starboard Profile" },
+      { src: "/listings/blue-pearl/g3.jpg", caption: "Aft Cockpit & Tender" },
+      { src: "/listings/blue-pearl/g4.jpg", caption: "Foredeck" },
+      { src: "/listings/blue-pearl/g5.jpg", caption: "Engine Room" },
+      { src: "/listings/blue-pearl/g6.jpg", caption: "Machinery Space" },
+      { src: "/listings/blue-pearl/i1.jpg", caption: "Flybridge Helm", interior: true },
+      { src: "/listings/blue-pearl/i2.jpg", caption: "Salon", interior: true },
+      { src: "/listings/blue-pearl/i3.jpg", caption: "Salon Dinette", interior: true },
+      { src: "/listings/blue-pearl/i4.jpg", caption: "Galley", interior: true },
+      { src: "/listings/blue-pearl/i5.jpg", caption: "Stateroom", interior: true },
+      { src: "/listings/blue-pearl/i6.jpg", caption: "Head", interior: true },
+    ],
+    badge: "NEW LISTING",
+    videoUrl: "/listings/blue-pearl/walkthrough.mp4",
   },
 ];
 
