@@ -294,7 +294,9 @@ export function saveCatalog(catalog: YachtListing[]) {
  * signed-URL expiry. Bump the version when proxy logic changes so existing
  * edge cache entries don't keep serving the old image.
  */
-const IMAGE_PROXY_VERSION = 4;
+// v5: the proxy now answers every failure with a placeholder image instead of
+// JSON, so a listing whose photo cannot be fetched still renders something.
+const IMAGE_PROXY_VERSION = 5;
 export function yachtImageSrc(listingUrl: string): string {
   return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}&v=${IMAGE_PROXY_VERSION}`;
 }
@@ -350,7 +352,9 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     beamNum: beamM ?? 0,
     maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
     maxSpeedNum: data.maxSpeed ?? 0,
-    cabins: cabinsN ? `${cabinsN} cabins / ${guestsN} guests` : "N/A",
+    cabins: cabinsN
+      ? `${cabinsN} cabin${cabinsN === 1 ? "" : "s"} / ${guestsN} guest${guestsN === 1 ? "" : "s"}`
+      : "N/A",
     cabinsNum: cabinsN,
     range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",
     rangeNum: data.range ?? 0,
@@ -366,4 +370,20 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     verified: false,
     edited: [],
   };
+}
+
+/**
+ * Which of two listings is the cheaper one, relative to the FIRST argument:
+ * "a" = the first, "b" = the second, "tie" = no winner.
+ *
+ * Two traps this closes. A missing price is stored as 0, so a plain numeric
+ * compare ranked a "price on request" listing as the cheapest boat on the
+ * page. And the result is argument-relative, not slot-relative — reading it as
+ * a slot is what made the right-hand card announce "(lower)" every time it
+ * lost, so both cards claimed the lower price at once.
+ */
+export function comparePrice(mine: number, theirs: number): "a" | "b" | "tie" {
+  if (!(mine > 0) || !(theirs > 0)) return "tie";
+  if (mine === theirs) return "tie";
+  return mine < theirs ? "a" : "b";
 }

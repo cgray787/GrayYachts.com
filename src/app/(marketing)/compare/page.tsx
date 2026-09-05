@@ -21,6 +21,7 @@ import {
   loadCatalog,
   saveCatalog,
   scrapeYachtFromUrl,
+  comparePrice,
 } from "@/lib/yacht-catalog";
 import { YachtImage } from "@/components/yachts/yacht-image";
 import { ToolShell } from "@/components/yachts/tool-shell";
@@ -220,7 +221,8 @@ function ComparisonTable({
   left: YachtListing;
   right: YachtListing;
 }) {
-  const priceWinner = compareSpec(left.priceNum, right.priceNum, true);
+  // Oriented left-vs-right, matching winnerColor's "a"/"b" sides below.
+  const priceWinner = comparePrice(left.priceNum, right.priceNum);
 
   const winnerColor = (winner: Winner, side: "a" | "b") =>
     winner === side
@@ -338,7 +340,12 @@ function ComparisonCard({
   onDrop: (e: DragEvent) => void;
   onMarkVerified: (verified: boolean) => void;
 }) {
-  const priceWinner = compareSpec(yacht.priceNum, other.priceNum, true);
+  /* Relative to THIS card: "a" means this yacht is the cheaper one. The badge
+     used to test `priceWinner === side`, but "b" means the *other* boat won —
+     so the right-hand card rendered "(lower)" exactly when it lost, and both
+     cards claimed the lower price at once. */
+  const priceVerdict = comparePrice(yacht.priceNum, other.priceNum);
+  const thisYachtIsCheaper = priceVerdict === "a";
 
   return (
     <div
@@ -393,9 +400,9 @@ function ComparisonCard({
           <span
             className={cn(
               "text-3xl font-semibold",
-              priceWinner === side
+              thisYachtIsCheaper
                 ? "text-success"
-                : priceWinner === "tie"
+                : priceVerdict === "tie"
                   ? "text-text-primary"
                   : "text-text-secondary/60"
             )}
@@ -404,7 +411,7 @@ function ComparisonCard({
           </span>
           <span className="ml-2 text-xs text-text-secondary">
             asking price
-            {priceWinner === side && (
+            {thisYachtIsCheaper && (
               <span className="ml-1 text-success">(lower)</span>
             )}
           </span>
