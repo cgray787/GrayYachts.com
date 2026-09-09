@@ -1,14 +1,19 @@
 {
   "name": "grayyachts-com",
-  "main": ".open-next/worker.js",
+  "main": "newsletter-worker.ts",
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "triggers": { "crons": ["0 * * * *"] },
+  "d1_databases": [{ "binding": "NEWSLETTER_DB", "database_name": "grayyachts-newsletter", "database_id": "587d73f8-45f4-4eb0-9490-984266d025c3", "migrations_dir": "migrations/newsletter" }],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
   "vars": {
+    "NEWSLETTER_REVIEW_TO": "connorgray41@gmail.com",
+    "NEWSLETTER_FROM": "Gray Yachts <onboarding@resend.dev>",
+    "NEWSLETTER_START_DATE": "2026-09-08",
     "NEXT_PUBLIC_SUPABASE_URL": "https://eorkwxzhtidstznpzlyg.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcmt3eHpodGlkc3R6bnB6bHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NzA3MzAsImV4cCI6MjA4OTU0NjczMH0.2mPq25_musLoqHLZCzzLFjj_70fcNs5nYwJd9H94aEE",
     "MARINE_TECH_SUPABASE_URL": "https://ikfcnqdrlvhvlyhiuphs.supabase.co"

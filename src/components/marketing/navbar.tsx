@@ -15,6 +15,7 @@ const navLinks: NavLink[] = [
   // prefetch /sell?_rsc=…, which 404s; a plain anchor does a normal document
   // load.
   { label: "SELL", href: "/sell", plainAnchor: true },
+  { label: "NEWSLETTER", href: "/newsletter" },
   { label: "CONTACT", href: "/#contact" },
 ];
 

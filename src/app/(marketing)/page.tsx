@@ -280,6 +280,17 @@ export default function HomePage() {
       {/* ============================================================ */}
       <Testimonials />
 
+      <section className="border-y border-[#c9a96e]/20 bg-[#f7f4ee] px-6 py-20 text-[#162636] lg:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row md:items-end">
+          <div className="max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.22em] text-[#756447]">The Gray Yachts newsletter</p>
+            <h2 className="mt-5 font-[family-name:var(--font-cormorant)] text-4xl md:text-5xl">A little perspective before your next move.</h2>
+            <p className="mt-5 max-w-xl leading-relaxed text-slate-600">Practical advice on buying and selling yachts in the Pacific Northwest, from your first viewing to preparing a boat for sale.</p>
+          </div>
+          <Link href="/newsletter" className="inline-flex shrink-0 items-center gap-5 self-start border-b border-[#ad9163] pb-3 text-sm md:self-auto">Read the newsletter <ArrowRight size={18}/></Link>
+        </div>
+      </section>
+
       {/* ============================================================ */}
       {/*  CONTACT / BIO                                               */}
       {/* ============================================================ */}
