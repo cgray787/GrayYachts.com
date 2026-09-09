@@ -14,7 +14,7 @@ Buyer and seller editions alternate. The brief requires a useful direct answer, 
 
 ## Review and publication
 
-`POST /api/newsletter/draft` requires the private automation credential. It stores the original and edited article as pending and triggers Resend delivery to `connorgray41@gmail.com`. It cannot replace stored content for an existing slot. Cloudflare's hourly cron runs delivery retries only (`NEWSLETTER_AI_PROVIDER=hermes`); the Cloudflare AI binding was removed. The newsletter does not use the website's existing Anthropic key.
+`POST /api/newsletter/draft` requires the private automation credential. It stores the original and edited article as pending and triggers Resend delivery to `connorgray@jeffbrownyachts.com`. It cannot replace stored content for an existing slot. Cloudflare's hourly cron runs delivery retries only (`NEWSLETTER_AI_PROVIDER=hermes`); the Cloudflare AI binding was removed. The newsletter does not use the website's existing Anthropic key.
 
 The email opens a private review page. GET never approves or rejects. A POST with an issue-specific HMAC token changes a pending draft exactly once. Approve publishes the stored article; reject keeps it private and saves feedback. No action emails subscribers. Public archive, article pages and sitemap select only published issues. Review pages have noindex and no-referrer metadata. Keep approval links private.
 
@@ -22,7 +22,7 @@ The email opens a private review page. GET never approves or rejects. A POST wit
 
 The transport/signing credential lives at `~/.config/grayyachts/newsletter-automation-secret` with mode 0600 on the local machine and VPS, and as the Worker secret `NEWSLETTER_AUTOMATION_SECRET`. It is not committed. Preserve it: rotation invalidates existing review links. ChatGPT account credentials stay on the VPS and were not copied.
 
-Other Worker bindings: `NEWSLETTER_DB` (D1 database `grayyachts-newsletter`), `RESEND_API_KEY`, `NEWSLETTER_REVIEW_TO`, `NEWSLETTER_FROM`, and `NEWSLETTER_START_DATE`. Current sender is the site's existing Resend testing sender, `Gray Yachts <onboarding@resend.dev>`. A verified branded sender can be configured separately.
+Other Worker bindings: `NEWSLETTER_DB` (D1 database `grayyachts-newsletter`), `RESEND_API_KEY`, `NEWSLETTER_REVIEW_TO`, `NEWSLETTER_FROM`, and `NEWSLETTER_START_DATE`. Current sender is the site's existing Resend testing sender, `Gray Yachts <onboarding@resend.dev>`. The provider identified `connorgray@jeffbrownyachts.com` as its account owner and rejected the initially selected admin Gmail address under its testing-sender restriction. Approval delivery uses the confirmed owner address. A verified branded sender can be configured separately.
 
 `node scripts/newsletter-ops.mjs status` reports recent drafts and provider delivery status. `node scripts/newsletter-ops.mjs run` retries pending delivery; generation remains in Hermes. `hermes cron list`, `hermes cron runs 4c4b201a5833`, and the private per-date agent logs show VPS health. `hermes cron run 4c4b201a5833` manually triggers the same due-date and duplicate checks. Inspect errors before resetting a date's `.attempts` file after three failed generations.
 

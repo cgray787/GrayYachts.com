@@ -12,7 +12,7 @@
   },
   "vars": {
     "NEWSLETTER_AI_PROVIDER": "hermes",
-    "NEWSLETTER_REVIEW_TO": "connorgray41@gmail.com",
+    "NEWSLETTER_REVIEW_TO": "connorgray@jeffbrownyachts.com",
     "NEWSLETTER_FROM": "Gray Yachts <onboarding@resend.dev>",
     "NEWSLETTER_START_DATE": "2026-09-08",
     "NEXT_PUBLIC_SUPABASE_URL": "https://eorkwxzhtidstznpzlyg.supabase.co",
