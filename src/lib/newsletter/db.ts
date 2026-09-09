@@ -8,7 +8,7 @@ export async function newsletterEnv(): Promise<NewsletterEnv> {
 }
 export async function publishedIssues(): Promise<Issue[]> {
  const env = await newsletterEnv();
- return (await env.NEWSLETTER_DB.prepare("SELECT id,slot,status,title,slug,audience,excerpt,hero,created_at,published_at FROM newsletter_issues WHERE status='published' ORDER BY published_at DESC LIMIT 60").all<Issue>()).results;
+ return (await env.NEWSLETTER_DB.prepare("SELECT id,slot,status,title,slug,audience,excerpt,hero,created_at,published_at FROM newsletter_issues WHERE status='published' ORDER BY published_at DESC").all<Issue>()).results;
 }
 export async function publishedIssue(slug: string): Promise<Issue | null> {
  const env = await newsletterEnv();

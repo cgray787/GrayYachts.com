@@ -80,7 +80,31 @@ async function sendReview(env: NewsletterEnv, issue: Issue) {
  const data=await response.json() as {id:string};
  await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET email_sent_at=?,email_id=?,error=NULL WHERE id=?').bind(new Date().toISOString(),data.id,issue.id).run();
 }
+export async function deliverHermesReview(env: NewsletterEnv, now=new Date()) {
+ const issue=await env.NEWSLETTER_DB.prepare("SELECT * FROM newsletter_issues WHERE status='pending' AND email_sent_at IS NULL AND attempts<5 ORDER BY created_at LIMIT 1").first<Issue>();
+ if(!issue)return {state:'awaiting-hermes'};
+ const lock=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET lock_until=?,attempts=attempts+1 WHERE id=? AND email_sent_at IS NULL AND (lock_until IS NULL OR lock_until<?)").bind(new Date(now.getTime()+15*60000).toISOString(),issue.id,now.toISOString()).run();
+ if(!lock.meta.changes)return {state:'already-handled-or-locked'};
+ try {await sendReview(env,issue);return {state:'review-sent',id:issue.id};}
+ catch(error){await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET error=? WHERE id=?').bind(error instanceof Error?error.message:'Email failed',issue.id).run();throw error;}
+ finally {await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET lock_until=NULL WHERE id=?').bind(issue.id).run();}
+}
+export async function acceptHermesDraft(env: NewsletterEnv, payload: {slot:string;original:unknown;article:unknown;humanizerVersion:string;factCheck:{pass:boolean};sources:{title:string;url:string}[]}) {
+ const days=(Date.parse(payload.slot)-Date.parse(env.NEWSLETTER_START_DATE))/86400000;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.slot) || !Number.isInteger(days) || days<0 || days%2!==0 || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
+ if(payload.humanizerVersion!=='3.0.0' || payload.factCheck?.pass!==true)throw new Error('Humanizer editing and factual review are required');
+ const original=validateArticle(payload.original);const article=validateArticle(payload.article);
+ if(!Array.isArray(payload.sources) || payload.sources.length<1 || payload.sources.length>12 || payload.sources.some(s=>typeof s.title!=='string'||s.title.length>200||typeof s.url!=='string'||!/^https:\/\//.test(s.url)||s.url.length>1000))throw new Error('Source references are required');
+ const audience=(days/2)%2===0?'seller':'buyer';
+ const slug=`${payload.slot}-${article.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,90)}`;
+ await env.NEWSLETTER_DB.prepare('INSERT OR IGNORE INTO newsletter_issues(id,slot,created_at) VALUES(?,?,?)').bind(crypto.randomUUID(),payload.slot,new Date().toISOString()).run();
+ const updated=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET status='pending',title=?,slug=?,audience=?,excerpt=?,content=?,original_content=?,sources=?,hero=?,attempts=0,error=NULL,lock_until=NULL WHERE slot=? AND content IS NULL AND status NOT IN ('published','rejected')")
+  .bind(article.title,slug,audience,article.excerpt,JSON.stringify(article),JSON.stringify(original),JSON.stringify(payload.sources),'/sell/img/hero.jpg',payload.slot).run();
+ if(!updated.meta.changes)return {state:'draft-already-stored'};
+ return {state:'draft-stored',slug};
+}
 export async function runNewsletter(env: NewsletterEnv, now=new Date()) {
+ if(env.NEWSLETTER_AI_PROVIDER==='hermes')return deliverHermesReview(env,now);
  const slot=scheduleSlot(now,env.NEWSLETTER_START_DATE);
  if (!slot) return {state:'not-due'};
  const hasAI=env.NEWSLETTER_AI_PROVIDER==='cloudflare'?!!env.AI:!!env.ANTHROPIC_API_KEY;

@@ -3,7 +3,7 @@ import {describe,it,expect,vi,afterEach} from 'vitest';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
-import {runNewsletter} from './generate';
+import {runNewsletter,acceptHermesDraft} from './generate';
 
 function database() {
  const db=new DatabaseSync(':memory:');
@@ -53,6 +53,21 @@ describe('scheduled draft and review delivery',()=>{
   expect(await runNewsletter(env,new Date('2026-09-08T18:00:00Z'))).toMatchObject({state:'already-handled-or-locked'});
   expect(modelCalls).toBe(3);expect(emails).toBe(2);
   expect(db.prepare("SELECT COUNT(*) n FROM newsletter_issues WHERE status='published'").get()?.n).toBe(0);db.close();
+ });
+ it('accepts a Hermes draft once, requires editorial checks, and never calls an AI provider',async()=>{
+  const {db,env}=database();Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com',NEWSLETTER_FROM:'test@example.com'});
+  vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
+  try {
+   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
+   await expect(acceptHermesDraft(env,{...payload,factCheck:{pass:false}})).rejects.toThrow('factual review');
+   expect(await acceptHermesDraft(env,payload)).toMatchObject({state:'draft-stored'});
+   expect(await acceptHermesDraft(env,{...payload,article:{...article(),title:'This must not replace the saved draft'}})).toMatchObject({state:'draft-already-stored'});
+   const requests:string[]=[];vi.stubGlobal('fetch',vi.fn(async(url:string)=>{requests.push(url);return Response.json({id:'hermes-email'});}));
+   expect(await runNewsletter(env)).toMatchObject({state:'review-sent'});
+   expect(await runNewsletter(env)).toMatchObject({state:'awaiting-hermes'});
+   expect(requests).toEqual(['https://api.resend.com/emails']);
+   expect(db.prepare('SELECT status,title FROM newsletter_issues').get()).toMatchObject({status:'pending',title:article().title});
+  } finally {vi.useRealTimers();db.close();}
  });
  it('leaves a draft private when factual review fails',async()=>{
   const {db,env}=database();Object.assign(env,{NEWSLETTER_START_DATE:'2026-09-08',ANTHROPIC_API_KEY:'test',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com'});
