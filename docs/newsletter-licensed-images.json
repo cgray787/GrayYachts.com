@@ -145,5 +145,89 @@
       "landscape"
     ],
     "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
+  },
+  {
+    "sourceAssetId": "pexels:9323301",
+    "url": "/newsletter/licensed/pexels-9323301.jpg",
+    "source": "https://www.pexels.com/photo/lighthouse-on-a-coast-9323301/",
+    "downloadUrl": "https://images.pexels.com/photos/9323301/pexels-photo-9323301.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Lighthouse above a rocky coastline",
+    "photographer": "RODRIGO ESTEBAS",
+    "credit": "Photo: RODRIGO ESTEBAS / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-09",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "tags": [
+      "coast",
+      "lighthouse",
+      "seascape",
+      "portrait"
+    ],
+    "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
+  },
+  {
+    "sourceAssetId": "pexels:12514724",
+    "url": "/newsletter/licensed/pexels-12514724.jpg",
+    "source": "https://www.pexels.com/photo/navigational-aid-compass-in-a-sailboat-12514724/",
+    "downloadUrl": "https://images.pexels.com/photos/12514724/pexels-photo-12514724.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Sailboat compass and helm at twilight",
+    "photographer": "natureVisions.ch Markus",
+    "credit": "Photo: natureVisions.ch Markus / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-09",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "tags": [
+      "navigation",
+      "equipment",
+      "helm",
+      "landscape"
+    ],
+    "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
+  },
+  {
+    "sourceAssetId": "pexels:29224833",
+    "url": "/newsletter/licensed/pexels-29224833.jpg",
+    "source": "https://www.pexels.com/photo/boat-on-dry-dock-with-blue-sky-background-29224833/",
+    "downloadUrl": "https://images.pexels.com/photos/29224833/pexels-photo-29224833.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Working boat supported ashore for maintenance",
+    "photographer": "Laurent JULIEN",
+    "credit": "Photo: Laurent JULIEN / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-09",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "tags": [
+      "boatyard",
+      "maintenance",
+      "hull",
+      "portrait"
+    ],
+    "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
+  },
+  {
+    "sourceAssetId": "pexels:13302624",
+    "url": "/newsletter/licensed/pexels-13302624.jpg",
+    "source": "https://www.pexels.com/photo/people-on-sailboat-on-sea-13302624/",
+    "downloadUrl": "https://images.pexels.com/photos/13302624/pexels-photo-13302624.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Traditional sailboat underway with crew",
+    "photographer": "De Lemster Krant",
+    "credit": "Photo: De Lemster Krant / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-09",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "tags": [
+      "sailing",
+      "life aboard",
+      "traditional boats",
+      "landscape"
+    ],
+    "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
   }
 ]

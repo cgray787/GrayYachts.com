@@ -36,6 +36,8 @@ def context():
         'Lead with an aerial or cruising view; support with a deck detail and a marina perspective.',
         'Lead with a well-composed marina or yacht-at-anchor view; support with an interior and a different exterior perspective.',
         'Lead with a strong yacht profile in softer light; support with a crisp deck detail and an aerial or cruising view.',
+        'For an ownership or condition article, consider a professional boatyard view with hull, machinery or navigation detail.',
+        'For a cruising article, consider a coastal scene or lighthouse with sailing, working-harbor or life-aboard imagery.',
     ]
     return {'image_direction': directions[(day // 2) % len(directions)], 'due': bool(slot and not existing), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues'], 'image_library': request('/api/newsletter/images')}
 

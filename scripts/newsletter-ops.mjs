@@ -23,6 +23,13 @@ if(action==='configure') {
  const payload=readFileSync(process.argv[3],'utf8');
  const response=await fetch('https://grayyachts.com/api/newsletter/images',{method:'POST',headers:{authorization:`Bearer ${readFileSync(path,'utf8').trim()}`,'content-type':'application/json'},body:payload});
  console.log(response.status,await response.text());if(!response.ok)process.exit(1);
+ } else if(action==='library') {
+ const response=await fetch('https://grayyachts.com/api/newsletter/images',{headers:{authorization:`Bearer ${readFileSync(path,'utf8').trim()}`}});
+ if(!response.ok)throw new Error(`Library HTTP ${response.status}`);
+ const library=await response.json();const photos=library.available.filter(p=>p.license==='Pexels License');
+ const results=await Promise.all(photos.map(async p=>{const r=await fetch(`https://grayyachts.com${p.url}`);return {photo:p.sourceAssetId,status:r.status,type:r.headers.get('content-type')};}));
+ console.log(JSON.stringify({unused_total:library.available.length,licensed_photos:photos.length,results}));
+ if(results.some(r=>r.status!==200||!r.type?.startsWith('image/')))process.exit(1);
 } else if(action==='verify') {
  const {chromium}=await import('playwright');
  const {default:assert}=await import('node:assert/strict');
@@ -56,5 +63,5 @@ if(action==='configure') {
   console.log('PASS: live desktop/mobile archive, private draft, sitemap exclusion and approval page. No publication action taken.');
  } finally {await browser.close();}
 } else {
- console.error('Usage: node scripts/newsletter-ops.mjs configure|run|status|verify|images payload.json');process.exit(2);
+ console.error('Usage: node scripts/newsletter-ops.mjs configure|run|status|library|verify|images payload.json');process.exit(2);
 }
