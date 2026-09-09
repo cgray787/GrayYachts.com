@@ -62,7 +62,8 @@ async function draft(env: NewsletterEnv, slot: string) {
   .bind(edited.title,slug,audience,edited.excerpt,JSON.stringify(edited),JSON.stringify(original),JSON.stringify([{title:'Gray Yachts brokerage services and contact',url:SITE},{title:audience==='seller'?'Request a yacht evaluation':'Explore Gray Yachts listings',url:`${SITE}/${audience==='seller'?'sell':'fleet'}`}]),'/sell/img/hero.jpg',slot).run();
 }
 function articleEmail(a: Article, images:NewsletterImage[]) {
- return images.map(i=>`<figure style="margin:24px 0"><img src="${SITE}${escapeHtml(i.url)}" alt="${escapeHtml(i.alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="font-size:13px;color:#536170">${escapeHtml(i.caption)} · ${escapeHtml(i.credit)}</figcaption></figure>`).join('')+`<p>${escapeHtml(a.introduction)}</p>`+a.sections.map(s=>`<h2 style="font-family:Georgia,serif;font-size:24px">${escapeHtml(s.heading)}</h2>${s.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}`).join('');
+ const photo=(i:number)=>images[i]?`<figure style="margin:32px 0"><img src="${SITE}${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="margin-top:10px;font:13px/1.6 Arial,sans-serif;color:#66707b">${escapeHtml(images[i].caption)}<br><span style="font-size:11px">${escapeHtml(images[i].credit)}</span></figcaption></figure>`:'';
+ return photo(0)+`<p style="font-size:19px;line-height:1.7">${escapeHtml(a.introduction)}</p>`+a.sections.map((section,index)=>`<h2 style="margin-top:34px;font-family:Georgia,serif;font-weight:normal;font-size:27px">${escapeHtml(section.heading)}</h2>${section.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}${index===1?photo(1):''}${index===a.sections.length-1?photo(2):''}`).join('');
 }
 async function sendReview(env: NewsletterEnv, issue: Issue) {
  const token = await reviewToken(issue.id,env.NEWSLETTER_AUTOMATION_SECRET,issue.review_revision);

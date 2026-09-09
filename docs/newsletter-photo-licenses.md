@@ -1,0 +1,11 @@
+# Commercially licensed newsletter photos
+
+Seven Pexels photographs were reviewed and added on September 8, 2026 Pacific (September 9 UTC). The per-photo provenance is in `newsletter-licensed-images.json`: original page, photographer, download URL, license URL, review date, usage guidance and tags. The generator verifies local files and produces content hashes plus stable source-asset identities; a new download size cannot bypass the no-reuse rule.
+
+The official [Pexels license](https://www.pexels.com/license/) permits use on websites, newsletters and marketing materials. [Pexels commercial-use guidance](https://help.pexels.com/hc/en-us/articles/360042295214-Can-I-use-the-photos-and-videos-for-a-commercial-project) confirms commercial use. Attribution is optional under that license; we retain photographer credits anyway. The individual photo pages identify each asset as free to use. No subscription, paid license or account was purchased.
+
+Use these as illustrative editorial photos within brokerage articles. Do not imply that Gray Yachts represents a pictured vessel or owner, that an overseas image depicts the Pacific Northwest, or that a person/brand endorses the business. Model/property releases have not been independently verified. For a use that depends on such releases, obtain them or choose another image. These records document the copyright license and context review, not a guarantee covering every possible use. No standalone resale or stock-library redistribution.
+
+All seven images were visually inspected. The batch provides a white megayacht in a marina, Lotus from above, a large motor yacht's stern, a motor yacht underway, a large sailing yacht at sunset, a teak side deck and a sailboat foredeck. No exact duplicates were found. Preserve the original source IDs and URLs. Never make cropped/edited variants to evade the image-use ledger. Additional images require the same review before catalog admission.
+
+The current pending edition retains its already previewed three images. These new assets are available for upcoming drafts; they still require Connor's newsletter approval before article publication.
