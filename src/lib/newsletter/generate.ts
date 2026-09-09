@@ -28,7 +28,11 @@ async function model(env: NewsletterEnv, system: string, input: string): Promise
   method:'POST', headers:{'content-type':'application/json','x-api-key':env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
   body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:6000,system,messages:[{role:'user',content:input}]}), signal:AbortSignal.timeout(120000)
  });
- if (!response.ok) throw new Error(`Newsletter AI request failed (${response.status})`);
+ if (!response.ok) {
+  const detail=await response.json().catch(()=>null) as {error?:{message?:string}}|null;
+  const message=String(detail?.error?.message||'').replaceAll(env.ANTHROPIC_API_KEY,'[redacted]').slice(0,500);
+  throw new Error(`Newsletter AI request failed (${response.status}): ${message}`);
+ }
  const data = await response.json() as {content:{type:string;text?:string}[]};
  const text = data.content.filter(c=>c.type==='text').map(c=>c.text).join('').trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
  return JSON.parse(text);
@@ -59,7 +63,11 @@ async function sendReview(env: NewsletterEnv, issue: Issue) {
    text:`Your ${issue.audience} newsletter draft is ready. It has been edited with Humanizer and is awaiting your approval. Review, approve publication, or reject with feedback: ${url}\n\n${issue.excerpt}\n\nApproval publishes to GrayYachts.com. This does not email a subscriber list.`,
    html:`<div style="background:#060a12;padding:36px 12px"><div style="max-width:680px;margin:auto;background:#f7f4ee;padding:32px;color:#182333;font:16px/1.7 Arial,sans-serif"><p style="letter-spacing:3px;font-size:12px">GRAY YACHTS · EDITOR REVIEW</p><h1 style="font:36px/1.15 Georgia,serif">${escapeHtml(issue.title)}</h1><p>Your ${issue.audience} edition is ready. Humanizer editing and factual review are complete. Please check the full draft before publishing.</p><p><a style="display:inline-block;background:#172838;color:#fff;padding:14px 22px;text-decoration:none" href="${url}">Review, approve or reject</a></p><p style="font-size:13px">Approval publishes this article on GrayYachts.com. No subscriber email is sent.</p><hr>${articleEmail(JSON.parse(issue.content))}</div></div>`}),signal:AbortSignal.timeout(30000)
  });
- if (!response.ok) throw new Error(`Review email failed (${response.status})`);
+ if (!response.ok) {
+  const detail=await response.json().catch(()=>null) as {message?:string}|null;
+  const message=String(detail?.message||'').replaceAll(env.RESEND_API_KEY,'[redacted]').slice(0,500);
+  throw new Error(`Review email failed (${response.status}): ${message}`);
+ }
  const data=await response.json() as {id:string};
  await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET email_sent_at=?,email_id=?,error=NULL WHERE id=?').bind(new Date().toISOString(),data.id,issue.id).run();
 }

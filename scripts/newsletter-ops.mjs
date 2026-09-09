@@ -14,11 +14,11 @@ if(action==='configure') {
  const result=spawnSync('node_modules/.bin/wrangler',['secret','put','NEWSLETTER_AUTOMATION_SECRET'],{input:readFileSync(path,'utf8'),encoding:'utf8'});
  if(result.status!==0) {console.error('Secret upload failed. Verify Cloudflare authentication.');process.exit(1);}
  console.log('Newsletter signing secret configured; credential remains machine-local.');
-} else if(action==='run') {
- const response=await fetch('https://grayyachts.com/api/newsletter/run',{method:'POST',headers:{authorization:`Bearer ${readFileSync(path,'utf8').trim()}`},signal:AbortSignal.timeout(420000)});
+} else if(action==='run' || action==='status') {
+ const response=await fetch('https://grayyachts.com/api/newsletter/run',{method:action==='run'?'POST':'GET',headers:{authorization:`Bearer ${readFileSync(path,'utf8').trim()}`},signal:AbortSignal.timeout(420000)});
  console.log('Run HTTP status:',response.status);
  console.log(await response.text());
  if(!response.ok)process.exit(1);
 } else {
- console.error('Usage: node scripts/newsletter-ops.mjs configure|run');process.exit(2);
+ console.error('Usage: node scripts/newsletter-ops.mjs configure|run|status');process.exit(2);
 }
