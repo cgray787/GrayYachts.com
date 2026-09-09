@@ -22,6 +22,7 @@ export type Article = {
 };
 export type Issue = {
  id: string; slot: string; status: 'generating' | 'pending' | 'published' | 'rejected' | 'failed';
+ images: string; review_revision: number;
  title: string; slug: string; audience: 'buyer' | 'seller'; excerpt: string;
  content: string; sources: string; hero: string; created_at: string;
  published_at: string | null; email_sent_at: string | null; review_feedback: string | null;
@@ -48,25 +49,26 @@ export function validateArticle(value: unknown): Article {
 export function escapeHtml(text: string): string {
  return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 }
-export async function reviewToken(id: string, secret: string): Promise<string> {
+export async function reviewToken(id: string, secret: string, revision=0): Promise<string> {
  if (!secret || secret.length < 32) throw new Error('Newsletter signing secret is not configured');
  const encoder = new TextEncoder();
  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
- const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`newsletter-review:${id}`));
+ const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`newsletter-review:${id}${revision?`:r${revision}`:''}`));
  return Array.from(new Uint8Array(signature), b => b.toString(16).padStart(2,'0')).join('');
 }
-export async function validToken(id: string, token: string, secret: string): Promise<boolean> {
+export async function validToken(id: string, token: string, secret: string, revision=0): Promise<boolean> {
  if (!/^[0-9a-f]{64}$/.test(token)) return false;
- const expected = await reviewToken(id, secret);
+ const expected = await reviewToken(id, secret, revision);
  let difference = 0;
  for (let i=0;i<64;i++) difference |= token.charCodeAt(i) ^ expected.charCodeAt(i);
  return difference === 0;
 }
 export async function decide(env: NewsletterEnv, id: string, token: string, decision: string, feedback: string) {
- if (!await validToken(id, token, env.NEWSLETTER_AUTOMATION_SECRET)) return { status: 403, message: 'This review link is not valid.' };
+ const issue=await env.NEWSLETTER_DB.prepare('SELECT review_revision FROM newsletter_issues WHERE id=?').bind(id).first<{review_revision:number}>();
+ if (!issue || !await validToken(id, token, env.NEWSLETTER_AUTOMATION_SECRET,issue.review_revision)) return { status: 403, message: 'This review link is not valid.' };
  if (!['approve','reject'].includes(decision)) return {status:400,message:'Choose approve or reject.'};
  const now = new Date().toISOString();
- const result = await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET status=?, reviewed_at=?, published_at=?, review_feedback=? WHERE id=? AND status='pending'")
-  .bind(decision==='approve'?'published':'rejected', now, decision==='approve'?now:null, feedback.slice(0,3000), id).run();
+ const result = await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET status=?, reviewed_at=?, published_at=?, review_feedback=? WHERE id=? AND status='pending' AND review_revision=?")
+  .bind(decision==='approve'?'published':'rejected', now, decision==='approve'?now:null, feedback.slice(0,3000), id,issue.review_revision).run();
  return result.meta.changes === 1 ? {status:200,message:decision==='approve'?'Published on GrayYachts.com.':'Draft rejected. Your feedback is saved for the next issue.'} : {status:409,message:'This draft has already been reviewed or is not ready.'};
 }

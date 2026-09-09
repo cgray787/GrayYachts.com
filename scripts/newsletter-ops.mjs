@@ -19,6 +19,10 @@ if(action==='configure') {
  console.log('Run HTTP status:',response.status);
  console.log(await response.text());
  if(!response.ok)process.exit(1);
+ } else if(action==='images') {
+ const payload=readFileSync(process.argv[3],'utf8');
+ const response=await fetch('https://grayyachts.com/api/newsletter/images',{method:'POST',headers:{authorization:`Bearer ${readFileSync(path,'utf8').trim()}`,'content-type':'application/json'},body:payload});
+ console.log(response.status,await response.text());if(!response.ok)process.exit(1);
 } else if(action==='verify') {
  const {chromium}=await import('playwright');
  const {default:assert}=await import('node:assert/strict');
@@ -39,14 +43,18 @@ if(action==='configure') {
   await page.screenshot({path:join(output,'live-mobile.png'),fullPage:true});
   assert.equal((await page.request.get(`https://grayyachts.com/newsletter/${issue.slug}`)).status(),404);
   assert.ok(!(await (await page.request.get('https://grayyachts.com/newsletter/sitemap.xml')).text()).includes(issue.slug));
-  const token=createHmac('sha256',secret).update(`newsletter-review:${issue.id}`).digest('hex');
+  const token=createHmac('sha256',secret).update(`newsletter-review:${issue.id}${issue.review_revision?`:r${issue.review_revision}`:''}`).digest('hex');
   assert.equal((await page.goto(`https://grayyachts.com/newsletter/review/${issue.id}?token=${token}`)).status(),200);
   await page.getByRole('button',{name:'Approve & publish'}).waitFor();
   await page.getByRole('button',{name:'Reject draft'}).waitFor();
+  const images=JSON.parse(issue.images||'[]');
+  assert.ok(images.length>=2 && images.length<=3);
+  assert.equal(await page.locator('[data-newsletter-image]').count(),images.length);
+  for(const photo of images)assert.equal((await page.request.get(`https://grayyachts.com${photo.url}`)).status(),200);
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex, nofollow');
   await page.screenshot({path:join(output,'live-review.png'),fullPage:true});
   console.log('PASS: live desktop/mobile archive, private draft, sitemap exclusion and approval page. No publication action taken.');
  } finally {await browser.close();}
 } else {
- console.error('Usage: node scripts/newsletter-ops.mjs configure|run|status|verify');process.exit(2);
+ console.error('Usage: node scripts/newsletter-ops.mjs configure|run|status|verify|images payload.json');process.exit(2);
 }

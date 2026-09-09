@@ -3,11 +3,14 @@ import {describe,it,expect,vi,afterEach} from 'vitest';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
+import catalog from './image-catalog.json';
+import {attachImages,availableImages,validateImages} from './images';
 import {runNewsletter,acceptHermesDraft} from './generate';
 
 function database() {
  const db=new DatabaseSync(':memory:');
  db.exec(readFileSync('migrations/newsletter/0001_newsletter.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0002_images.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -58,7 +61,7 @@ describe('scheduled draft and review delivery',()=>{
   const {db,env}=database();Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com',NEWSLETTER_FROM:'test@example.com'});
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
   try {
-   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
+   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,3).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
    await expect(acceptHermesDraft(env,{...payload,factCheck:{pass:false}})).rejects.toThrow('factual review');
    expect(await acceptHermesDraft(env,payload)).toMatchObject({state:'draft-stored'});
    expect(await acceptHermesDraft(env,{...payload,article:{...article(),title:'This must not replace the saved draft'}})).toMatchObject({state:'draft-already-stored'});
@@ -106,5 +109,36 @@ describe('private newsletter approval',()=>{
  it('rejects malformed model output',()=>{
   expect(()=>validateArticle({title:'Title',sections:[]})).toThrow();
   expect(()=>validateArticle({title:'<script>alert(1)</script>'})).toThrow();
+ });
+});
+
+describe('newsletter image policy',()=>{
+ const photos=(start=0)=>catalog.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography'}));
+ it('requires 2-3 different catalog photos',()=>{
+  expect(()=>validateImages(photos().slice(0,1))).toThrow();
+  expect(()=>validateImages([...photos(),photos(3)[0]])).toThrow();
+  expect(()=>validateImages([photos()[0],photos()[0]])).toThrow();
+  expect(()=>validateImages([{...photos()[0],id:'unknown'},photos()[1]])).toThrow();
+ });
+ it('reserves images atomically across all editions, including rejected ones',async()=>{
+  const {db,env}=database();
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08'),('b','2026-09-10','pending','2026-09-10')");
+  await attachImages(env,'a',photos());
+  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(false);
+  db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id='a'");
+  await expect(attachImages(env,'b',[photos(3)[0],photos()[0]])).rejects.toThrow();
+  expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='b'").get()).toMatchObject({images:'[]'});
+  expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(3);
+  await attachImages(env,'b',photos(3));
+  await expect(attachImages(env,'b',photos(6))).rejects.toThrow();db.close();
+ });
+ it('invalidates the older approval link when photos are added',async()=>{
+  const {db,env}=database();db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at,email_sent_at) VALUES('a','2026-09-08','pending','2026-09-08','2026-09-08')");
+  const old=await reviewToken('a',env.NEWSLETTER_AUTOMATION_SECRET);
+  await attachImages(env,'a',photos());
+  expect((await decide(env,'a',old,'approve','')).status).toBe(403);
+  expect(db.prepare("SELECT review_revision,email_sent_at FROM newsletter_issues WHERE id='a'").get()).toMatchObject({review_revision:1,email_sent_at:null});
+  const current=await reviewToken('a',env.NEWSLETTER_AUTOMATION_SECRET,1);
+  expect((await decide(env,'a',current,'approve','')).status).toBe(200);db.close();
  });
 });

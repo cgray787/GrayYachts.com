@@ -31,7 +31,7 @@ def context():
     slot = now.date().isoformat() if day >= 0 and day % 2 == 0 and now.hour >= 9 else None
     status = request('/api/newsletter/run')
     existing = next((i for i in status['issues'] if i['slot'] == slot and i.get('title')), None)
-    return {'due': bool(slot and not existing), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues']}
+    return {'due': bool(slot and not existing), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues'], 'image_library': request('/api/newsletter/images')}
 
 def run():
     WORK.mkdir(parents=True, exist_ok=True)
