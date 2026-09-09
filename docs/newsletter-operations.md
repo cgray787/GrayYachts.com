@@ -33,3 +33,9 @@ Apply migrations with `wrangler d1 migrations apply grayyachts-newsletter --remo
 ## Validation
 
 Nine Vitest tests cover Pacific calendar/DST boundaries, token binding, unauthorized decisions, immutable approval/rejection, malformed articles, failed factual checks, email retries, Hermes draft deduplication, and no cloud AI calls in Hermes mode. Tests use actual in-memory SQLite (Node 22+). TypeScript, targeted ESLint, production build and Cloudflare deployment passed. Local Cloudflare/Playwright tests verified desktop and mobile layouts, draft exclusion from public archive and sitemap, invalid tokens, safe GET review links, explicit approval, rejection, replay protection and Article JSON-LD. Deployment preflight preserved all 16 live yacht listings and brochures.
+
+## Launch record — September 8, 2026
+
+Production version `3cc304cb-8d6b-43fb-ad13-f39d17caa321`. Native Hermes job completed successfully with `gpt-6-astra` / `openai-codex`. First seller edition: “What should you prepare before a yacht broker evaluates your boat?” Issue `cfc0df00-a2a9-4f61-a7b2-146a647728cf` is pending Connor's approval. Resend accepted its approval email at 2026-09-09T02:25:15Z, ID `ba0efb78-89ad-443c-ab07-be2fbe593126`. The configured API key cannot query delivery events (401), so inbox delivery was not independently confirmed. Connor explicitly confirmed `connorgray@jeffbrownyachts.com` as the destination. Next new edition is due September 10 at 9am Pacific.
+
+`node scripts/newsletter-ops.mjs verify` passed against production: desktop/mobile archive, private article 404, sitemap exclusion, signed review page and visible decision controls. This is read-only and does not approve content. Screenshots are machine-local under `~/.config/grayyachts/newsletter-checks/`.
