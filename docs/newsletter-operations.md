@@ -14,7 +14,7 @@ Resend emails `NEWSLETTER_REVIEW_TO` a private link and article excerpt/body. Th
 
 ## Configuration
 
-The existing website Worker uses its existing `ANTHROPIC_API_KEY` and `RESEND_API_KEY`. Added bindings are `NEWSLETTER_DB` (D1), `NEWSLETTER_AUTOMATION_SECRET`, `NEWSLETTER_REVIEW_TO`, `NEWSLETTER_FROM`, and `NEWSLETTER_START_DATE`.
+The existing website Worker's Anthropic account returned an insufficient-credit error during verification. The newsletter therefore uses the Cloudflare `AI` binding with `NEWSLETTER_AI_PROVIDER=cloudflare` and `@cf/meta/llama-3.3-70b-instruct-fp8-fast` for writing, Humanizer editing, and factual checks. Cloudflare Workers AI usage is billed under the existing Cloudflare account/allowance. Unset that provider variable to use `claude-sonnet-4-6` with `ANTHROPIC_API_KEY` after credits are restored. Other website AI calls are unchanged. Email uses the existing `RESEND_API_KEY`. Other added bindings are `NEWSLETTER_DB` (D1), `NEWSLETTER_AUTOMATION_SECRET`, `NEWSLETTER_REVIEW_TO`, `NEWSLETTER_FROM`, and `NEWSLETTER_START_DATE`.
 
 `node scripts/newsletter-ops.mjs configure` creates a signing credential under `~/.config/grayyachts/` with mode 0600 and uploads it to the Worker. It never prints the credential. Preserve the file: rotating it invalidates old review links. `node scripts/newsletter-ops.mjs run` requests the currently due issue through the authenticated endpoint. It does not bypass the due-day or duplicate checks.
 

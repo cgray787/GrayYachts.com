@@ -4,6 +4,7 @@
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "ai": { "binding": "AI" },
   "triggers": { "crons": ["0 * * * *"] },
   "d1_databases": [{ "binding": "NEWSLETTER_DB", "database_name": "grayyachts-newsletter", "database_id": "587d73f8-45f4-4eb0-9490-984266d025c3", "migrations_dir": "migrations/newsletter" }],
   "assets": {
@@ -11,6 +12,7 @@
     "binding": "ASSETS"
   },
   "vars": {
+    "NEWSLETTER_AI_PROVIDER": "cloudflare",
     "NEWSLETTER_REVIEW_TO": "connorgray41@gmail.com",
     "NEWSLETTER_FROM": "Gray Yachts <onboarding@resend.dev>",
     "NEWSLETTER_START_DATE": "2026-09-08",

@@ -5,6 +5,8 @@ export type Statement = {
  run(): Promise<{ meta: { changes: number } }>;
 };
 export type NewsletterEnv = {
+ AI?: {run(model:string,input:unknown):Promise<{response?:string}>};
+ NEWSLETTER_AI_PROVIDER?: string;
  NEWSLETTER_DB: { prepare(sql: string): Statement };
  ANTHROPIC_API_KEY: string;
  RESEND_API_KEY: string;

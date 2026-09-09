@@ -24,6 +24,15 @@ Editorial guidance you may develop as advice, not a measured market claim: compa
 There is no current sold-price dataset, no supplied personal anecdote, and no supplied testimonial. Do not invent statistics, prices, inventory, credentials, dealer relationships, named customers, quotes, or first-person experiences. Do not imply guaranteed sale timing or price uplift. No unsourced claims about typical percentages, requirements, market trends, or seasonal demand.`;
 const SHAPE = `Return JSON only: {"title":"...","excerpt":"...","introduction":"...","sections":[{"heading":"...","paragraphs":["..."]}],"questions":[{"question":"...","answer":"..."}]}. Use 3-7 sections and 2-5 questions. Write 600-1000 words overall. Plain text within fields; no HTML, Markdown, URLs, or chatbot framing.`;
 async function model(env: NewsletterEnv, system: string, input: string): Promise<unknown> {
+ if(env.NEWSLETTER_AI_PROVIDER==='cloudflare') {
+  if(!env.AI)throw new Error('Cloudflare newsletter AI binding is missing');
+  const result=await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast',{
+   messages:[{role:'system',content:system},{role:'user',content:input}],
+   max_tokens:6000,temperature:0.4,response_format:{type:'json_object'},
+  });
+  if(typeof result.response!=='string')throw new Error('Cloudflare AI returned no article');
+  return JSON.parse(result.response.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));
+ }
  const response = await fetch('https://api.anthropic.com/v1/messages', {
   method:'POST', headers:{'content-type':'application/json','x-api-key':env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
   body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:6000,system,messages:[{role:'user',content:input}]}), signal:AbortSignal.timeout(120000)
@@ -74,7 +83,8 @@ async function sendReview(env: NewsletterEnv, issue: Issue) {
 export async function runNewsletter(env: NewsletterEnv, now=new Date()) {
  const slot=scheduleSlot(now,env.NEWSLETTER_START_DATE);
  if (!slot) return {state:'not-due'};
- if (!env.ANTHROPIC_API_KEY || !env.RESEND_API_KEY || !env.NEWSLETTER_AUTOMATION_SECRET || !env.NEWSLETTER_REVIEW_TO) throw new Error('Newsletter configuration incomplete');
+ const hasAI=env.NEWSLETTER_AI_PROVIDER==='cloudflare'?!!env.AI:!!env.ANTHROPIC_API_KEY;
+ if (!hasAI || !env.RESEND_API_KEY || !env.NEWSLETTER_AUTOMATION_SECRET || !env.NEWSLETTER_REVIEW_TO) throw new Error('Newsletter configuration incomplete');
  const timestamp=now.toISOString();
  await env.NEWSLETTER_DB.prepare("INSERT OR IGNORE INTO newsletter_issues(id,slot,created_at) VALUES (?,?,?)").bind(crypto.randomUUID(),slot,timestamp).run();
  const lock=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET lock_until=?,attempts=attempts+1 WHERE slot=? AND email_sent_at IS NULL AND status NOT IN ('published','rejected') AND attempts<5 AND (lock_until IS NULL OR lock_until<?)")
