@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ExternalLink, Flame, MapPin, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Check, Copy, ExternalLink, Flame, MapPin, Plus, Search, SlidersHorizontal, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
@@ -195,6 +195,11 @@ export default function QueueClient({
                           )}
                           {lead.seller_name && <span>{lead.seller_name}</span>}
                           <span>{lead.touch_count} touches</span>
+                          {lead.is_broker_listed && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300">
+                              <ShieldCheck className="h-3.5 w-3.5" /> Broker checked
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-2">
