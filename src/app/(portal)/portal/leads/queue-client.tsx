@@ -277,6 +277,14 @@ export default function QueueClient({
                       >
                         Not interested
                       </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => finish(lead.listing_id, () => closeLead(lead.listing_id, "unavailable"))}
+                        className="rounded-md border border-border px-4 py-2 text-sm text-text-secondary hover:border-red-400/60 hover:text-red-300 disabled:opacity-50"
+                      >
+                        No longer available
+                      </button>
                       <a
                         href={lead.url}
                         target="_blank"

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ExternalLink,
   Check,
@@ -31,7 +32,7 @@ import {
   dealTerms,
   liveStep,
 } from "@/lib/fb-leads";
-import { setStage, logSent, logReply, saveNote } from "./actions";
+import { setStage, logSent, logReply, saveNote, closeLead } from "./actions";
 
 type Tab = "action" | "hot" | "waiting" | "queue" | "dead" | "all";
 
@@ -301,6 +302,7 @@ function LeadCard({
   index: number;
   messages: FbLeadMessage[];
 }) {
+  const router = useRouter();
   const [openScript, setOpenScript] = useState(false);
   const [replyDraft, setReplyDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState(lead.note ?? "");
@@ -445,6 +447,16 @@ function LeadCard({
                 className="text-sm text-text-secondary transition-colors hover:text-text-primary"
               >
                 {openScript ? "Hide script" : "Message script"}
+              </button>
+            )}
+            {!dead && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => startTransition(async () => { await closeLead(lead.listing_id, "unavailable"); router.refresh(); })}
+                className="text-sm text-text-secondary transition-colors hover:text-red-300 disabled:opacity-50"
+              >
+                No longer available
               </button>
             )}
             <button
@@ -597,6 +609,7 @@ export default function LeadsClient({
   initialLeads: FbLead[];
   initialMessages: FbLeadMessage[];
 }) {
+  const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [messages, setMessages] = useState(initialMessages);
   const [tab, setTab] = useState<Tab>("action");

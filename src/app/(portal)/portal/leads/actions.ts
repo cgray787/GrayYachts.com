@@ -103,7 +103,7 @@ export async function snooze(listingId: string, days: number) {
   revalidatePath("/portal/leads");
 }
 
-const CLOSE_REASONS = ["broker", "not_interested", "sold_elsewhere", "won"] as const;
+const CLOSE_REASONS = ["broker", "not_interested", "sold_elsewhere", "unavailable", "won"] as const;
 
 export async function closeLead(listingId: string, reason: string) {
   await requireAdmin();
