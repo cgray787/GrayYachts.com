@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ExternalLink, Flame, MapPin, Plus } from "lucide-react";
+import { Check, Copy, ExternalLink, Flame, MapPin, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
@@ -38,10 +38,17 @@ export default function QueueClient({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "hot" | "replied">("all");
   const [pending, startTransition] = useTransition();
   const leads = useMemo(
-    () => visibleQueue(initialDue, dismissedIds),
-    [initialDue, dismissedIds],
+    () => visibleQueue(initialDue, dismissedIds).filter((lead) => {
+      const needle = query.trim().toLowerCase();
+      const matchesQuery = !needle || [lead.title, lead.seller_name, lead.location].some((value) => value?.toLowerCase().includes(needle));
+      const matchesFilter = filter === "all" || (filter === "hot" ? lead.is_hot : lead.stage === "replied" || lead.stage === "pitch_replied");
+      return matchesQuery && matchesFilter;
+    }),
+    [initialDue, dismissedIds, query, filter],
   );
 
   // A due timer or an external reply can change the queue with no local click.
@@ -112,6 +119,16 @@ export default function QueueClient({
             {totalLeads}
           </p>
           <p className="mt-1 text-xs uppercase tracking-wider text-text-secondary">Leads on file</p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-bg-card p-3">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border border-border bg-bg-secondary px-3 py-2">
+          <Search className="h-4 w-4 text-text-secondary" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search client, boat, or location" className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary" />
+        </div>
+        <div className="flex items-center gap-1 text-xs text-text-secondary"><SlidersHorizontal className="h-4 w-4" />
+          {(["all", "hot", "replied"] as const).map((item) => <button key={item} onClick={() => setFilter(item)} className={`rounded-md px-3 py-2 capitalize ${filter === item ? "bg-gold/15 text-gold" : "hover:bg-bg-secondary"}`}>{item === "all" ? "All due" : item}</button>)}
         </div>
       </div>
 
