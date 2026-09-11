@@ -11,7 +11,7 @@ import {
   visibleQueue,
   type FbLead,
 } from "@/lib/fb-leads";
-import { closeLead, logSent, snooze } from "./actions";
+import { closeLead, logSent, snooze, toggleBrokerListed } from "./actions";
 
 const money = (value: number | null) =>
   value === null ? "Price not listed" : `$${Math.round(value).toLocaleString()}`;
@@ -37,6 +37,7 @@ export default function QueueClient({
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [brokerPendingId, setBrokerPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "hot" | "replied">("all");
@@ -73,6 +74,21 @@ export default function QueueClient({
         setError(cause instanceof Error ? cause.message : "The lead could not be updated.");
       } finally {
         setPendingId(null);
+      }
+    });
+  }
+
+  function changeBrokerStatus(listingId: string, listed: boolean) {
+    setBrokerPendingId(listingId);
+    setError(null);
+    startTransition(async () => {
+      try {
+        await toggleBrokerListed(listingId, listed);
+        router.refresh();
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "The broker status could not be updated.");
+      } finally {
+        setBrokerPendingId(null);
       }
     });
   }
@@ -195,11 +211,24 @@ export default function QueueClient({
                           )}
                           {lead.seller_name && <span>{lead.seller_name}</span>}
                           <span>{lead.touch_count} touches</span>
-                          {lead.is_broker_listed && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300">
-                              <ShieldCheck className="h-3.5 w-3.5" /> Broker checked
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            aria-pressed={lead.is_broker_listed}
+                            disabled={brokerPendingId === lead.listing_id}
+                            onClick={() => changeBrokerStatus(lead.listing_id, !lead.is_broker_listed)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-colors disabled:opacity-50 ${
+                              lead.is_broker_listed
+                                ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-300"
+                                : "border-border text-text-secondary hover:border-yellow-400/50 hover:text-yellow-300"
+                            }`}
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            {brokerPendingId === lead.listing_id
+                              ? "Saving…"
+                              : lead.is_broker_listed
+                                ? "Broker checked"
+                                : "Broker check"}
+                          </button>
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-2">

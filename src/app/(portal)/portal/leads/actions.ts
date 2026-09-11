@@ -123,3 +123,31 @@ export async function closeLead(listingId: string, reason: string) {
   revalidatePath("/portal/leads");
   revalidatePath("/portal/leads/all");
 }
+
+/** Mark or clear the broker-listed flag directly from the queue card. */
+export async function toggleBrokerListed(listingId: string, listed: boolean) {
+  await requireAdmin();
+  const db = createAdminClient();
+  const { error } = await db.from("fb_leads").update(
+    listed
+      ? {
+          is_broker_listed: true,
+          stage: "broker_dead",
+          closed_reason: "broker",
+          next_touch_at: null,
+          touch_reason: null,
+        }
+      : {
+          is_broker_listed: false,
+          stage: "new",
+          closed_reason: null,
+          next_touch_at: new Date().toISOString(),
+          touch_reason: "Broker flag removed — review lead",
+        },
+  ).eq("listing_id", listingId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/portal/leads");
+  revalidatePath("/portal/leads/all");
+  revalidatePath(`/portal/leads/${listingId}`);
+}
