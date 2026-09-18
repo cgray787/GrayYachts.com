@@ -60,7 +60,7 @@ export default function YachtCatalogPage() {
   });
 
   useEffect(() => {
-    saveCatalog(catalog);
+    if (!saveCatalog(catalog)) setScrapeError("Your browser could not save this catalog. Free up browser storage to keep these yachts after closing the page.");
   }, [catalog]);
 
   useEffect(() => {

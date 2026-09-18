@@ -66,7 +66,7 @@ function isExhaustion(err: unknown): boolean {
 
 function pickJsonLdImage(node: unknown): string | null {
   if (!node) return null;
-  if (typeof node === "string") return node;
+  if (typeof node === "string") return null;
   if (Array.isArray(node)) {
     for (const item of node) {
       const out = pickJsonLdImage(item);
@@ -78,10 +78,11 @@ function pickJsonLdImage(node: unknown): string | null {
     const obj = node as Record<string, unknown>;
     if (typeof obj.image === "string") return obj.image;
     if (typeof obj.image === "object" && obj.image) {
+      if (Array.isArray(obj.image) && typeof obj.image[0] === "string") return obj.image[0];
       const out = pickJsonLdImage(obj.image);
       if (out) return out;
     }
-    if (typeof obj.url === "string") return obj.url;
+    if (obj["@type"] === "ImageObject" && typeof obj.url === "string") return obj.url;
     if (typeof obj.contentUrl === "string") return obj.contentUrl;
     for (const v of Object.values(obj)) {
       const out = pickJsonLdImage(v);
@@ -92,8 +93,10 @@ function pickJsonLdImage(node: unknown): string | null {
 }
 
 /** Pull the best hero image URL out of a chunk of HTML. */
-function heroFromHtml(html: string, baseUrl: string): string | null {
+export function heroFromHtml(html: string, baseUrl: string): string | null {
   if (!html) return null;
+  const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? '';
+  if (/access denied|just a moment|page not found|robot|captcha|security check|404|403/i.test(title)) return null;
   // 1. og:image / twitter:image — the canonical share photo.
   const og = OG_IMAGE_RE.exec(html);
   const ogUrl = og?.[1] || og?.[2];
@@ -126,8 +129,7 @@ function heroFromHtml(html: string, baseUrl: string): string | null {
       return absolutize(url, baseUrl);
     }
   }
-  // 4. Fall back to ogUrl even if it looked generic — better than nothing.
-  if (ogUrl) return absolutize(ogUrl, baseUrl);
+
   return null;
 }
 
@@ -147,6 +149,7 @@ async function tryDirectFetch(
   url: string,
   timeoutMs: number
 ): Promise<string | null> {
+  assertPublicHttpUrl(url);
   // Cloudflare extends RequestInit with a `cf` field; the standard
   // TypeScript lib types don't know about it. Cast to a permissive
   // shape so we keep the per-request cache override locally.
@@ -265,7 +268,7 @@ async function tryFirecrawl(
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ url, formats: ["screenshot"] }),
+    body: JSON.stringify({ url, formats: ["html"] }),
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (res.status === 402) {
@@ -294,102 +297,6 @@ async function tryFirecrawl(
   };
 }
 
-/* ---------------- SerpApi Google Images ---------------- */
-
-interface SerpApiImageResult {
-  original?: string;
-  thumbnail?: string;
-  source?: string;
-  title?: string;
-  original_width?: number;
-  original_height?: number;
-}
-
-interface SerpApiResponse {
-  images_results?: SerpApiImageResult[];
-  error?: string;
-}
-
-/**
- * Build a Google Images query out of a yacht listing URL. Pulls the
- * year + builder + model out of the URL slug (the same approach as
- * `/api/scrape-yacht`'s URL-slug parser) and tacks "yacht" on the end
- * so the results skew toward marine photography.
- *
- *   https://www.yachtworld.com/yacht/2023-hcb-yachts-42-lujo-9619478/
- *     → "2023 hcb yachts 42 lujo yacht"
- */
-function searchQueryFromListingUrl(listingUrl: string): string | null {
-  let url: URL;
-  try {
-    url = new URL(listingUrl);
-  } catch {
-    return null;
-  }
-  // Take the most descriptive path segment — usually the last non-empty
-  // segment ending the listing path.
-  const segments = url.pathname.split("/").filter(Boolean);
-  if (!segments.length) return null;
-  let slug = segments[segments.length - 1];
-  // Strip trailing listing IDs that aren't useful as search terms
-  // (long all-digit tails like "-9619478").
-  slug = slug.replace(/-\d{6,}$/i, "");
-  // Hyphens → spaces, drop common filler words.
-  const cleaned = slug
-    .replace(/-/g, " ")
-    .replace(/\b(for|sale|listing)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (cleaned.length < 4) return null;
-  // Append "yacht" to bias results toward marine photography.
-  return /yacht|boat/i.test(cleaned) ? cleaned : `${cleaned} yacht`;
-}
-
-async function trySerpApi(
-  listingUrl: string,
-  timeoutMs: number
-): Promise<string | null> {
-  const key = process.env.SERPAPI_API_KEY;
-  if (!key) return null;
-  const query = searchQueryFromListingUrl(listingUrl);
-  if (!query) return null;
-  const u = new URL("https://serpapi.com/search.json");
-  u.searchParams.set("engine", "google_images");
-  u.searchParams.set("q", query);
-  u.searchParams.set("api_key", key);
-  u.searchParams.set("num", "20");
-  const res = await fetch(u.toString(), {
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (res.status === 401 || res.status === 429) {
-    throw new Error(`serpapi HTTP ${res.status} (quota/auth)`);
-  }
-  if (!res.ok) return null;
-  const json = (await res.json()) as SerpApiResponse;
-  if (json.error && isExhaustion(json.error)) {
-    throw new Error(`serpapi error: ${json.error}`);
-  }
-  const results = json.images_results || [];
-  for (const r of results) {
-    const candidate = r.original || r.thumbnail;
-    if (!candidate) continue;
-    if (GENERIC_IMAGE_RE.test(candidate)) continue;
-    // Prefer landscape (yacht photos are wider than tall). If we have
-    // dimensions, require width/height > 1.1 — otherwise accept and
-    // hope for the best.
-    if (r.original_width && r.original_height) {
-      if (r.original_width / r.original_height < 1.1) continue;
-    }
-    return candidate;
-  }
-  // Last resort: return the first result regardless of orientation.
-  for (const r of results) {
-    const candidate = r.original || r.thumbnail;
-    if (candidate && !GENERIC_IMAGE_RE.test(candidate)) return candidate;
-  }
-  return null;
-}
-
 /* ---------------- public: heroImageFor() ---------------- */
 
 export interface HeroLookup {
@@ -398,14 +305,12 @@ export interface HeroLookup {
     | "direct"
     | "jina-html"
     | "jina-markdown"
-    | "firecrawl-og"
-    | "firecrawl-screenshot"
-    | "serpapi-google-images";
+    | "firecrawl-og";
 }
 
 /**
  * Find a hero image URL for a yacht listing. Tries the cheap providers
- * first, falls back to Firecrawl screenshot only as a last resort.
+ * first, then listing metadata from Firecrawl. Never use page screenshots.
  * Returns null if every provider fails.
  */
 export async function heroImageFor(
@@ -465,10 +370,7 @@ export async function heroImageFor(
     }
   }
 
-  // 4. Firecrawl — paid; their managed browser farm passes Cloudflare
-  //    Turnstile where Jina can't. Hands back either og:image or a
-  //    full-page screenshot URL. Skipped automatically once the
-  //    circuit breaker has marked it dead for the rest of the isolate.
+  // 4. Firecrawl listing metadata. Screenshots are never yacht photos.
   if (!dead.has("firecrawl")) {
     try {
       const fc = await tryFirecrawl(listingUrl, firecrawlTimeout);
@@ -476,30 +378,9 @@ export async function heroImageFor(
         lastUsed = "firecrawl-og";
         return { imageUrl: fc.ogImage, provider: "firecrawl-og" };
       }
-      if (fc?.screenshot) {
-        lastUsed = "firecrawl-screenshot";
-        return { imageUrl: fc.screenshot, provider: "firecrawl-screenshot" };
-      }
+
     } catch (err) {
       if (isExhaustion(err)) dead.add("firecrawl");
-    }
-  }
-
-  // 5. SerpApi Google Images — last resort. Queries Google for the
-  //    yacht name/model extracted from the URL slug. Returns *a* photo
-  //    of the model, not necessarily this listing's exact hero shot —
-  //    used only when every site-direct provider above has failed
-  //    (typically on Cloudflare-Turnstile-protected listings with
-  //    Firecrawl out of credits).
-  if (!dead.has("serpapi")) {
-    try {
-      const url = await trySerpApi(listingUrl, jinaTimeout);
-      if (url) {
-        lastUsed = "serpapi-google-images";
-        return { imageUrl: url, provider: "serpapi-google-images" };
-      }
-    } catch (err) {
-      if (isExhaustion(err)) dead.add("serpapi");
     }
   }
 

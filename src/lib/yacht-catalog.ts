@@ -256,36 +256,38 @@ export const STORAGE_KEY = "gy-compare-catalog-v6";
 /** localStorage key holding which catalog yachts are pinned to LEFT/RIGHT. */
 export const SLOTS_KEY = "gy-compare-slots";
 
+/** Remove only untouched built-in examples; retain imported or edited records. */
+export function withoutDemoYachts(catalog: YachtListing[]): YachtListing[] {
+  return catalog.filter(yacht => !SEED_YACHTS.some(seed =>
+    seed.id === yacht.id && seed.url === yacht.url && seed.name === yacht.name &&
+    !yacht.imageUrl && !(yacht.edited?.length) && !yacht.verified &&
+    Object.entries(seed).every(([key, value]) => yacht[key as keyof YachtListing] === value)));
+}
 export function loadCatalog(): YachtListing[] {
-  if (typeof window === "undefined") return SEED_YACHTS;
-  // One-time cleanup: drop any legacy gy-compare-catalog-* entries from older schemas.
+  if (typeof window === "undefined") return [];
   try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith("gy-compare-catalog-") && k !== STORAGE_KEY) {
-        localStorage.removeItem(k);
-      }
+    // Preserve old keys as backups; migrate the latest readable catalog.
+    const keys = [STORAGE_KEY, ...Object.keys(localStorage)
+      .filter(key => key.startsWith('gy-compare-catalog-') && key !== STORAGE_KEY).sort().reverse()];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return withoutDemoYachts(parsed.filter(y =>
+          y && typeof y.id === 'string' && typeof y.url === 'string'));
+      } catch { /* Try the next preserved version. */ }
     }
-  } catch {
-    /* ignore */
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as YachtListing[];
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {
-    /* ignore */
-  }
-  return SEED_YACHTS;
+  } catch { /* Storage is unavailable in some private browser modes. */ }
+  return [];
 }
 
 export function saveCatalog(catalog: YachtListing[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(catalog));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 
@@ -294,11 +296,12 @@ export function saveCatalog(catalog: YachtListing[]) {
  * signed-URL expiry. Bump the version when proxy logic changes so existing
  * edge cache entries don't keep serving the old image.
  */
-// v5: the proxy now answers every failure with a placeholder image instead of
-// JSON, so a listing whose photo cannot be fetched still renders something.
-const IMAGE_PROXY_VERSION = 5;
-export function yachtImageSrc(listingUrl: string): string {
-  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}&v=${IMAGE_PROXY_VERSION}`;
+// v6 bypasses previously cached error screenshots; originals now live in R2.
+const IMAGE_PROXY_VERSION = 6;
+export function yachtImageSrc(listingUrl: string, source?: string | null): string {
+  const original = source && /^https?:\/\//.test(source) && !/screenshot|firecrawl|unsplash/i.test(source)
+    ? `&source=${encodeURIComponent(source)}` : "";
+  return `/api/yacht-image?url=${encodeURIComponent(listingUrl)}${original}&v=${IMAGE_PROXY_VERSION}`;
 }
 
 /** Pull the first numeric value out of a display string like "12.5m (40 ft)" or "$2,000,000". */
@@ -309,12 +312,6 @@ export function extractFirstNumber(text: string): number {
 }
 
 export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
-  // Check if URL matches a seed yacht (so demo URLs don't hit the API)
-  const seed = SEED_YACHTS.find(
-    (y) => y.url.toLowerCase() === url.toLowerCase(),
-  );
-  if (seed) return { ...seed };
-
   const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}`);
   const data: ScrapeResult = await res.json();
 

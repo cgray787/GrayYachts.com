@@ -1,3 +1,4 @@
+import { archivePhoto, photoBucket, photoKey, isListingPhoto } from "@/lib/yacht-photo-store";
 import { NextRequest, NextResponse } from "next/server";
 
 /* ------------------------------------------------------------------ */
@@ -1484,16 +1485,7 @@ const DEFAULT_YACHT_IMAGES = [
   "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800&h=500&fit=crop",
 ];
 
-function generateFallbackImage(builder: string | null, type: string | null): string {
-  const images = (type && FALLBACK_IMAGES[type]) || DEFAULT_YACHT_IMAGES;
-  // Deterministic selection based on builder name for consistency
-  let hash = 0;
-  const seed = builder || "yacht";
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  }
-  return images[Math.abs(hash) % images.length];
-}
+
 
 /* ------------------------------------------------------------------ */
 /*  Main scraper — URL parsing + optional HTML scraping                */
@@ -1882,17 +1874,19 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const finalPrice = vision?.price ?? ai?.price ?? htmlPrice ?? null;
   const finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
 
-  const finalImageUrl = (() => {
-    // Firecrawl-only picture source:
-    //   1. Firecrawl og:image URL (proper hero photo from page metadata)
-    //   2. Firecrawl full-page screenshot (visual capture of the listing)
-    //   3. Branded Unsplash fallback
-    const ogImage = fetchResult.firecrawlImageUrl;
-    if (ogImage && ogImage.length > 10 && !/logo|icon|sprite|placeholder|default/i.test(ogImage)) {
-      return ogImage;
+  let finalImageUrl: string | null = null;
+  const photoCandidate = [fetchResult.firecrawlImageUrl, htmlImageUrl]
+    .find((candidate): candidate is string => Boolean(candidate && isListingPhoto(candidate)));
+  if (photoCandidate) {
+    try {
+      finalImageUrl = await archivePhoto(await photoBucket(), await photoKey(url), photoCandidate, url);
+    } catch (error) {
+      console.error('[scrape-yacht] Photo could not be saved', error instanceof Error ? error.message : 'unknown');
+      // Preserve the actual source for a later archive retry; never substitute a screenshot.
+      finalImageUrl = photoCandidate;
     }
-    return fetchResult.firecrawlScreenshot ?? generateFallbackImage(urlData.builder ?? null, profileData.type ?? specData.type ?? null);
-  })();
+  }
+
 
   const draft: ScrapedYacht = {
     name: finalName,

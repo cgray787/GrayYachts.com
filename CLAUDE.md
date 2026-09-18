@@ -164,13 +164,13 @@ Scrapes yacht specifications from listing URLs. Multi-strategy pipeline:
 
 **Merge priority (per field):** Claude vision → Firecrawl AI extract → HTML regex → markdown regex → spec database → builder-profile estimation → URL-parsed → defaults.
 
-**Image source (separate chain):** Firecrawl `og:image` → Firecrawl full-page screenshot → branded Unsplash fallback. HTML hero and AI-guessed hero URLs are intentionally excluded; Firecrawl is the only image source.
+**Image source:** Listing metadata or matching HTML hero photos are archived to the `YACHT_PHOTOS` R2 binding before returning a stable `/api/yacht-image?id=<hash>` URL. Legacy saved photo URLs are archived on display. Never use page screenshots, stock photos, or model-search images as a listing photo. R2 is the source of truth; browser caching is only an optimization.
 
 **Notes:**
 - NUXT parsing uses regex-based variable resolution (no `eval` — blocked by Cloudflare Workers).
 - Firecrawl and Anthropic both use native `fetch` (no SDK packages) for Cloudflare Workers compatibility.
 - Secrets (`FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) must be set via `npx wrangler secret put`, not `wrangler.jsonc` vars.
-- Compare-yachts localStorage key is `gy-compare-catalog-v5`; `loadCatalog()` auto-drops any `gy-compare-catalog-*` keys that don't match the current version, so bumping the key in code force-invalidates stale client caches on next page load.
+- Catalog storage key is `gy-compare-catalog-v6`. Preserve older keys as migration backups. Empty catalogs remain empty; only untouched built-in demo entries are removed. Saved catalogs are browser-local; archived photo bytes are stored in R2.
 
 ## Authentication Flow
 
@@ -200,3 +200,13 @@ Every boat in `src/lib/fleet.ts` that is publicly listed MUST have a Gray Yachts
 - Enforce: `npm run check:brochures` — fails if a PDF-linked vessel lacks brochure content/hero.
 - One-command workflow: the `gy-listing-brochure` skill. Never invent specs — get them from
   a broker sheet or confirm with Connor; flag YachtWorld auto-field conflicts before publishing.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

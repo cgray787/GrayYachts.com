@@ -1,49 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { heroImageFor, providerStats } from "@/lib/scrape-providers";
-import { assertPublicHttpUrl, isPrivateHost } from "@/lib/scrape-shared";
+import { heroImageFor } from "@/lib/scrape-providers";
+import { assertPublicHttpUrl } from "@/lib/scrape-shared";
+import { archivePhoto, photoBucket, photoKey, isListingPhoto } from "@/lib/yacht-photo-store";
 
-/**
- * Durable yacht image proxy.
- *
- * The Compare Yachts feature stores listing URLs in localStorage and
- * renders a hero image. This endpoint acts as a stable, never-expiring
- * image URL keyed on the yacht *listing* URL. It runs through the
- * scrape provider chain (direct fetch → Jina → Firecrawl), pulls the
- * actual bytes, and re-hosts them under our own URL with a long
- * Cache-Control window.
- *
- * Old localStorage entries with `imageUrl: null` heal on next render
- * because the frontend builds the proxy URL from `yacht.url`, not from
- * the stored `imageUrl`.
- *
- * Redundancy: see src/lib/scrape-providers.ts. We mirror the
- * GrayYachts Listing Intake agent's provider failover so this never
- * goes fully dark when one provider is out of credits.
- */
-
-const IMAGE_FETCH_TIMEOUT_MS = 15_000;
-// 7 days — listing photos rarely change, and a re-scrape is cheap if they do.
-const CACHE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
-
-function badRequest(msg: string, status = 400): NextResponse {
-  return NextResponse.json({ error: msg }, { status });
-}
-
-/**
- * This endpoint is the `src` of an <img>. A browser handed JSON there fires
- * `onError`, the component hides the tag, and the card renders as a bare
- * gradient — which is how a listing ends up with no picture at all. Every
- * outcome an ordinary visitor can reach therefore has to be image bytes.
- *
- * The placeholder is generated locally rather than fetched, so it cannot fail
- * for the same reasons the real photo just did, and it is deliberately styled
- * like the rest of the card so a missing photo reads as intentional.
- *
- * Cached for minutes, not the seven days a real photo gets: a hot-link block
- * or a timeout is usually transient, and caching the failure would keep the
- * photo missing long after the cause cleared.
- */
-const FALLBACK_CACHE_SECONDS = 600;
+const FALLBACK_CACHE_SECONDS = 0;
 
 function placeholderImage(reason: string): NextResponse {
   /* Wide and sparse on purpose. The card's hero slot is about 3.3:1 and the
@@ -81,128 +41,36 @@ function placeholderImage(reason: string): NextResponse {
   });
 }
 
-/**
- * Fetch an attacker-influenced URL safely: reject non-HTTP(S) and
- * private/loopback/link-local hosts up front, then follow up to 4
- * redirects manually, re-running the same check on every hop. This
- * stops a malicious og:image pointing at 169.254.169.254 (AWS/GCE
- * metadata), `localhost`, or RFC1918 ranges via a chained 302.
- */
-async function safeFetchPublic(
-  rawUrl: string,
-  init: RequestInit,
-  maxRedirects = 4
-): Promise<Response> {
-  let current = rawUrl;
-  for (let hop = 0; hop <= maxRedirects; hop++) {
-    assertPublicHttpUrl(current);
-    const res = await fetch(current, { ...init, redirect: "manual" });
-    if (res.status < 300 || res.status >= 400) return res;
-    const location = res.headers.get("location");
-    if (!location) return res;
-    current = new URL(location, current).toString();
-  }
-  throw new Error("Too many redirects");
-}
 
 export async function GET(request: NextRequest) {
-  const listingUrl = request.nextUrl.searchParams.get("url");
-  if (!listingUrl) return badRequest("Missing url parameter");
-
-  let parsed: URL;
   try {
-    parsed = new URL(listingUrl);
-  } catch {
-    return badRequest("Invalid URL");
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    return badRequest("Invalid URL protocol");
-  }
-  if (isPrivateHost(parsed.hostname)) {
-    return badRequest("Invalid URL");
-  }
-
-  // Cloudflare Workers edge cache. Same request URL = same cached
-  // response. `caches.default` exists in the Workers runtime; on local
-  // dev (Node) it may be absent — we just skip the cache layer there.
-  const cache: Cache | undefined = (
-    globalThis as unknown as { caches?: { default?: Cache } }
-  ).caches?.default;
-  const cacheKey = new Request(request.url, { method: "GET" });
-
-  if (cache) {
-    const cached = await cache.match(cacheKey);
-    if (cached) return cached;
-  }
-
-  // Provider chain: direct → jina → firecrawl. Returns the URL of the
-  // best image we could find, plus which backend served it.
-  const lookup = await heroImageFor(listingUrl);
-  if (!lookup) {
-    return placeholderImage("no image found on the listing page");
-  }
-
-  // Pull the actual bytes from the (possibly signed/expiring) upstream
-  // URL so we can re-host them under our stable URL. The `lookup.imageUrl`
-  // came from attacker-controlled HTML (og:image, JSON-LD, etc.), so
-  // we walk redirects manually and re-validate every hop against
-  // private hosts — see safeFetchPublic.
-  let imgRes: Response;
-  try {
-    imgRes = await safeFetchPublic(lookup.imageUrl, {
-      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
-      headers: {
-        // Some CDNs gate hot-linking on a Referer matching their host.
-        // Sending the listing page as Referer is the friendliest hint.
-        Referer: listingUrl,
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.startsWith("Disallowed")) {
-      return placeholderImage(`rejected upstream URL: ${msg}`);
+    const id = request.nextUrl.searchParams.get('id');
+    const listing = request.nextUrl.searchParams.get('url');
+    const source = request.nextUrl.searchParams.get('source');
+    if (id && !/^[a-f0-9]{64}$/.test(id)) return new NextResponse(null, { status: 400 });
+    if (!id && !listing) return new NextResponse(null, { status: 400 });
+    if (listing) assertPublicHttpUrl(listing);
+    const key = id ?? await photoKey(listing! + (source ? '\n' + source : ''));
+    const bucket = await photoBucket();
+    let saved = await bucket.get(key);
+    if (!saved && listing && !id) {
+      const candidate = source && isListingPhoto(source) ? source : (await heroImageFor(listing))?.imageUrl;
+      if (!candidate) return placeholderImage('no listing photo available');
+      await archivePhoto(bucket, key, candidate, listing);
+      saved = await bucket.get(key);
     }
-    return placeholderImage("upstream image fetch timed out");
+    if (!saved) return placeholderImage('saved photo not found');
+    return new NextResponse(await saved.arrayBuffer(), { headers: {
+      'Content-Type': saved.httpMetadata?.contentType ?? 'image/jpeg',
+      'Cache-Control': 'public, max-age=604800, immutable',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Image-Provider': 'r2-saved-photo',
+    }});
+  } catch (error) {
+    console.error('[yacht-image]', error instanceof Error ? error.message : 'Photo failed');
+    const message = error instanceof Error ? error.message : '';
+    const safeReason = /^(Photo HTTP \d{3}|Photo too large|Response is not a supported photo|Yacht photo storage is not configured|Not a listing photo)$/.test(message)
+      ? message : 'photo temporarily unavailable';
+    return placeholderImage(safeReason);
   }
-  if (!imgRes.ok) {
-    return placeholderImage(`upstream image returned ${imgRes.status}`);
-  }
-
-  const contentType = imgRes.headers.get("content-type") || "image/png";
-  // Reject upstream responses that aren't actually images. This happens
-  // when a fallback <img> URL points at an HTML page (some sites serve
-  // a "hot-link not allowed" HTML page on 200) or when the extracted
-  // src was actually a page link the regex picked up incorrectly.
-  if (!/^image\//i.test(contentType)) {
-    // Some hosts answer a hot-link with a 200 HTML "not allowed" page.
-    return placeholderImage(`upstream returned non-image content-type: ${contentType}`);
-  }
-
-  const buf = await imgRes.arrayBuffer();
-
-  const response = new NextResponse(buf, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": `public, max-age=${CACHE_MAX_AGE_SECONDS}, s-maxage=${CACHE_MAX_AGE_SECONDS}, immutable`,
-      "X-Content-Type-Options": "nosniff",
-      // Surface which provider served the image — useful for debugging
-      // when something looks off in the Compare Yachts UI.
-      "X-Image-Provider": lookup.provider,
-      "X-Image-Provider-Stats": JSON.stringify(providerStats()),
-    },
-  });
-
-  if (cache) {
-    try {
-      await cache.put(cacheKey, response.clone());
-    } catch {
-      // Cache writes are best-effort; never fail the request because of
-      // a cache hiccup.
-    }
-  }
-
-  return response;
 }

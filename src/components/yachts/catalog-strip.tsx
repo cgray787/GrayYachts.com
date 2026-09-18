@@ -35,19 +35,19 @@ export function CatalogStrip({
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
           <Ship className="h-4 w-4 text-gold" />
-          Your Yacht Catalog
+          Your saved yachts
           <span className="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
             {catalog.length}
           </span>
         </h2>
         <span className="hidden text-[11px] text-text-secondary sm:block">
-          Scroll sideways &middot; click L or R to load a slot
+          Choose a yacht for each side
         </span>
       </div>
 
       {catalog.length === 0 ? (
         <div className="flex h-[190px] items-center justify-center rounded-lg border border-dashed border-border text-xs text-text-secondary">
-          No yachts yet — paste a listing URL below and it lands here.
+          Your imported yachts will appear here.
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -58,7 +58,7 @@ export function CatalogStrip({
               <div
                 key={yacht.id}
                 className={cn(
-                  "group relative flex h-[190px] w-44 shrink-0 flex-col overflow-hidden rounded-lg border bg-bg-secondary transition-colors",
+                  "group relative flex h-[276px] w-60 shrink-0 flex-col overflow-hidden rounded-lg border bg-bg-secondary transition-colors",
                   isLeft || isRight
                     ? "border-gold/60"
                     : "border-border hover:border-border-light",
@@ -67,21 +67,21 @@ export function CatalogStrip({
                 {/* Thumbnail */}
                 <div
                   className={cn(
-                    "relative h-20 w-full shrink-0 overflow-hidden bg-gradient-to-br",
+                    "relative h-36 w-full shrink-0 overflow-hidden bg-gradient-to-br",
                     yacht.gradient,
                   )}
                 >
                   <YachtImage yacht={yacht} />
                   {(isLeft || isRight) && (
                     <span className="absolute left-1.5 top-1.5 rounded bg-gold px-1.5 py-0.5 text-[9px] font-bold text-bg-primary">
-                      {isLeft ? "LEFT" : "RIGHT"}
+                      {isLeft ? "YACHT 1" : "YACHT 2"}
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => onRemove(yacht.id)}
                     aria-label={`Remove ${yacht.name} from your catalog`}
-                    className="absolute right-1.5 top-1.5 rounded bg-bg-primary/80 p-1 text-text-secondary opacity-0 transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute right-1.5 top-1.5 rounded bg-bg-primary/80 p-2.5 text-text-secondary opacity-100 transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -91,15 +91,15 @@ export function CatalogStrip({
                 <div className="flex flex-1 flex-col justify-between p-2.5">
                   <div>
                     <p
-                      className="truncate text-xs font-semibold text-text-primary"
+                      className="truncate text-sm font-semibold text-text-primary"
                       title={yacht.name}
                     >
                       {yacht.name}
                     </p>
-                    <p className="mt-0.5 truncate text-[10px] text-text-secondary">
+                    <p className="mt-0.5 truncate text-xs text-text-secondary">
                       {[yacht.builder, yacht.year].filter(Boolean).join(" · ")}
                     </p>
-                    <p className="mt-0.5 truncate text-[10px] font-medium text-gold">
+                    <p className="mt-0.5 truncate text-sm font-medium text-gold">
                       {yacht.price}
                     </p>
                   </div>
@@ -108,26 +108,30 @@ export function CatalogStrip({
                     <button
                       type="button"
                       onClick={() => onAssign(yacht.id, "a")}
+                      aria-pressed={isLeft}
+                      aria-label={`Use ${yacht.name} as yacht 1`}
                       className={cn(
-                        "flex-1 rounded border py-1 text-[10px] font-semibold transition-colors",
+                        "flex-1 rounded-md border py-2.5 text-xs font-semibold transition-colors",
                         isLeft
                           ? "border-gold bg-gold/15 text-gold"
                           : "border-border text-text-secondary hover:border-gold/50 hover:text-gold",
                       )}
                     >
-                      L
+                      Yacht 1
                     </button>
                     <button
                       type="button"
                       onClick={() => onAssign(yacht.id, "b")}
+                      aria-pressed={isRight}
+                      aria-label={`Use ${yacht.name} as yacht 2`}
                       className={cn(
-                        "flex-1 rounded border py-1 text-[10px] font-semibold transition-colors",
+                        "flex-1 rounded-md border py-2.5 text-xs font-semibold transition-colors",
                         isRight
                           ? "border-gold bg-gold/15 text-gold"
                           : "border-border text-text-secondary hover:border-gold/50 hover:text-gold",
                       )}
                     >
-                      R
+                      Yacht 2
                     </button>
                   </div>
                 </div>

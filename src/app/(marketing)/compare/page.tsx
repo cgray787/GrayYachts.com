@@ -579,7 +579,7 @@ export default function CompareYachtsPage() {
 
   // Persist catalog
   useEffect(() => {
-    saveCatalog(catalog);
+    if (!saveCatalog(catalog)) setScrapeError("Your browser could not save this catalog. Free up browser storage to keep these yachts after closing the page.");
   }, [catalog]);
 
   // Persist slot selections
@@ -589,8 +589,8 @@ export default function CompareYachtsPage() {
     } catch { /* ignore */ }
   }, [leftId, rightId]);
 
-  const leftYacht = catalog.find((y) => y.id === leftId) ?? catalog[0];
-  const rightYacht = catalog.find((y) => y.id === rightId) ?? catalog[1];
+  const leftYacht = catalog.find((y) => y.id === leftId);
+  const rightYacht = catalog.find((y) => y.id === rightId);
 
   // Load a URL into a specific comparison slot and add to catalog
   const loadUrlToSlot = useCallback(
@@ -730,17 +730,8 @@ export default function CompareYachtsPage() {
 
   const handleRemove = (yachtId: string) => {
     const remaining = catalog.filter((y) => y.id !== yachtId);
-    if (remaining.length < 2) return; // need at least 2 yachts
-
-    if (yachtId === leftId) {
-      // Reassign left slot to another yacht that isn't in the right slot
-      const alt = remaining.find((y) => y.id !== rightId);
-      if (alt) setLeftId(alt.id);
-    } else if (yachtId === rightId) {
-      // Reassign right slot to another yacht that isn't in the left slot
-      const alt = remaining.find((y) => y.id !== leftId);
-      if (alt) setRightId(alt.id);
-    }
+    if (yachtId === leftId) setLeftId(remaining.find(y => y.id !== rightId)?.id ?? "");
+    if (yachtId === rightId) setRightId(remaining.find(y => y.id !== leftId)?.id ?? "");
 
     setCatalog(remaining);
   };
@@ -759,9 +750,7 @@ export default function CompareYachtsPage() {
     [],
   );
 
-  const bothReady =
-    (leftYacht.verified === true || (leftYacht.flags?.length ?? 0) === 0) &&
-    (rightYacht.verified === true || (rightYacht.flags?.length ?? 0) === 0);
+  const bothReady = leftYacht?.verified === true && rightYacht?.verified === true;
 
   // See ToolShell: localStorage is invisible to the server, so hold off on
   // rendering the comparison until the client has mounted.
@@ -769,7 +758,7 @@ export default function CompareYachtsPage() {
     return (
       <ToolShell
         title="Compare Yachts"
-        description="Compare any two yachts side-by-side. Paste listing URLs to add yachts to your catalog, then drag them into the comparison slots."
+        description="Add listing links. Compare the details. Keep your favorites."
       />
     );
   }
@@ -785,8 +774,7 @@ export default function CompareYachtsPage() {
                 Compare Yachts
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
-                Compare any two yachts side-by-side. Paste listing URLs to add
-                yachts to your catalog, then drag them into the comparison slots.
+                Add listing links. Compare the details. Keep your favorites.
               </p>
             </div>
 
@@ -795,22 +783,15 @@ export default function CompareYachtsPage() {
 
         {/* ── Catalog rail. Anything added through the URL box below lands   */}
         {/*    here automatically — it renders straight off `catalog` state.  */}
-        <CatalogStrip
-          catalog={catalog}
-          leftId={leftId}
-          rightId={rightId}
-          onAssign={handleAssign}
-          onRemove={handleRemove}
-        />
+
 
         {/* ── Quick Compare via URLs ── */}
         <div className="mb-8 rounded-xl border border-border bg-bg-card p-6">
           <h2 className="mb-1 text-sm font-semibold text-text-primary">
-            Compare by URL
+            Add yachts to compare
           </h2>
           <p className="mb-4 text-xs text-text-secondary">
-            Paste two yacht listing links below and hit Compare to view them
-            side-by-side instantly.
+            Paste one or two listing links to get started.
           </p>
 
           <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-end">
@@ -951,7 +932,7 @@ export default function CompareYachtsPage() {
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-[10px] text-text-secondary">Works with:</span>
-            {["YachtWorld", "BoatTrader", "boats.com", "Denison", "Any URL"].map(
+            {["YachtWorld", "BoatTrader", "boats.com", "Denison"].map(
               (site) => (
                 <span
                   key={site}
@@ -963,6 +944,14 @@ export default function CompareYachtsPage() {
             )}
           </div>
         </div>
+
+        <CatalogStrip
+          catalog={catalog}
+          leftId={leftId}
+          rightId={rightId}
+          onAssign={handleAssign}
+          onRemove={handleRemove}
+        />
 
         {/* ── Error banner ── */}
         {scrapeError && (
@@ -978,38 +967,10 @@ export default function CompareYachtsPage() {
           </div>
         )}
 
-        {/* ── Status bar ── */}
-        <div
-          className={cn(
-            "mb-8 rounded-lg px-5 py-3.5",
-            bothReady
-              ? "border border-success/20 bg-success/5"
-              : "border border-warning/30 bg-warning/5",
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {bothReady ? (
-              <ShieldCheck className="h-4 w-4 text-success" />
-            ) : (
-              <AlertTriangle className="h-4 w-4 text-warning" />
-            )}
-            <span
-              className={cn(
-                "text-sm font-medium",
-                bothReady ? "text-success" : "text-warning",
-              )}
-            >
-              {bothReady ? "Ready to share" : "Review required before sharing"}
-            </span>
-            <span className="text-sm text-text-secondary">
-              — {leftYacht.name} vs {rightYacht.name}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-text-secondary">
-            {bothReady
-              ? "Both cards have been reviewed (or have no flagged issues). Specs in green are the better value."
-              : "One or both cards need review. Click any value to edit it, then hit \"Mark Reviewed\" before sending to a client."}
-          </p>
+        {leftYacht && rightYacht ? <>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <h2 className="text-xl font-medium text-text-primary">Side-by-side comparison</h2>
+          <span className="text-xs text-text-secondary">{bothReady ? "Both yachts reviewed" : "Check listing details before sharing"}</span>
         </div>
 
         {/* ── Comparison area ── */}
@@ -1051,6 +1012,11 @@ export default function CompareYachtsPage() {
             onMarkVerified={(v) => handleMarkVerified(rightYacht.id, v)}
           />
         </div>
+
+        </> : <div className="rounded-xl border border-dashed border-gold/30 bg-gold/5 px-6 py-10 text-center">
+          <h2 className="text-lg font-medium text-text-primary">{catalog.length ? "Choose two yachts to compare" : "Start with a yacht you love"}</h2>
+          <p className="mt-2 text-sm text-text-secondary">{catalog.length ? "Select Yacht 1 and Yacht 2 above, or add another listing link." : "Paste a listing link above. Your saved yachts will be here when you return on this browser."}</p>
+        </div>}
 
         {/* ── Manage catalog link ── */}
         <div className="mt-12 flex items-center justify-center border-t border-border pt-6">
