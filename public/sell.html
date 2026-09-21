@@ -58,6 +58,19 @@
   .lockup b{font-weight:500;color:rgba(238,242,248,.82);letter-spacing:.18em}
   .lockup i{font-style:normal;opacity:.45}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  /* top-right home link: the only way back to grayyachts.com from this page.
+     Fixed, so it stays reachable through the whole quiz, not just the hero. */
+  .home-link{position:fixed;top:16px;right:18px;z-index:20;display:flex;align-items:center;
+    justify-content:center;width:52px;height:52px;border-radius:50%;
+    background:rgba(6,10,18,.55);border:1px solid rgba(201,169,110,.28);backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    opacity:0;animation:rise .9s .05s cubic-bezier(.2,.7,.3,1) forwards;
+    transition:border-color .2s,background .2s,transform .2s}
+  .home-link img{width:40px;height:40px;display:block}
+  .home-link:hover,.home-link:focus-visible{border-color:var(--gold);background:rgba(6,10,18,.8);
+    transform:translateY(-1px);outline:none}
+  @media (max-width:640px){.home-link{top:12px;right:12px;width:46px;height:46px}
+    .home-link img{width:36px;height:36px}}
   .hero-in>h1,.hero-in>.hero-q,.hero-in>.sub,.hero-in>.btn,.hero-in>.meta{
     opacity:0;animation:rise .9s cubic-bezier(.2,.7,.3,1) forwards}
   .hero-in>h1{animation-delay:.34s} .hero-in>.hero-q{animation-delay:.42s}
@@ -65,7 +78,7 @@
   .hero-in>.btn{animation-delay:.54s} .hero-in>.meta{animation-delay:.64s}
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important}
-    .mark,.lockup,.hero-in>h1,.hero-in>.hero-q,.hero-in>.sub,.hero-in>.btn,.hero-in>.meta{opacity:1!important}
+    .mark,.lockup,.home-link,.hero-in>h1,.hero-in>.hero-q,.hero-in>.sub,.hero-in>.btn,.hero-in>.meta{opacity:1!important}
   }
   .footmark{width:54px;height:54px;margin:0 auto 16px;opacity:.7}
   /* hero lead: bold statement + market-value line, question demoted below */
@@ -415,6 +428,9 @@ source: Client
 <!-- ══════════ HERO ══════════ -->
 <header class="hero">
   <div class="hero-bg"></div>
+  <a class="home-link" href="/" aria-label="Gray Yachts home" title="Back to grayyachts.com">
+    <img src="/sell/img/logo-gy.png?v=3" alt="" width="40" height="40">
+  </a>
   <div class="hero-in wrap">
     <div class="masthead">
       <img class="mark" src="/sell/img/logo-gy.png?v=3" alt="Gray Yachts" width="88" height="88">
