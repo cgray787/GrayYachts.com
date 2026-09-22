@@ -60,17 +60,20 @@
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   /* top-right home link: the only way back to grayyachts.com from this page.
      Fixed, so it stays reachable through the whole quiz, not just the hero. */
-  .home-link{position:fixed;top:16px;right:18px;z-index:20;display:flex;align-items:center;
-    justify-content:center;width:52px;height:52px;border-radius:50%;
-    background:rgba(6,10,18,.55);border:1px solid rgba(201,169,110,.28);backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
+  .home-link{position:fixed;top:22px;right:26px;z-index:20;display:flex;align-items:center;
+    gap:12px;padding:8px 18px 8px 8px;border-radius:999px;
+    background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);color:#fff;text-decoration:none;
+    font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:500;
+    box-shadow:0 0 0 1px rgba(6,10,18,.5),0 6px 24px rgba(0,0,0,.35);
     opacity:0;animation:rise .9s .05s cubic-bezier(.2,.7,.3,1) forwards;
     transition:border-color .2s,background .2s,transform .2s}
-  .home-link img{width:40px;height:40px;display:block}
-  .home-link:hover,.home-link:focus-visible{border-color:var(--gold);background:rgba(6,10,18,.8);
+  .home-link img{width:64px;height:64px;display:block;
+    filter:brightness(1.15) drop-shadow(0 0 5px rgba(255,255,255,.45))}
+  .home-link:hover,.home-link:focus-visible{border-color:#fff;background:rgba(255,255,255,.16);
     transform:translateY(-1px);outline:none}
-  @media (max-width:640px){.home-link{top:12px;right:12px;width:46px;height:46px}
-    .home-link img{width:36px;height:36px}}
+  @media (max-width:640px){.home-link{top:12px;right:12px;padding:6px 14px 6px 6px;gap:8px;font-size:10px}
+    .home-link img{width:48px;height:48px}}
   .hero-in>h1,.hero-in>.hero-q,.hero-in>.sub,.hero-in>.btn,.hero-in>.meta{
     opacity:0;animation:rise .9s cubic-bezier(.2,.7,.3,1) forwards}
   .hero-in>h1{animation-delay:.34s} .hero-in>.hero-q{animation-delay:.42s}
@@ -429,7 +432,8 @@ source: Client
 <header class="hero">
   <div class="hero-bg"></div>
   <a class="home-link" href="/" aria-label="Gray Yachts home" title="Back to grayyachts.com">
-    <img src="/sell/img/logo-gy.png?v=3" alt="" width="40" height="40">
+    <img src="/sell/img/logo-gy.png?v=3" alt="" width="64" height="64">
+    <span>Home</span>
   </a>
   <div class="hero-in wrap">
     <div class="masthead">
