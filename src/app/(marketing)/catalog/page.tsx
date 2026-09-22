@@ -1,5 +1,7 @@
 "use client";
 
+import { useCatalogPhotoUpdates, repairPhoto } from "@/components/yachts/use-catalog-photo-updates";
+
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -31,6 +33,7 @@ import {
 export default function YachtCatalogPage() {
   const router = useRouter();
   const [catalog, setCatalog] = useState<YachtListing[]>(() => loadCatalog());
+  useCatalogPhotoUpdates(setCatalog);
   const [urlInput, setUrlInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
@@ -92,6 +95,8 @@ export default function YachtCatalogPage() {
         (y) => y.url.toLowerCase() === trimmed.toLowerCase(),
       );
       if (existing) {
+        const imageUrl = await repairPhoto(existing.url, existing.imageUrl);
+        setCatalog(previous => previous.map(y => y.id === existing.id ? { ...y, imageUrl } : y));
         setUrlInput("");
         setLoading(false);
         return;

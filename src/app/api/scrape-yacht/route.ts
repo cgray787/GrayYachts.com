@@ -1,4 +1,6 @@
-import { archivePhoto, photoBucket, photoKey, isListingPhoto } from "@/lib/yacht-photo-store";
+import { photoBucket } from "@/lib/yacht-photo-store";
+import { resolveYachtPhoto } from "@/lib/resolve-yacht-photo";
+import { blockedListingPage, photosFromHtml } from "@/lib/yacht-photo-candidates";
 import { NextRequest, NextResponse } from "next/server";
 
 /* ------------------------------------------------------------------ */
@@ -806,7 +808,10 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
         const firecrawlExtract = json?.data?.extract ?? null;
         const firecrawlImageUrl = json?.data?.metadata?.ogImage ?? null;
         const firecrawlScreenshot = json?.data?.screenshot ?? null;
-        const validHtml = html.length > 500 && !html.includes("cf-challenge") ? html : null;
+        if (blockedListingPage(html) || blockedListingPage(markdown ?? '')
+          || blockedListingPage(json?.data?.metadata?.title ?? '')) throw new Error('Blocked listing');
+        const validHtml = html.length > 500 ? html : null;
+        if (!validHtml && !markdown && !firecrawlExtract) throw new Error('Empty listing');
         return { html: validHtml, markdown, firecrawlExtract, firecrawlImageUrl, firecrawlScreenshot };
       }
     } catch { /* fall through to other strategies */ }
@@ -821,7 +826,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
     if (res.ok) {
       const html = await res.text();
       // Check for Cloudflare challenge pages
-      if (html.length > 500 && !html.includes("Just a moment...") && !html.includes("cf-challenge")) {
+      if (html.length > 500 && !blockedListingPage(html)) {
         return { html };
       }
     }
@@ -839,7 +844,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
     });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500 && !html.includes("Target URL returned error")) {
+      if (html.length > 500 && !blockedListingPage(html)) {
         return { html };
       }
     }
@@ -853,7 +858,7 @@ async function tryFetchHtml(url: string): Promise<FetchResult> {
     });
     if (res.ok) {
       const html = await res.text();
-      if (html.length > 500 && !html.includes("Just a moment...")) {
+      if (html.length > 500 && !blockedListingPage(html)) {
         return { html };
       }
     }
@@ -1509,6 +1514,9 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   // Try to fetch HTML for richer data (but don't fail if blocked)
   const fetchResult = await tryFetchHtml(url);
   let html = fetchResult.html;
+  if (!html && !fetchResult.markdown && !fetchResult.firecrawlExtract) {
+    throw new Error("This listing site could not be read. Please retry or use another listing link.");
+  }
 
   // Vision extraction: send the Firecrawl screenshot to Claude Haiku 4.5 and
   // read specs the same way a human would. Highest-quality source when present.
@@ -1875,16 +1883,13 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const finalPriceNum = vision?.priceNum ?? ai?.priceNum ?? htmlPriceNum ?? null;
 
   let finalImageUrl: string | null = null;
-  const photoCandidate = [fetchResult.firecrawlImageUrl, htmlImageUrl]
-    .find((candidate): candidate is string => Boolean(candidate && isListingPhoto(candidate)));
-  if (photoCandidate) {
-    try {
-      finalImageUrl = await archivePhoto(await photoBucket(), await photoKey(url), photoCandidate, url);
-    } catch (error) {
-      console.error('[scrape-yacht] Photo could not be saved', error instanceof Error ? error.message : 'unknown');
-      // Preserve the actual source for a later archive retry; never substitute a screenshot.
-      finalImageUrl = photoCandidate;
-    }
+  try {
+    finalImageUrl = await resolveYachtPhoto(await photoBucket(), url, [
+      fetchResult.firecrawlImageUrl, ai?.imageUrl, htmlImageUrl,
+      ...photosFromHtml(html ?? '', url),
+    ]);
+  } catch (error) {
+    console.error('[scrape-yacht] Photo storage unavailable', error instanceof Error ? error.message : 'unknown');
   }
 
 
@@ -2262,11 +2267,11 @@ export async function GET(request: NextRequest) {
          and isolated numbers on pages that are not single listings.
      v3: sail-aware speed ceiling, and reject a top speed that is really the
          engine's horsepower read twice. */
-  const SCRAPE_LOGIC_VERSION = 3;
+  const SCRAPE_LOGIC_VERSION = 4;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });
-  if (edgeCache) {
+  if (edgeCache && request.nextUrl.searchParams.get("retry") !== "1") {
     const cached = await edgeCache.match(cacheKey);
     if (cached) return cached;
   }
@@ -2278,10 +2283,10 @@ export async function GET(request: NextRequest) {
         // Public, 24h shared cache. The frontend talks to /api/scrape-yacht
         // through fetch (no credentials) so "public" is safe; "s-maxage"
         // controls Cloudflare's edge cache lifetime.
-        "Cache-Control": "public, max-age=300, s-maxage=86400",
+        "Cache-Control": data.imageUrl ? "public, max-age=300, s-maxage=86400" : "no-store",
       },
     });
-    if (edgeCache) {
+    if (edgeCache && data.imageUrl) {
       try {
         await edgeCache.put(cacheKey, response.clone());
       } catch {
@@ -2293,6 +2298,6 @@ export async function GET(request: NextRequest) {
     const message = err instanceof Error ? err.message : "Failed to scrape";
     // NEVER cache errors — a transient Firecrawl blip shouldn't poison the
     // cache for 24h.
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: message }, { status: 502, headers: { "Cache-Control": "no-store" } });
   }
 }

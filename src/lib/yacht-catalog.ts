@@ -297,7 +297,7 @@ export function saveCatalog(catalog: YachtListing[]) {
  * edge cache entries don't keep serving the old image.
  */
 // v6 bypasses previously cached error screenshots; originals now live in R2.
-const IMAGE_PROXY_VERSION = 6;
+const IMAGE_PROXY_VERSION = 7;
 export function yachtImageSrc(listingUrl: string, source?: string | null): string {
   const original = source && /^https?:\/\//.test(source) && !/screenshot|firecrawl|unsplash/i.test(source)
     ? `&source=${encodeURIComponent(source)}` : "";
@@ -312,7 +312,7 @@ export function extractFirstNumber(text: string): number {
 }
 
 export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
-  const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}`);
+  const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}&v=4`);
   const data: ScrapeResult = await res.json();
 
   if (!res.ok || data.error) {

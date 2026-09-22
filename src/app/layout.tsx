@@ -15,6 +15,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://grayyachts.com"),
   title: "Gray Yachts — Pacific Northwest's Premier Yacht Experience",
   description:
     "Cinematic yacht brokerage in the Pacific Northwest. Sell-side advisory, buy-side representation, drone cinematography, and full-spectrum yacht services.",

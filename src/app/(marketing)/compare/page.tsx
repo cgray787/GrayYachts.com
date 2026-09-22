@@ -1,5 +1,7 @@
 "use client";
 
+import { useCatalogPhotoUpdates, repairPhoto } from "@/components/yachts/use-catalog-photo-updates";
+
 import { useState, useCallback, useEffect, useRef, type DragEvent } from "react";
 import Link from "next/link";
 import {
@@ -534,6 +536,7 @@ function RecentDropdown({
 
 export default function CompareYachtsPage() {
   const [catalog, setCatalog] = useState<YachtListing[]>(() => loadCatalog());
+  useCatalogPhotoUpdates(setCatalog);
   const [leftId, setLeftId] = useState(() => {
     if (typeof window !== "undefined") {
       try {
@@ -617,6 +620,9 @@ export default function CompareYachtsPage() {
           (y) => y.url.toLowerCase() === trimmed.toLowerCase()
         );
         if (existingMatch) {
+          // Repair the photo only: preserve IDs, verification and every edited spec.
+          const imageUrl = await repairPhoto(existingMatch.url, existingMatch.imageUrl);
+          setCatalog(previous => previous.map(y => y.id === existingMatch.id ? { ...y, imageUrl } : y));
           if (slot === "a") setLeftId(existingMatch.id);
           else setRightId(existingMatch.id);
           setLoadingFn(false);

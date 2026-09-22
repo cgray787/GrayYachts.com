@@ -1,3 +1,4 @@
+import { photosFromHtml, normalizePhotoUrl } from "./yacht-photo-candidates";
 /**
  * Scrape provider chain with auto-failover, mirrored from the
  * GrayYachts Listing Intake agent (`tools/comps/providers.py`).
@@ -44,15 +45,6 @@ const BROWSER_HEADERS: HeadersInit = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
-const OG_IMAGE_RE =
-  /<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]+content=["']([^"']+)["']|<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["']/i;
-
-const JSONLD_RE =
-  /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi;
-
-const IMG_RE =
-  /<img[^>]+(?:data-src|data-original|srcset|src)=["']([^"']+)["']/gi;
-
 // Process-lifetime circuit breaker. Keyed by provider name.
 const dead = new Set<string>();
 // What this worker actually used last — surfaced in response headers for
@@ -64,83 +56,9 @@ function isExhaustion(err: unknown): boolean {
   return EXHAUSTION_MARKERS.some((k) => m.includes(k));
 }
 
-function pickJsonLdImage(node: unknown): string | null {
-  if (!node) return null;
-  if (typeof node === "string") return null;
-  if (Array.isArray(node)) {
-    for (const item of node) {
-      const out = pickJsonLdImage(item);
-      if (out) return out;
-    }
-    return null;
-  }
-  if (typeof node === "object") {
-    const obj = node as Record<string, unknown>;
-    if (typeof obj.image === "string") return obj.image;
-    if (typeof obj.image === "object" && obj.image) {
-      if (Array.isArray(obj.image) && typeof obj.image[0] === "string") return obj.image[0];
-      const out = pickJsonLdImage(obj.image);
-      if (out) return out;
-    }
-    if (obj["@type"] === "ImageObject" && typeof obj.url === "string") return obj.url;
-    if (typeof obj.contentUrl === "string") return obj.contentUrl;
-    for (const v of Object.values(obj)) {
-      const out = pickJsonLdImage(v);
-      if (out) return out;
-    }
-  }
-  return null;
-}
-
 /** Pull the best hero image URL out of a chunk of HTML. */
 export function heroFromHtml(html: string, baseUrl: string): string | null {
-  if (!html) return null;
-  const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? '';
-  if (/access denied|just a moment|page not found|robot|captcha|security check|404|403/i.test(title)) return null;
-  // 1. og:image / twitter:image — the canonical share photo.
-  const og = OG_IMAGE_RE.exec(html);
-  const ogUrl = og?.[1] || og?.[2];
-  if (ogUrl && !GENERIC_IMAGE_RE.test(ogUrl)) {
-    return absolutize(ogUrl, baseUrl);
-  }
-  // 2. JSON-LD `image` field — most listing sites embed this.
-  JSONLD_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = JSONLD_RE.exec(html))) {
-    try {
-      const parsed = JSON.parse(match[1].trim());
-      const candidate = pickJsonLdImage(parsed);
-      if (candidate && !GENERIC_IMAGE_RE.test(candidate)) {
-        return absolutize(candidate, baseUrl);
-      }
-    } catch {
-      // ignore malformed JSON-LD blocks
-    }
-  }
-  // 3. First non-asset <img>. Lazy data-src takes precedence over src.
-  IMG_RE.lastIndex = 0;
-  let imgMatch: RegExpExecArray | null;
-  while ((imgMatch = IMG_RE.exec(html))) {
-    const raw = imgMatch[1];
-    if (!raw || GENERIC_IMAGE_RE.test(raw)) continue;
-    // srcset format: "url 1x, url2 2x" — pick the first URL.
-    const url = raw.split(/[,\s]/)[0];
-    if (url && /^https?:|^\/\//.test(url) && !GENERIC_IMAGE_RE.test(url)) {
-      return absolutize(url, baseUrl);
-    }
-  }
-
-  return null;
-}
-
-function absolutize(url: string, baseUrl: string): string {
-  if (url.startsWith("//")) return "https:" + url;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
+  return photosFromHtml(html, baseUrl)[0] ?? null;
 }
 
 /* ---------------- direct fetch ---------------- */
@@ -315,7 +233,7 @@ export interface HeroLookup {
  */
 export async function heroImageFor(
   listingUrl: string,
-  opts: { directTimeoutMs?: number; jinaTimeoutMs?: number; firecrawlTimeoutMs?: number } = {}
+  opts: { directTimeoutMs?: number; jinaTimeoutMs?: number; firecrawlTimeoutMs?: number; accept?: (url: string) => Promise<boolean> } = {}
 ): Promise<HeroLookup | null> {
   const directTimeout = opts.directTimeoutMs ?? 8_000;
   const jinaTimeout = opts.jinaTimeoutMs ?? 20_000;
@@ -325,7 +243,10 @@ export async function heroImageFor(
   if (!dead.has("direct")) {
     try {
       const html = await tryDirectFetch(listingUrl, directTimeout);
-      const hero = html ? heroFromHtml(html, listingUrl) : null;
+      let hero: string | undefined;
+      for (const candidate of photosFromHtml(html ?? '', listingUrl)) {
+        if (!opts.accept || await opts.accept(candidate)) { hero = candidate; break; }
+      }
       if (hero) {
         lastUsed = "direct";
         return { imageUrl: hero, provider: "direct" };
@@ -341,7 +262,10 @@ export async function heroImageFor(
   if (!dead.has("jina")) {
     try {
       const html = await tryJinaHtml(listingUrl, jinaTimeout);
-      const hero = html ? heroFromHtml(html, listingUrl) : null;
+      let hero: string | undefined;
+      for (const candidate of photosFromHtml(html ?? '', listingUrl)) {
+        if (!opts.accept || await opts.accept(candidate)) { hero = candidate; break; }
+      }
       if (hero) {
         lastUsed = "jina-html";
         return { imageUrl: hero, provider: "jina-html" };
@@ -361,7 +285,7 @@ export async function heroImageFor(
       const hero = r?.data?.content
         ? firstListingImageFromMarkdown(r.data.content)
         : null;
-      if (hero) {
+      if (hero && (!opts.accept || await opts.accept(hero))) {
         lastUsed = "jina-markdown";
         return { imageUrl: hero, provider: "jina-markdown" };
       }
@@ -374,9 +298,10 @@ export async function heroImageFor(
   if (!dead.has("firecrawl")) {
     try {
       const fc = await tryFirecrawl(listingUrl, firecrawlTimeout);
-      if (fc?.ogImage && !GENERIC_IMAGE_RE.test(fc.ogImage)) {
+      const candidate = normalizePhotoUrl(fc?.ogImage, listingUrl);
+      if (candidate && (!opts.accept || await opts.accept(candidate))) {
         lastUsed = "firecrawl-og";
-        return { imageUrl: fc.ogImage, provider: "firecrawl-og" };
+        return { imageUrl: candidate, provider: "firecrawl-og" };
       }
 
     } catch (err) {

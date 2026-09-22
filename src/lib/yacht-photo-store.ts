@@ -55,11 +55,7 @@ export async function fetchPhoto(url: string, listing: string): Promise<{ bytes:
     const data = new Uint8Array(total);
     let offset = 0;
     for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.length; }
-    const prefix = new TextDecoder().decode(data.slice(0, 12));
-    const contentType = data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff ? 'image/jpeg'
-      : data[0] === 137 && prefix.slice(1, 4) === 'PNG' ? 'image/png'
-      : prefix.startsWith('RIFF') && prefix.slice(8) === 'WEBP' ? 'image/webp'
-      : prefix.startsWith('GIF8') ? 'image/gif' : null;
+    const contentType = photoContentType(data);
     if (!contentType) throw new Error('Response is not a supported photo');
     return { bytes: data.buffer, contentType };
   }
@@ -72,4 +68,13 @@ export async function archivePhoto(bucket: PhotoBucket, key: string, source: str
   const { bytes, contentType } = await fetchPhoto(source, listing);
   await bucket.put(key, bytes, { httpMetadata: { contentType } });
   return savedPhotoUrl(key);
+}
+
+export function photoContentType(data: Uint8Array): string | null {
+  const prefix = new TextDecoder().decode(data.slice(0, 12));
+  return data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff ? 'image/jpeg'
+      : data[0] === 137 && prefix.slice(1, 4) === 'PNG' ? 'image/png'
+      : prefix.startsWith('RIFF') && prefix.slice(8) === 'WEBP' ? 'image/webp'
+      : prefix.startsWith('GIF8') ? 'image/gif' : prefix.slice(4, 8) === 'ftyp' && /avif|avis/.test(new TextDecoder().decode(data.slice(8, 32))) ? 'image/avif' : null;
+
 }
