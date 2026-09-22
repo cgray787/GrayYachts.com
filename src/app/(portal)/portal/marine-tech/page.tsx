@@ -124,7 +124,8 @@ async function loadMonthJobs(
   //       writes when an operator uses the inline Schedule picker
   // Either may be NULL on a given row. We pull both columns + the matching
   // _end fields, then OR-filter so a row in either world is found:
-  //   scheduled_start in [startTs, endTs]  OR  scheduled_date in [start, end]
+  //   timestamp or legacy date spans that overlap [start, end].
+  // Include jobs that began before this month and continue into it.
   // The PostgREST `or` operator wraps the two `and` clauses below.
   const startTs = `${start}T00:00:00.000Z`;
   const endTs = `${end}T23:59:59.999Z`;
@@ -134,7 +135,7 @@ async function loadMonthJobs(
       "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(id, name), boats(name, make, model), marinas(name)"
     )
     .or(
-      `and(scheduled_start.gte.${startTs},scheduled_start.lte.${endTs}),and(scheduled_date.gte.${start},scheduled_date.lte.${end})`
+      `and(scheduled_start.lte.${endTs},or(scheduled_start.gte.${startTs},scheduled_end.gte.${startTs},scheduled_end_date.gte.${start})),and(scheduled_start.is.null,scheduled_date.lte.${end},or(scheduled_date.gte.${start},scheduled_end_date.gte.${start}))`
     )
     .order("scheduled_start", { ascending: true, nullsFirst: false })
     .limit(500);
