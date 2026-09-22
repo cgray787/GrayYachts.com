@@ -35,9 +35,29 @@ export async function POST(request: NextRequest) {
     if (!result) return fail('Screenshot reading is temporarily unavailable. Your images are saved; please retry.', 503);
     if (!result.name || !result.builder || (!result.year && !result.lengthFt && !result.lengthM))
       return fail('Could not read enough listing details. Include the yacht title and specification table in your screenshots.', 422);
-    return NextResponse.json({ ...result, url, source: 'Screenshots', imageUrl: savedPhotoUrl(photoId),
-      confidence: 'low', flags: ['Read from your screenshots. Review the extracted specifications before sharing.'] }, { headers });
+    const savedImportId = crypto.randomUUID();
+    const data = { ...result, url, source: 'Screenshots', imageUrl: savedPhotoUrl(photoId),
+      confidence: 'low', capturedAt: new Date().toISOString(),
+      flags: ['Read from listing screenshots. Review the extracted specifications before sharing.'] };
+    await bucket.put(`imports/${savedImportId}.json`, new TextEncoder().encode(JSON.stringify(data)).buffer,
+      { httpMetadata: { contentType: 'application/json' } });
+    return NextResponse.json({ ...data, savedImportId }, { headers });
   } catch {
     return fail('Could not import these screenshots. Check the listing URL and try again.', 400);
+  }
+}
+
+/** Immutable captured listing, accessible across devices through its saved link. */
+export async function GET(request: NextRequest) {
+  const headers = { 'Cache-Control': 'no-store' };
+  const id = request.nextUrl.searchParams.get('id') ?? '';
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))
+    return NextResponse.json({ error: 'Invalid saved import link.' }, { status: 400, headers });
+  try {
+    const saved = await (await photoBucket()).get(`imports/${id}.json`);
+    if (!saved) return NextResponse.json({ error: 'Saved import not found.' }, { status: 404, headers });
+    return new NextResponse(await saved.arrayBuffer(), { headers: { ...headers, 'Content-Type': 'application/json' } });
+  } catch {
+    return NextResponse.json({ error: 'Could not load the saved import. Please retry.' }, { status: 503, headers });
   }
 }

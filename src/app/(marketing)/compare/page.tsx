@@ -24,6 +24,7 @@ import {
   loadCatalog,
   saveCatalog,
   scrapeYachtFromUrl,
+  listingFromScrapeResult,
   comparePrice,
 } from "@/lib/yacht-catalog";
 import { YachtImage } from "@/components/yachts/yacht-image";
@@ -672,7 +673,30 @@ export default function CompareYachtsPage() {
     if (deepLinkHandled.current) return;
     deepLinkHandled.current = true;
 
-    const incoming = new URLSearchParams(window.location.search).get("add");
+    const params = new URLSearchParams(window.location.search);
+    const savedImport = params.get('import');
+    if (savedImport) {
+      setLoadingLeft(true);
+      void (async () => {
+        try {
+          const response = await fetch(`/api/import-yacht-screenshots?id=${encodeURIComponent(savedImport)}`);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error ?? 'Could not load saved yacht.');
+          const yacht = listingFromScrapeResult(data, data.url);
+          setCatalog(previous => {
+            // Opening a saved link must never overwrite a visitor's edits.
+            const existing = previous.find(item => item.url === yacht.url);
+            setLeftId(existing?.id ?? yacht.id);
+            return existing ? previous : [...previous, yacht];
+          });
+          setScrapeError(null);
+        } catch (error) {
+          setScrapeError(error instanceof Error ? error.message : 'Could not load saved yacht.');
+        } finally { setLoadingLeft(false); }
+      })();
+      return;
+    }
+    const incoming = params.get("add");
     if (!incoming) return;
 
     // Drop the param so a refresh doesn't re-scrape the same listing.
