@@ -60,7 +60,7 @@
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   /* top-right home link: the only way back to grayyachts.com from this page.
      Fixed, so it stays reachable through the whole quiz, not just the hero. */
-  .home-link{position:fixed;top:22px;right:26px;z-index:20;display:flex;align-items:center;
+  .home-link{position:fixed;top:22px;left:26px;z-index:20;display:flex;align-items:center;
     gap:12px;padding:8px 18px 8px 8px;border-radius:999px;
     background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.85);backdrop-filter:blur(8px);
     -webkit-backdrop-filter:blur(8px);color:#fff;text-decoration:none;
@@ -72,7 +72,7 @@
     filter:brightness(1.15) drop-shadow(0 0 5px rgba(255,255,255,.45))}
   .home-link:hover,.home-link:focus-visible{border-color:#fff;background:rgba(255,255,255,.16);
     transform:translateY(-1px);outline:none}
-  @media (max-width:640px){.home-link{top:12px;right:12px;padding:6px 14px 6px 6px;gap:8px;font-size:10px}
+  @media (max-width:640px){.home-link{top:12px;left:12px;padding:6px 14px 6px 6px;gap:8px;font-size:10px}
     .home-link img{width:48px;height:48px}}
   .hero-in>h1,.hero-in>.hero-q,.hero-in>.sub,.hero-in>.btn,.hero-in>.meta{
     opacity:0;animation:rise .9s cubic-bezier(.2,.7,.3,1) forwards}
