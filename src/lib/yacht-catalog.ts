@@ -319,6 +319,10 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     throw new Error(data.error || "Failed to scrape listing");
   }
 
+  return listingFromScrapeResult(data, url);
+}
+
+export function listingFromScrapeResult(data: ScrapeResult, url: string): YachtListing {
   // Hash for gradient selection
   let hash = 0;
   for (let i = 0; i < url.length; i++) {
@@ -331,7 +335,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
   const lengthFt = data.lengthFt ?? (data.lengthM ? Math.round(data.lengthM * 3.281 * 10) / 10 : null);
   const beamFt = data.beamFt ?? (data.beamM ? Math.round(data.beamM * 3.281 * 10) / 10 : null);
   const cabinsN = data.cabins ?? 0;
-  const guestsN = data.guests ?? (cabinsN ? cabinsN * 2 : 0);
+  const guestsN = data.guests ?? 0;
 
   return {
     id: `scraped-${Date.now()}-${Math.abs(hash)}`,
@@ -350,7 +354,7 @@ export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
     maxSpeed: data.maxSpeed ? `${data.maxSpeed} knots` : "N/A",
     maxSpeedNum: data.maxSpeed ?? 0,
     cabins: cabinsN
-      ? `${cabinsN} cabin${cabinsN === 1 ? "" : "s"} / ${guestsN} guest${guestsN === 1 ? "" : "s"}`
+      ? `${cabinsN} cabin${cabinsN === 1 ? "" : "s"}${guestsN ? ` / ${guestsN} guest${guestsN === 1 ? "" : "s"}` : ""}`
       : "N/A",
     cabinsNum: cabinsN,
     range: data.range ? `${data.range.toLocaleString()} nm` : "N/A",

@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenshotImport } from "@/components/yachts/screenshot-import";
 import { useCatalogPhotoUpdates, repairPhoto } from "@/components/yachts/use-catalog-photo-updates";
 
 import { useState, useCallback, useEffect, useRef, type DragEvent } from "react";
@@ -951,6 +952,19 @@ export default function CompareYachtsPage() {
           </div>
         </div>
 
+        <ScreenshotImport suggestedUrl={urlLeft || urlRight} onImport={(yacht, side) => {
+          setCatalog(previous => {
+            const existing = previous.find(item => item.url === yacht.url);
+            const merged = existing ? { ...yacht, id: existing.id } : yacht;
+            if (existing) for (const field of existing.edited ?? []) {
+              if (field in existing) Object.assign(merged, { [field]: existing[field as keyof YachtListing] });
+            }
+            merged.edited = existing?.edited ?? [];
+            if (side === 'a') setLeftId(merged.id); else setRightId(merged.id);
+            return existing ? previous.map(item => item.id === existing.id ? merged : item) : [...previous, merged];
+          });
+          setScrapeError(null);
+        }} />
         <CatalogStrip
           catalog={catalog}
           leftId={leftId}
