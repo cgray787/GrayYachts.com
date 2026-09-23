@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const savedImportId = crypto.randomUUID();
     const data = { ...result, url, source: 'Screenshots', imageUrl: savedPhotoUrl(photoId),
       confidence: 'low', capturedAt: new Date().toISOString(),
-      flags: ['Read from listing screenshots. Review the extracted specifications before sharing.'] };
+      flags: ['Read from listing screenshots. Review the extracted specifications before sharing.', ...(result.warnings ?? [])] };
     await bucket.put(`imports/${savedImportId}.json`, new TextEncoder().encode(JSON.stringify(data)).buffer,
       { httpMetadata: { contentType: 'application/json' } });
     return NextResponse.json({ ...data, savedImportId }, { headers });
