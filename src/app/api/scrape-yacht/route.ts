@@ -1,3 +1,4 @@
+import { capturedYacht } from "@/lib/captured-yacht";
 import { extractWithVision } from "@/lib/yacht-screenshot-extract";
 import { photoBucket } from "@/lib/yacht-photo-store";
 import { resolveYachtPhoto } from "@/lib/resolve-yacht-photo";
@@ -1387,7 +1388,7 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
   const fetchResult = await tryFetchHtml(url);
   let html = fetchResult.html;
   if (!html && !fetchResult.markdown && !fetchResult.firecrawlExtract) {
-    throw new Error("This listing site could not be read. Please retry or use another listing link.");
+    throw new Error("This site blocked automatic import. Open the listing and use “Import from listing screenshots” below.");
   }
 
   // Vision extraction: send the Firecrawl screenshot to Claude Haiku 4.5 and
@@ -2167,6 +2168,10 @@ export async function GET(request: NextRequest) {
     }
     return response;
   } catch (err) {
+    try {
+      const captured = await capturedYacht(await photoBucket(), url);
+      if (captured) return NextResponse.json(captured, { headers: { "Cache-Control": "no-store" } });
+    } catch { /* A missing/unavailable archive must not hide the original failure. */ }
     const message = err instanceof Error ? err.message : "Failed to scrape";
     // NEVER cache errors — a transient Firecrawl blip shouldn't poison the
     // cache for 24h.

@@ -1,5 +1,6 @@
 "use client";
 
+import { canonicalListingUrl } from "@/lib/yacht-photo-candidates";
 import { ScreenshotImport } from "@/components/yachts/screenshot-import";
 import { useCatalogPhotoUpdates, repairPhoto } from "@/components/yachts/use-catalog-photo-updates";
 
@@ -543,7 +544,7 @@ export default function CompareYachtsPage() {
     if (typeof window !== "undefined") {
       try {
         const saved = JSON.parse(localStorage.getItem(SLOTS_KEY) || "{}");
-        if (saved.leftId) return saved.leftId as string;
+        if (typeof saved.leftId === "string") return saved.leftId;
       } catch { /* ignore */ }
     }
     return catalog[0]?.id ?? "";
@@ -552,7 +553,7 @@ export default function CompareYachtsPage() {
     if (typeof window !== "undefined") {
       try {
         const saved = JSON.parse(localStorage.getItem(SLOTS_KEY) || "{}");
-        if (saved.rightId) return saved.rightId as string;
+        if (typeof saved.rightId === "string") return saved.rightId;
       } catch { /* ignore */ }
     }
     return catalog[1]?.id ?? "";
@@ -562,6 +563,7 @@ export default function CompareYachtsPage() {
   const [urlRight, setUrlRight] = useState("");
   const [loadingLeft, setLoadingLeft] = useState(false);
   const [loadingRight, setLoadingRight] = useState(false);
+  const [slotErrors, setSlotErrors] = useState<Partial<Record<"a" | "b", string>>>({});
   const [scrapeError, setScrapeError] = useState<string | null>(null);
   const [openRecentSlot, setOpenRecentSlot] = useState<"a" | "b" | null>(null);
   const recentRefA = useRef<HTMLDivElement | null>(null);
@@ -608,52 +610,38 @@ export default function CompareYachtsPage() {
       const trimmed = url.trim();
       if (!trimmed) return;
 
-      try { new URL(trimmed); } catch {
-        setScrapeError("Please enter a valid URL (e.g. https://www.yachtworld.com/...)");
-        return;
-      }
-
+      // A new request replaces this slot, not the saved catalog. Failed links
+      // must never leave an unrelated yacht looking like the imported result.
+      if (slot === "a") setLeftId(""); else setRightId("");
+      setSlotErrors(previous => ({ ...previous, [slot]: undefined }));
       setLoadingFn(true);
-      setScrapeError(null);
-
       try {
-        // Check if already in catalog
-        const existingMatch = catalog.find(
-          (y) => y.url.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (existingMatch) {
-          // Repair the photo only: preserve IDs, verification and every edited spec.
-          const imageUrl = await repairPhoto(existingMatch.url, existingMatch.imageUrl);
-          setCatalog(previous => previous.map(y => y.id === existingMatch.id ? { ...y, imageUrl } : y));
-          if (slot === "a") setLeftId(existingMatch.id);
-          else setRightId(existingMatch.id);
-          setLoadingFn(false);
-          setUrlFn("");
-          return;
-        }
-
-        // Scrape real data from the URL
-        const newYacht = await scrapeYachtFromUrl(trimmed);
-
-        setCatalog((prev) => {
-          // Double-check (in case of race condition)
-          const existing = prev.find(
-            (y) => y.url.toLowerCase() === trimmed.toLowerCase()
-          );
-          if (existing) {
-            if (slot === "a") setLeftId(existing.id);
-            else setRightId(existing.id);
-            return prev;
+        const parsed = new URL(trimmed);
+        if (!["https:", "http:"].includes(parsed.protocol)) throw new Error("Enter an https:// listing URL.");
+        const existingMatch = catalog.find(y => canonicalListingUrl(y.url) === canonicalListingUrl(trimmed));
+        let yacht: YachtListing;
+        const recoveredPhoto = existingMatch?.imageUrl
+          ? await repairPhoto(existingMatch.url, existingMatch.imageUrl).catch(() => null) : null;
+        if (existingMatch && recoveredPhoto) {
+          yacht = { ...existingMatch, imageUrl: recoveredPhoto };
+        } else {
+          const imported = await scrapeYachtFromUrl(trimmed);
+          yacht = existingMatch ? { ...imported, id: existingMatch.id } : imported;
+          // Refresh broken old imports while preserving deliberate user edits.
+          for (const field of existingMatch?.edited ?? []) {
+            Object.assign(yacht, { [field]: existingMatch![field as keyof YachtListing] });
           }
-          if (slot === "a") setLeftId(newYacht.id);
-          else setRightId(newYacht.id);
-          return [...prev, newYacht];
+          yacht.edited = existingMatch?.edited ?? [];
+        }
+        setCatalog(previous => {
+          const match = previous.find(y => canonicalListingUrl(y.url) === canonicalListingUrl(trimmed));
+          const selectedId = match?.id ?? yacht.id;
+          if (slot === "a") setLeftId(selectedId); else setRightId(selectedId);
+          return match ? previous.map(y => y.id === match.id ? { ...yacht, id: match.id } : y) : [...previous, yacht];
         });
         setUrlFn("");
       } catch (err) {
-        setScrapeError(
-          err instanceof Error ? err.message : "Failed to load listing"
-        );
+        setSlotErrors(previous => ({ ...previous, [slot]: err instanceof Error ? err.message : "Could not load this listing." }));
       } finally {
         setLoadingFn(false);
       }
@@ -742,6 +730,7 @@ export default function CompareYachtsPage() {
   };
 
   const handleAssign = (yachtId: string, slot: "a" | "b") => {
+    setSlotErrors(previous => ({ ...previous, [slot]: undefined }));
     if (slot === "a") {
       if (yachtId === rightId) {
         setLeftId(rightId);
@@ -836,6 +825,8 @@ export default function CompareYachtsPage() {
                   <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
                   <input
                     type="url"
+                    aria-label="Yacht 1 listing URL"
+                    disabled={loadingLeft || loadingRight}
                     value={urlLeft}
                     onChange={(e) => setUrlLeft(e.target.value)}
                     onKeyDown={(e) => {
@@ -895,6 +886,8 @@ export default function CompareYachtsPage() {
                   <Link2 className="h-4 w-4 shrink-0 text-text-secondary" />
                   <input
                     type="url"
+                    aria-label="Yacht 2 listing URL"
+                    disabled={loadingLeft || loadingRight}
                     value={urlRight}
                     onChange={(e) => setUrlRight(e.target.value)}
                     onKeyDown={(e) => {
@@ -961,8 +954,14 @@ export default function CompareYachtsPage() {
             </button>
           </div>
 
+          <div aria-live="polite" className="mt-3 space-y-2">
+            {(["a", "b"] as const).map(slot => slotErrors[slot] && <p key={slot} role="alert" className="text-sm text-error">
+              Yacht {slot === "a" ? "1" : "2"}: {slotErrors[slot]} Your previously saved yachts are still below.
+            </p>)}
+            {(loadingLeft || loadingRight) && <p className="text-sm text-gold">Reading listing details and saving photos…</p>}
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] text-text-secondary">Works with:</span>
+            <span className="text-[10px] text-text-secondary">Listing sources (some links require screenshots):</span>
             {["YachtWorld", "BoatTrader", "boats.com", "Denison"].map(
               (site) => (
                 <span
@@ -977,6 +976,8 @@ export default function CompareYachtsPage() {
         </div>
 
         <ScreenshotImport suggestedUrl={urlLeft || urlRight} onImport={(yacht, side) => {
+          setSlotErrors(previous => ({ ...previous, [side]: undefined }));
+          if (side === "a") setUrlLeft(""); else setUrlRight("");
           setCatalog(previous => {
             const existing = previous.find(item => item.url === yacht.url);
             const merged = existing ? { ...yacht, id: existing.id } : yacht;

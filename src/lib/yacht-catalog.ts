@@ -312,7 +312,7 @@ export function extractFirstNumber(text: string): number {
 }
 
 export async function scrapeYachtFromUrl(url: string): Promise<YachtListing> {
-  const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}&v=4`);
+  const res = await fetch(`/api/scrape-yacht?url=${encodeURIComponent(url)}&v=5`, { signal: AbortSignal.timeout(90_000) });
   const data: ScrapeResult = await res.json();
 
   if (!res.ok || data.error) {

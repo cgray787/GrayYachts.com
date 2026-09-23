@@ -73,7 +73,7 @@ describe('photo import recovery regressions', () => {
     const response = await scrapeGET(new NextRequest('https://grayyachts.com/api/scrape-yacht?url=' + encodeURIComponent(listing)));
     expect(response.status).toBe(502);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect((await response.json()).error).toContain('could not be read');
+    expect((await response.json()).error).toContain('blocked automatic import');
   });
   it('saves uploaded bytes under immutable IDs, rejects non-photos and cross-origin writes', async () => {
     const { disk } = storage();
