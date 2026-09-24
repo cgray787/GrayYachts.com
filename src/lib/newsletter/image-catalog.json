@@ -1923,5 +1923,32 @@
       "archive"
     ],
     "usage": "Jeanneau NC 9 in Vaxholm, August 2015. Archive model photograph. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "204341e961077fafeca78e347d43b01f323866135d99f1b258a12f2fbc46098b",
+    "url": "/newsletter/licensed/pexels-35117143.jpg",
+    "source": "https://www.pexels.com/photo/boat-wake-on-open-water-under-clear-blue-sky-35117143/",
+    "label": "A foaming boat wake on blue water beneath scattered clouds.",
+    "credit": "Photo: Ali Waheed / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/"
+  },
+  {
+    "id": "0e1a49e6a1b666884a1636687f192a71cde55bad869265a9a93edd9879047437",
+    "url": "/newsletter/licensed/pexels-34092100.jpg",
+    "source": "https://www.pexels.com/photo/fishing-rod-by-the-sea-at-sunset-34092100/",
+    "label": "A fishing rod and reel beside the sea at dusk.",
+    "credit": "Photo: Kevyn Costa / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/"
+  },
+  {
+    "id": "43aa076d1a379555719b846b48c998aaad8a09c56ec577bfdfcb40fbadb32c56",
+    "url": "/shows/barcelona-2011.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sal%C3%B3_N%C3%A0utic_Internacional_de_Barcelona_2011_-_01.JPG",
+    "label": "An elevated view of inflatable boats and visitors inside the 2011 Barcelona International Boat Show.",
+    "credit": "Jordiferrer / Wikimedia Commons",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
   }
 ]

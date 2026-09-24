@@ -7,7 +7,7 @@
     "build": "next build",
     "build:cf": "npx opennextjs-cloudflare build",
     "preflight": "tsx scripts/preflight-deploy.ts",
-    "predeploy": "npm run check:brochures && npm run preflight",
+    "predeploy": "npm run check:brochures && npm run check:editorial-images && npm run preflight",
     "deploy": "npx opennextjs-cloudflare build && npx wrangler deploy",
     "preview": "npx opennextjs-cloudflare build && npx wrangler dev",
     "start": "next start",
@@ -16,7 +16,8 @@
     "brochure": "tsx scripts/generate-brochure.ts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "ship": "npx opennextjs-cloudflare build && npx wrangler deploy && node scripts/verify-deploy.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:editorial-images": "node scripts/check-editorial-images.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.6",

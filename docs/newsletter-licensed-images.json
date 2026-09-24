@@ -275,5 +275,37 @@
       "show-context"
     ],
     "usage": "Contextual illustration only. Do not imply 2026 event photography, endorsement or Gray Yachts representation. Preserve source, attribution and license links; any CC image adaptation retains its license. No model/property releases supplied."
+  },
+  {
+    "sourceAssetId": "pexels:35117143",
+    "url": "/newsletter/licensed/pexels-35117143.jpg",
+    "source": "https://www.pexels.com/photo/boat-wake-on-open-water-under-clear-blue-sky-35117143/",
+    "downloadUrl": "https://images.pexels.com/photos/35117143/pexels-photo-35117143.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "A foaming boat wake on blue water beneath scattered clouds.",
+    "photographer": "Ali Waheed",
+    "credit": "Photo: Ali Waheed / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "usage": "Illustrative boating photography. No claim to depict a particular boat manufacturer or endorsement.",
+    "changes": "1600px download; no changes to file. CSS cover crop on brand card."
+  },
+  {
+    "sourceAssetId": "pexels:34092100",
+    "url": "/newsletter/licensed/pexels-34092100.jpg",
+    "source": "https://www.pexels.com/photo/fishing-rod-by-the-sea-at-sunset-34092100/",
+    "downloadUrl": "https://images.pexels.com/photos/34092100/pexels-photo-34092100.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "A fishing rod and reel beside the sea at dusk.",
+    "photographer": "Kevyn Costa",
+    "credit": "Photo: Kevyn Costa / Pexels",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "attributionRequired": false,
+    "usage": "Illustrative boating photography. No claim to depict a particular boat manufacturer or endorsement.",
+    "changes": "1600px download; no changes to file. CSS cover crop on brand card."
   }
 ]

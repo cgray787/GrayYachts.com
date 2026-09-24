@@ -123,28 +123,49 @@
     "sha256": "e893d63f301171f5dad92b8a9200300a2e3966a967cd0944bc4209d3a437c388"
   },
   "windelo": {
-    "url": "/brands/windelo.svg",
-    "alt": "Windelo editorial profile graphic by Gray Yachts",
-    "caption": "Gray Yachts editorial graphic. Licensed model photography is still being sourced.",
-    "credit": "Gray Yachts",
-    "kind": "original-graphic",
-    "rightsStatus": "model-photo-pending"
+    "url": "/newsletter/licensed/pexels-28730938.jpg",
+    "alt": "Sailboat foredeck facing a harbor at twilight",
+    "caption": "Life under sail. Illustrative foredeck photograph; not a Windelo model.",
+    "credit": "Photo: Diana Rafira / Pexels",
+    "source": "https://www.pexels.com/photo/serene-yacht-deck-at-twilight-in-a-picturesque-marina-28730938/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "checkedAt": "2026-09-24",
+    "kind": "contextual-photo",
+    "rightsStatus": "licensed-context-model-photo-pending",
+    "fit": "cover",
+    "changes": "Photograph unaltered; CSS cover crop for thumbnail.",
+    "sha256": "a70fedcb6f7b25b1c508f186831c86c5a83fb3be04dde28075d2df8550420fc0"
   },
   "aquila": {
-    "url": "/brands/aquila.svg",
-    "alt": "Aquila editorial profile graphic by Gray Yachts",
-    "caption": "Gray Yachts editorial graphic. Licensed model photography is still being sourced.",
-    "credit": "Gray Yachts",
-    "kind": "original-graphic",
-    "rightsStatus": "model-photo-pending"
+    "url": "/newsletter/licensed/pexels-18681297.jpg",
+    "alt": "Teak side deck and reflective yacht windows",
+    "caption": "Life aboard. Illustrative yacht-deck photograph; not an Aquila model.",
+    "credit": "Photo: Jules Clark / Pexels",
+    "source": "https://www.pexels.com/photo/deck-of-a-yacht-sailing-near-the-coast-18681297/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "checkedAt": "2026-09-24",
+    "kind": "contextual-photo",
+    "rightsStatus": "licensed-context-model-photo-pending",
+    "fit": "cover",
+    "changes": "Photograph unaltered; CSS cover crop for thumbnail.",
+    "sha256": "d9479140bf737e9856b657ab2acf2379b30ce15e24e50a70bcd60e94a6523d1a"
   },
   "excess": {
-    "url": "/brands/excess.svg",
-    "alt": "Excess editorial profile graphic by Gray Yachts",
-    "caption": "Gray Yachts editorial graphic. Licensed model photography is still being sourced.",
-    "credit": "Gray Yachts",
-    "kind": "original-graphic",
-    "rightsStatus": "model-photo-pending"
+    "url": "/newsletter/licensed/pexels-12514724.jpg",
+    "alt": "Sailboat compass and helm at twilight",
+    "caption": "At the helm. Illustrative sailing photograph; not an Excess model.",
+    "credit": "Photo: natureVisions.ch Markus / Pexels",
+    "source": "https://www.pexels.com/photo/navigational-aid-compass-in-a-sailboat-12514724/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "checkedAt": "2026-09-24",
+    "kind": "contextual-photo",
+    "rightsStatus": "licensed-context-model-photo-pending",
+    "fit": "cover",
+    "changes": "Photograph unaltered; CSS cover crop for thumbnail.",
+    "sha256": "d2f03adeee88e22162397a6fc3e553eb66efb8626cdc5fbd2a30310bab0efa73"
   },
   "riva": {
     "url": "/brands/riva.jpg",
@@ -304,19 +325,33 @@
     "sha256": "03bf0ffd516d419524a162caae7198fe3ac40186d8e453d1a2b978a25629c2c3"
   },
   "everglades": {
-    "url": "/brands/everglades.svg",
-    "alt": "Everglades editorial profile graphic by Gray Yachts",
-    "caption": "Gray Yachts editorial graphic. Licensed model photography is still being sourced.",
-    "credit": "Gray Yachts",
-    "kind": "original-graphic",
-    "rightsStatus": "model-photo-pending"
+    "url": "/newsletter/licensed/pexels-34092100.jpg",
+    "alt": "A fishing rod and reel beside the sea at dusk.",
+    "caption": "Fishing inspiration. Illustrative photograph; not an Everglades boat.",
+    "credit": "Photo: Kevyn Costa / Pexels",
+    "source": "https://www.pexels.com/photo/fishing-rod-by-the-sea-at-sunset-34092100/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "checkedAt": "2026-09-24",
+    "kind": "contextual-photo",
+    "rightsStatus": "licensed-context-model-photo-pending",
+    "fit": "cover",
+    "changes": "Photograph unaltered; CSS cover crop for thumbnail.",
+    "sha256": "0e1a49e6a1b666884a1636687f192a71cde55bad869265a9a93edd9879047437"
   },
   "brabus": {
-    "url": "/brands/brabus.svg",
-    "alt": "BRABUS Marine editorial profile graphic by Gray Yachts",
-    "caption": "Gray Yachts editorial graphic. Licensed model photography is still being sourced.",
-    "credit": "Gray Yachts",
-    "kind": "original-graphic",
-    "rightsStatus": "model-photo-pending"
+    "url": "/newsletter/licensed/pexels-35117143.jpg",
+    "alt": "A foaming boat wake on blue water beneath scattered clouds.",
+    "caption": "Open-water adventure. Illustrative photograph; not a BRABUS boat.",
+    "credit": "Photo: Ali Waheed / Pexels",
+    "source": "https://www.pexels.com/photo/boat-wake-on-open-water-under-clear-blue-sky-35117143/",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "checkedAt": "2026-09-24",
+    "kind": "contextual-photo",
+    "rightsStatus": "licensed-context-model-photo-pending",
+    "fit": "cover",
+    "changes": "Photograph unaltered; CSS cover crop for thumbnail.",
+    "sha256": "204341e961077fafeca78e347d43b01f323866135d99f1b258a12f2fbc46098b"
   }
 }
