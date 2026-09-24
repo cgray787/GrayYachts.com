@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import EditorialTabs from './editorial-tabs';
-import type { ReactNode } from 'react';
-export function EditorialShell({eyebrow,title,intro,children}: {eyebrow:string;title:string;intro:string;children:ReactNode}) {
+import type { ReactNode, CSSProperties } from 'react';
+import EditorialHero, {type EditorialHeroProps} from './editorial-hero';
+export function EditorialShell({eyebrow,title,intro,children,hero}: {eyebrow:string;title:string;intro:string;children:ReactNode;hero?:Omit<EditorialHeroProps,'eyebrow'|'intro'>}) {
+  if(hero) return <main><EditorialHero {...hero} eyebrow={eyebrow} intro={intro}/><div className="bg-[#f7f4ee] text-[#162636]" style={{'--bg-card':'#fffdf9','--border':'#16263626','--gold':'#806336','--text-secondary':'#526172'} as CSSProperties}><div id="editorial-content" className="mx-auto max-w-7xl scroll-mt-20 px-6 py-16 md:px-12 md:py-24">{children}</div></div></main>;
   return <div className="mx-auto max-w-6xl px-6 pb-24 pt-36 lg:px-12">
     <p className="text-xs uppercase tracking-[0.2em] text-gold">{eyebrow}</p>
     <h1 className="mt-5 max-w-4xl font-[family-name:var(--font-cormorant)] text-5xl leading-tight md:text-7xl">{title}</h1>
