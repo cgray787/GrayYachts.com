@@ -10,6 +10,7 @@ import sys
 import urllib.error
 import urllib.request
 from zoneinfo import ZoneInfo
+from show_calendar import show_context, due_date, TOPICS
 
 HOME = Path.home()
 WORK = HOME / '.hermes/workspaces/grayyachts-newsletter'
@@ -28,7 +29,10 @@ def request(path, payload=None):
 def context():
     now = dt.datetime.now(ZoneInfo('America/Los_Angeles'))
     day = (now.date() - START).days
-    slot = now.date().isoformat() if day >= 0 and day % 2 == 0 and now.hour >= 9 else None
+    shows = json.loads((WORK / 'shows.json').read_text())
+    windows = show_context(shows, now.date())
+    slot = now.date().isoformat() if due_date(now.date(), START, now.hour, windows) else None
+    skipped = bool(slot and (WORK / (slot + '.skip.json')).exists())
     status = request('/api/newsletter/run')
     existing = next((i for i in status['issues'] if i['slot'] == slot and i.get('title')), None)
     directions = [
@@ -39,7 +43,7 @@ def context():
         'For an ownership or condition article, consider a professional boatyard view with hull, machinery or navigation detail.',
         'For a cruising article, consider a coastal scene or lighthouse with sailing, working-harbor or life-aboard imagery.',
     ]
-    return {'image_direction': directions[(day // 2) % len(directions)], 'due': bool(slot and not existing), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues'], 'image_library': request('/api/newsletter/images')}
+    return {'asOf': now.isoformat(), 'show_windows': windows, 'topic_rotation': TOPICS[(day // 2) % len(TOPICS)], 'calendar_recheck_required': True, 'calendar_refresh_targets': [shows[(day * 3 + i) % len(shows)] for i in range(min(3,len(shows)))], 'image_direction': directions[(day // 2) % len(directions)], 'due': bool(slot and not existing and not skipped), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues'], 'image_library': request('/api/newsletter/images')}
 
 def run():
     WORK.mkdir(parents=True, exist_ok=True)
@@ -60,6 +64,9 @@ def run():
         prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
         with (WORK / (ctx['slot'] + '.agent.log')).open('a') as log:
             process = subprocess.run(['hermes', '--model', 'gpt-6-astra', '--provider', 'openai-codex', '--in', str(WORK), '--usage-file', str(WORK / (ctx['slot'] + '.usage.json')), '-z', prompt], cwd=WORK, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
+        if (WORK / (ctx['slot'] + '.skip.json')).exists():
+            print(json.dumps({'slot':ctx['slot'],'state':'no-new-verified-news','agent_exit':process.returncode}))
+            return
         status = request('/api/newsletter/run')
         issue = next((i for i in status['issues'] if i['slot'] == ctx['slot']), None)
         print(json.dumps({'slot': ctx['slot'], 'agent_exit': process.returncode, 'issue': issue, 'delivery': status.get('delivery')}))

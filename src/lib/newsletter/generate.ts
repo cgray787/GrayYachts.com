@@ -1,3 +1,4 @@
+import {isNewsletterDate} from './show-calendar';
 import {validateImages,type NewsletterImage} from './images';
 import { HUMANIZER } from './humanizer';
 import { scheduleSlot, reviewToken, validateArticle, escapeHtml, SITE, type Article, type Issue, type NewsletterEnv } from './core';
@@ -62,8 +63,9 @@ async function draft(env: NewsletterEnv, slot: string) {
   .bind(edited.title,slug,audience,edited.excerpt,JSON.stringify(edited),JSON.stringify(original),JSON.stringify([{title:'Gray Yachts brokerage services and contact',url:SITE},{title:audience==='seller'?'Request a yacht evaluation':'Explore Gray Yachts listings',url:`${SITE}/${audience==='seller'?'sell':'fleet'}`}]),'/sell/img/hero.jpg',slot).run();
 }
 function articleEmail(a: Article, images:NewsletterImage[]) {
- const photo=(i:number)=>images[i]?`<figure style="margin:32px 0"><img src="${SITE}${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="margin-top:10px;font:13px/1.6 Arial,sans-serif;color:#66707b">${escapeHtml(images[i].caption)}<br><span style="font-size:11px">${escapeHtml(images[i].credit)}</span></figcaption></figure>`:'';
- return photo(0)+`<p style="font-size:19px;line-height:1.7">${escapeHtml(a.introduction)}</p>`+a.sections.map((section,index)=>`<h2 style="margin-top:34px;font-family:Georgia,serif;font-weight:normal;font-size:27px">${escapeHtml(section.heading)}</h2>${section.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}${index===1?photo(1):''}${index===a.sections.length-1?photo(2):''}`).join('');
+ const photo=(i:number)=>images[i]?`<figure style="margin:32px 0"><img src="${SITE}${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="margin-top:10px;font:13px/1.6 Arial,sans-serif;color:#66707b">${escapeHtml(images[i].caption)}<br><span style="font-size:11px">${escapeHtml(images[i].credit)} <a href="${escapeHtml(images[i].source)}">Source</a>${images[i].licenseUrl?` · <a href="${escapeHtml(images[i].licenseUrl!)}">${escapeHtml(images[i].license||"License")}</a>`:""}</span></figcaption></figure>`:'';
+ const illustrated=images.length===a.sections.length+2;
+ return photo(0)+`<p style="font:21px/1.7 Georgia,serif">${escapeHtml(a.introduction)}</p>`+a.sections.map((section,index)=>`<div style="margin-top:44px;padding-top:24px;border-top:1px solid #d8c8a8"><p style="font:11px Arial,sans-serif;letter-spacing:3px;color:#917344">${String(index+1).padStart(2,'0')} · THE BRIEFING</p><h2 style="font:normal 30px/1.15 Georgia,serif">${escapeHtml(section.heading)}</h2>${illustrated?photo(index+1):''}${section.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}${!illustrated&&index===1?photo(1):''}${!illustrated&&index===a.sections.length-1?photo(2):''}</div>`).join('')+`<div style="margin-top:40px;border-top:1px solid #d8c8a8;padding-top:24px"><h2 style="font:30px Georgia,serif">Questions worth asking</h2>${illustrated?photo(images.length-1):''}${a.questions.map(q=>`<h3 style="font:18px Georgia,serif">${escapeHtml(q.question)}</h3><p>${escapeHtml(q.answer)}</p>`).join('')}</div>`;
 }
 async function sendReview(env: NewsletterEnv, issue: Issue) {
  const token = await reviewToken(issue.id,env.NEWSLETTER_AUTOMATION_SECRET,issue.review_revision);
@@ -72,7 +74,7 @@ async function sendReview(env: NewsletterEnv, issue: Issue) {
   method:'POST',headers:{'Authorization':`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`newsletter-review-${issue.id}-r${issue.review_revision||0}`},
   body:JSON.stringify({from:env.NEWSLETTER_FROM,to:[env.NEWSLETTER_REVIEW_TO],subject:`Review your Gray Yachts newsletter: ${issue.title}`,
    text:`Your ${issue.audience} newsletter draft is ready. It has been edited with Humanizer and is awaiting your approval. Review, approve publication, or reject with feedback: ${url}\n\n${issue.excerpt}\n\nApproval publishes to GrayYachts.com. This does not email a subscriber list.`,
-   html:`<div style="background:#060a12;padding:36px 12px"><div style="max-width:680px;margin:auto;background:#f7f4ee;padding:32px;color:#182333;font:16px/1.7 Arial,sans-serif"><p style="letter-spacing:3px;font-size:12px">GRAY YACHTS · EDITOR REVIEW</p><h1 style="font:36px/1.15 Georgia,serif">${escapeHtml(issue.title)}</h1><p>Your ${issue.audience} edition is ready. Humanizer editing and factual review are complete. Please check the full draft before publishing.</p><p><a style="display:inline-block;background:#172838;color:#fff;padding:14px 22px;text-decoration:none" href="${url}">Review, approve or reject</a></p><p style="font-size:13px">Approval publishes this article on GrayYachts.com. No subscriber email is sent.</p><hr>${articleEmail(JSON.parse(issue.content),JSON.parse(issue.images||'[]'))}</div></div>`}),signal:AbortSignal.timeout(30000)
+   html:`<div style="background:#060a12;padding:36px 12px"><div style="max-width:680px;margin:auto;background:#f7f4ee;padding:32px;color:#182333;font:16px/1.7 Arial,sans-serif"><div style="background:#101e2b;text-align:center;padding:28px;margin:-32px -32px 30px"><img src="${SITE}/brand/logo-nav.png" width="112" height="112" alt="Gray Yachts" style="display:block;margin:0 auto 18px"/><p style="color:#c9a96e;letter-spacing:4px;font-size:11px">THE GRAY YACHTS JOURNAL</p></div><p style="letter-spacing:3px;font-size:11px;color:#917344">EDITOR REVIEW</p><h1 style="font:36px/1.15 Georgia,serif">${escapeHtml(issue.title)}</h1><p>Your ${issue.audience} edition is ready. Humanizer editing and factual review are complete. Please check the full draft before publishing.</p><p><a style="display:inline-block;background:#172838;color:#fff;padding:14px 22px;text-decoration:none" href="${url}">Review, approve or reject</a></p><p style="font-size:13px">Approval publishes this article on GrayYachts.com. No subscriber email is sent.</p><hr>${articleEmail(JSON.parse(issue.content),JSON.parse(issue.images||'[]'))}</div></div>`}),signal:AbortSignal.timeout(30000)
  });
  if (!response.ok) {
   const detail=await response.json().catch(()=>null) as {message?:string}|null;
@@ -93,12 +95,12 @@ export async function deliverHermesReview(env: NewsletterEnv, now=new Date()) {
 }
 export async function acceptHermesDraft(env: NewsletterEnv, payload: {slot:string;original:unknown;article:unknown;humanizerVersion:string;factCheck:{pass:boolean};images?:unknown;sources:{title:string;url:string}[]}) {
  const days=(Date.parse(payload.slot)-Date.parse(env.NEWSLETTER_START_DATE))/86400000;
- if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.slot) || !Number.isInteger(days) || days<0 || days%2!==0 || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
+ if(!isNewsletterDate(payload.slot,env.NEWSLETTER_START_DATE) || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
  if(payload.humanizerVersion!=='3.0.0' || payload.factCheck?.pass!==true)throw new Error('Humanizer editing and factual review are required');
  const original=validateArticle(payload.original);const article=validateArticle(payload.article);
- const images=validateImages(payload.images);
+ const images=validateImages(payload.images,article.sections.length);
  if(!Array.isArray(payload.sources) || payload.sources.length<1 || payload.sources.length>12 || payload.sources.some(s=>typeof s.title!=='string'||s.title.length>200||typeof s.url!=='string'||!/^https:\/\//.test(s.url)||s.url.length>1000))throw new Error('Source references are required');
- const audience=(days/2)%2===0?'seller':'buyer';
+ const audience=Math.floor(days/2)%2===0?'seller':'buyer';
  const slug=`${payload.slot}-${article.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,90)}`;
  await env.NEWSLETTER_DB.prepare('INSERT OR IGNORE INTO newsletter_issues(id,slot,created_at) VALUES(?,?,?)').bind(crypto.randomUUID(),payload.slot,new Date().toISOString()).run();
  const updated=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET status='pending',title=?,slug=?,audience=?,excerpt=?,content=?,original_content=?,sources=?,hero=?,images=?,review_revision=1,attempts=0,error=NULL,lock_until=NULL WHERE slot=? AND content IS NULL AND status NOT IN ('published','rejected')")

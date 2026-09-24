@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+import { jsonLd, SITE } from "@/lib/editorial";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gray Yachts",
     description: "Pacific Northwest's Premier Yacht Experience. Brokerage, cinematography, and full-spectrum yacht services.",
-    url: "https://grayyachts.com",
     siteName: "Gray Yachts",
     locale: "en_US",
     type: "website",
@@ -44,6 +44,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${cormorant.variable} antialiased`}
       >
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd({
+          "@context": "https://schema.org", "@type": "Organization", "@id": `${SITE}/#organization`,
+          name: "Gray Yachts", url: SITE, telephone: "+1-425-671-8474",
+          logo: `${SITE}/sell/img/logo-gy.png`,
+          sameAs: ["https://instagram.com/grayyachts_"],
+          contactPoint: { "@type": "ContactPoint", contactType: "Yacht brokerage", telephone: "+1-425-671-8474", areaServed: "Pacific Northwest" },
+        }) }} />
         {children}
       </body>
     </html>

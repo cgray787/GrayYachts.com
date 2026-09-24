@@ -11,6 +11,7 @@ function database() {
  const db=new DatabaseSync(':memory:');
  db.exec(readFileSync('migrations/newsletter/0001_newsletter.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0002_images.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0003_section_images.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -19,11 +20,11 @@ function database() {
 }
 describe('every-other-day schedule in Pacific time',()=>{
  it('starts at 9am and does not run on the intervening day',()=>{
-  expect(scheduleSlot(new Date('2026-09-08T15:59:00Z'),'2026-09-08')).toBeNull();
-  expect(scheduleSlot(new Date('2026-09-08T16:00:00Z'),'2026-09-08')).toBe('2026-09-08');
-  expect(scheduleSlot(new Date('2026-09-09T01:00:00Z'),'2026-09-08')).toBe('2026-09-08');
-  expect(scheduleSlot(new Date('2026-09-09T16:00:00Z'),'2026-09-08')).toBeNull();
-  expect(scheduleSlot(new Date('2026-09-10T16:00:00Z'),'2026-09-08')).toBe('2026-09-10');
+  expect(scheduleSlot(new Date('2026-07-08T15:59:00Z'),'2026-07-08')).toBeNull();
+  expect(scheduleSlot(new Date('2026-07-08T16:00:00Z'),'2026-07-08')).toBe('2026-07-08');
+  expect(scheduleSlot(new Date('2026-07-09T01:00:00Z'),'2026-07-08')).toBe('2026-07-08');
+  expect(scheduleSlot(new Date('2026-07-09T16:00:00Z'),'2026-07-08')).toBeNull();
+  expect(scheduleSlot(new Date('2026-07-10T16:00:00Z'),'2026-07-08')).toBe('2026-07-10');
  });
  it('keeps the interval across month boundaries and daylight saving changes',()=>{
   expect(scheduleSlot(new Date('2026-10-01T16:00:00Z'),'2026-09-29')).toBe('2026-10-01');
@@ -61,7 +62,7 @@ describe('scheduled draft and review delivery',()=>{
   const {db,env}=database();Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com',NEWSLETTER_FROM:'test@example.com'});
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
   try {
-   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,3).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
+   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
    await expect(acceptHermesDraft(env,{...payload,factCheck:{pass:false}})).rejects.toThrow('factual review');
    expect(await acceptHermesDraft(env,payload)).toMatchObject({state:'draft-stored'});
    expect(await acceptHermesDraft(env,{...payload,article:{...article(),title:'This must not replace the saved draft'}})).toMatchObject({state:'draft-already-stored'});
@@ -114,9 +115,11 @@ describe('private newsletter approval',()=>{
 
 describe('newsletter image policy',()=>{
  const photos=(start=0)=>catalog.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography'}));
- it('requires 2-3 different catalog photos',()=>{
+ it('requires unique catalog photos and complete new-edition section coverage',()=>{
   expect(()=>validateImages(photos().slice(0,1))).toThrow();
-  expect(()=>validateImages([...photos(),photos(3)[0]])).toThrow();
+  expect(()=>validateImages(photos(),4)).toThrow('one photo per section');
+  expect(validateImages([...photos(),...photos(3)],4)).toHaveLength(6);
+  expect(()=>validateImages(catalog.slice(0,10))).toThrow();
   expect(()=>validateImages([photos()[0],photos()[0]])).toThrow();
   expect(()=>validateImages([{...photos()[0],id:'unknown'},photos()[1]])).toThrow();
  });

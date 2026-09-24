@@ -1,13 +1,14 @@
 import catalog from './image-catalog.json';
 import type {NewsletterEnv} from './core';
-export type NewsletterImage={id:string;url:string;alt:string;caption:string;credit:string;source:string};
+export type NewsletterImage={id:string;url:string;alt:string;caption:string;credit:string;source:string;license?:string;licenseUrl?:string};
 export async function availableImages(env:NewsletterEnv) {
  const used=(await env.NEWSLETTER_DB.prepare('SELECT image_id FROM newsletter_image_uses').all<{image_id:string}>()).results;
  const ids=new Set(used.map(i=>i.image_id));
  return catalog.filter(i=>!ids.has(i.id));
 }
-export function validateImages(value:unknown):NewsletterImage[] {
- if(!Array.isArray(value)||value.length<2||value.length>3)throw new Error('Select 2-3 unused images');
+export function validateImages(value:unknown, sectionCount?:number):NewsletterImage[] {
+ if(!Array.isArray(value)||value.length<2||value.length>9)throw new Error('Select 2-9 unused images');
+ if(sectionCount!==undefined && value.length!==sectionCount+2)throw new Error('Provide a lead photo, one photo per section, and a questions photo');
  const ids=new Set<string>();
  return value.map(item=>{
   const photo=catalog.find(p=>p.id===item?.id);

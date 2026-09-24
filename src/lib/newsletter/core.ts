@@ -1,3 +1,4 @@
+import {isNewsletterDate} from './show-calendar';
 export type Statement = {
  bind(...values: unknown[]): Statement;
  first<T>(): Promise<T | null>;
@@ -32,8 +33,7 @@ export function scheduleSlot(now: Date, start: string): string | null {
  const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(now);
  const part = (name:string) => parts.find(p=>p.type===name)!.value;
  const date = `${part('year')}-${part('month')}-${part('day')}`;
- const days = Math.floor((Date.parse(date) - Date.parse(start)) / 86400000);
- return Number.isFinite(days) && days >= 0 && days % 2 === 0 && Number(part('hour')) >= 9 ? date : null;
+ return isNewsletterDate(date,start) && Number(part('hour')) >= 9 ? date : null;
 }
 export function validateArticle(value: unknown): Article {
  if (!value || typeof value !== 'object') throw new Error('Invalid article');

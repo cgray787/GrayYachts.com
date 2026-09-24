@@ -229,5 +229,51 @@
       "landscape"
     ],
     "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file."
+  },
+  {
+    "sourceAssetId": "pexels:34712723",
+    "source": "https://www.pexels.com/photo/monaco-harbor-with-luxury-yachts-and-scenic-views-34712723/",
+    "downloadUrl": "https://images.pexels.com/photos/34712723/pexels-photo-34712723.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Port Hercule panorama, illustrative undated Monaco photograph",
+    "photographer": "Jan Korgaard",
+    "credit": "Photo: Jan Korgaard / Pexels. Illustrative Monaco harbor photograph; not verified as the 2026 show.",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "attributionRequired": false,
+    "changes": "Downloaded at 1600px; no other changes.",
+    "eventYear": null,
+    "url": "/newsletter/licensed/pexels-34712723.jpg",
+    "id": "d4a0da018a819dcedadff6aad203c2812bf811e38f91b4416ee6607011758718",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "tags": [
+      "monaco",
+      "harbor",
+      "show-context"
+    ],
+    "usage": "Contextual illustration only. Do not imply 2026 event photography, endorsement or Gray Yachts representation. Preserve source, attribution and license links; any CC image adaptation retains its license. No model/property releases supplied."
+  },
+  {
+    "sourceAssetId": "commons:MYS_2022_2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:MYS_2022_2.jpg",
+    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MYS_2022_2.jpg",
+    "label": "Port Hercule during the 2022 Monaco Yacht Show, archival",
+    "photographer": "102Legobrick",
+    "credit": "Photo: 102Legobrick / Wikimedia Commons, MYS 2022 2.jpg. CC BY-SA 4.0. Original image unchanged.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attributionRequired": true,
+    "changes": "None. Original bytes retained; displayed without cropping.",
+    "eventYear": 2022,
+    "url": "/newsletter/licensed/monaco-show-2022-2.jpg",
+    "id": "1708830e19f6d0c0a7a8004ae9c9eb30f33a4a1ea76a0eea01e554abcb81b35b",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "tags": [
+      "monaco",
+      "harbor",
+      "show-context"
+    ],
+    "usage": "Contextual illustration only. Do not imply 2026 event photography, endorsement or Gray Yachts representation. Preserve source, attribution and license links; any CC image adaptation retains its license. No model/property releases supplied."
   }
 ]

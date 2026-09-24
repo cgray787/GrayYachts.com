@@ -37,9 +37,12 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: `https://grayyachts.com/fleet/${slug}` },
+    twitter: { card: "summary_large_image", title, description, images: [vessel.image] },
     openGraph: {
       title,
       description,
+      url: `https://grayyachts.com/fleet/${slug}`,
       images: [{ url: vessel.image }],
       type: "website",
     },

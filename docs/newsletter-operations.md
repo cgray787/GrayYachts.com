@@ -4,7 +4,7 @@ GrayYachts.com publishes approved brokerage newsletters at `/newsletter` and `/n
 
 ## Generation and schedule
 
-Hermes Agent on the existing VPS (45.132.242.109) owns job `4c4b201a5833`, “Gray Yachts newsletter — every other day.” Its hourly native cron runs `~/.hermes/scripts/grayyachts-newsletter.py`. The Python wrapper checks every second Pacific calendar day, starting September 8, 2026, at or after 9am America/Los_Angeles. It accounts for daylight saving and month boundaries. Outside that window it exits without model usage. Unique database slots, a VPS file lock and a check for stored content prevent duplicate generation. Failed generation gets up to three attempts on its due day. No laptop is required.
+Hermes Agent on the existing VPS (45.132.242.109) owns job `4c4b201a5833`, “Gray Yachts newsletter — every other day.” Its hourly native cron runs `~/.hermes/scripts/grayyachts-newsletter.py`. The Python wrapper checks daily during verified show dates, and every second Pacific calendar day otherwise, starting September 8, 2026, at or after 9am America/Los_Angeles. At most one edition is generated per day; extra show days with no substantial verified news are skipped. It accounts for daylight saving and month boundaries. Outside that window it exits without model usage. Unique database slots, a VPS file lock and a check for stored content prevent duplicate generation. Failed generation gets up to three attempts on its due day. No laptop is required.
 
 The job invokes `hermes --model gpt-6-astra --provider openai-codex` using the VPS's existing ChatGPT authentication. An actual Astra connection test succeeded. No separate model API key was added. The general Hermes default remains Terra. The wrapper pins Astra only for this newsletter. Hermes's `cron.script_timeout_seconds` is 1900; the child agent timeout is 1800 seconds. The previous config was backed up privately on the VPS.
 
@@ -42,9 +42,9 @@ Production version `3cc304cb-8d6b-43fb-ad13-f39d17caa321`. Native Hermes job com
 
 ## Image policy — added September 8, 2026
 
-Every new edition must include 2–3 different photos, including its lead image. Never reuse an image within an edition or across editions. Renaming, cropping, resizing or recoloring a used photo does not make it new. Hermes must inspect photos and avoid near duplicates, poor images or embedded screenshot controls. It selects from the authenticated unused-photo catalog, writes descriptive alt text/captions, and never implies that unrelated boats are the same vessel or currently available.
+Every new edition must include one lead photo, one photo for every article section, and one questions-section photo (5–9 total). Existing 2–3-photo editions retain their original approved images. Never reuse an image within an edition or across editions. Renaming, cropping, resizing or recoloring a used photo does not make it new. Hermes must inspect photos and avoid near duplicates, poor images or embedded screenshot controls. It selects from the authenticated unused-photo catalog, writes descriptive alt text/captions, and never implies that unrelated boats are the same vessel or currently available.
 
-The image catalog is built from existing Gray Yachts listing photography using `node scripts/newsletter-image-catalog.mjs`. Content SHA-256 IDs deduplicate identical files regardless of filename. The initial catalog contains 124 distinct files; visual inspection remains necessary for different crops or encodings of a photo. New assets must be reviewed for these variants before adding them. Retain registered photo URLs for archived newsletters. If fewer than two suitable unused photos remain, Hermes stops and reports that the library needs replenishing; it cannot recycle photos.
+The image catalog is built from existing Gray Yachts listing photography using `node scripts/newsletter-image-catalog.mjs`. Content SHA-256 IDs deduplicate identical files regardless of filename. The original catalog contained 124 distinct files; visual inspection remains necessary for different crops or encodings of a photo. New assets must be reviewed for these variants before adding them. Retain registered photo URLs for archived newsletters. If fewer than two suitable unused photos remain, Hermes stops and reports that the library needs replenishing; it cannot recycle photos.
 
 Migration `0002_images.sql` adds a permanent image-use ledger with a unique image ID and a transactional trigger: reserving photos and saving an issue happen atomically. Rejected-draft photos remain reserved. Intake validates 2–3 catalog photos and rejects duplicate/unknown selections. Images appear once each in the issue, approval email and private review page. The archive uses the edition's lead image as its thumbnail.
 
@@ -55,3 +55,22 @@ The first existing pending draft can receive its images through authenticated `P
 Eleven commercially licensed Pexels images extend the catalog to 135 images. See `newsletter-photo-licenses.md` and `newsletter-licensed-images.json` for provenance and usage restrictions. Existing ledger reservations still apply. The scheduled context rotates suggested perspectives across editions; Hermes must adapt those suggestions to the topic and available unused photos. Prefer a sharp landscape lead, one or two complementary photos, accurate restrained captions and coherent light/color. Reject poor images and screenshot controls. The email distributes images through the article instead of placing every photo at the top. Two strong photos are preferable to a weak third.
 
 The image-direction rotation now also includes marine equipment, boatyards, working harbors, coastal scenery and life aboard. Hermes treats the broader category list as a sourcing brief and only selects suitable reviewed photos actually present in the catalog.
+
+## Show coverage — September 24, 2026
+
+The deployed website and VPS wrapper share `content/seo/shows.json` (VPS copy: `~/.hermes/workspaces/grayyachts-newsletter/shows.json`). The brief requires current organizer/date checks, primary-source news, 14-day previews, three-day recaps, licensed imagery with accurate dates, and saved critique/research lessons. Monaco has priority while underway; other live shows are researched for roundups or a stronger story. Between events, six topic areas rotate. Calendar changes are proposed with sources for review, then the accepted registry must be deployed and synced; dates never roll forward automatically.
+
+Production version: `638e88fd-dcd6-4b7b-82b6-620edb605d96`. VPS wrapper, calendar helper, registry and brief installed; read-only context verified active shows and `due: false` because September 24 already has a published issue. The local Monaco draft is not in the CMS, has not been emailed and does not replace that issue. Existing review-before-publication and no subscriber-email behavior remain in place.
+
+Tests: 17 targeted TypeScript tests, three Python calendar tests, TypeScript check and guarded production build passed. Live smoke checks confirmed 15 public routes, eight Article records, the 31-URL sitemap and protected Marine Tech endpoints.
+
+## Visual edition and thumbnails — September 24
+
+New Hermes drafts require `sections.length + 2` distinct registered photos. Image order is lead, each body section, then reader questions. Migration `0003_section_images.sql` widens the database trigger to 2–9 while preserving immutability and permanent deduplication. Already approved articles keep their original images. Public article and private review templates plus review emails display the existing Gray Yachts logo.
+
+Archive cards now show each issue’s existing hero with image attribution; Insights uses `content/seo/article-images.json`. All 31 show records have images in `show-images.json`; only 11 are actual historical event photographs, and the rest are accurately labeled venue/city context. Seven brand cards use four licensed model photographs and three original SVG editorial graphics (Windelo, Aquila, Excess) pending applicable model-photo rights. Do not substitute unrelated boats as those brands. License/source metadata is preserved alongside assets and visible credits.
+
+Monaco review now contains seven photos and an embedded-image standalone HTML, regenerated with:
+`python3 scripts/hermes-newsletter/render-preview.py content/newsletter-drafts/2026-09-24-monaco.json docs/newsletters/2026-09-24-monaco.html`
+
+No generated or AI-edited photo is presented as event reporting; the visual identity comes from typography, colors, composition and the existing logo. The current Monaco edition remains a local draft, not a second September 24 CMS slot.

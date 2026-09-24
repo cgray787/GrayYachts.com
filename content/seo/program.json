@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "targetDomain": "grayyachts.com",
+  "primaryGoal": "Qualified yacht seller inquiries for Connor Gray",
+  "timezone": "America/Los_Angeles",
+  "cadence": {
+    "research": "daily",
+    "draftsPerWeek": 3,
+    "performanceReview": "weekly",
+    "experimentReviewDays": 28
+  },
+  "mix": {
+    "sellerGuides": 0.5,
+    "shows": 0.3,
+    "brands": 0.2
+  },
+  "dailyBudgetUsd": 3,
+  "automaticPublishing": false,
+  "newsFreshnessHours": 72,
+  "minimumExperimentImpressions": 200,
+  "metricsStatus": "not_connected",
+  "blockedSources": [
+    "https://www.boatsafloatshow.com/"
+  ],
+  "principles": [
+    "No fabricated rankings, search volume, AI citations, show attendance, dealership rights or vessel performance.",
+    "Unobserved data is null, never zero.",
+    "News requires a dated source. Old announcements are background, not breaking news.",
+    "Editorial scores are quality checks, not ranking predictions.",
+    "No email, Slack, social posting, deployment or publication from the automatic workflow."
+  ],
+  "searchConsoleCheck": {
+    "date": "2026-09-24",
+    "brokerageProperty": "sc-domain:grayyachts.com verified via Cloudflare DNS TXT",
+    "ownerAccount": "connorgray@jeffbrownyachts.com",
+    "mediaProperty": "sc-domain:grayyachts.media exists",
+    "nextStep": "Wait for Google processing; submit sitewide sitemap after SEO deployment. Metrics imports/API remain unconnected."
+  }
+}

@@ -43,7 +43,7 @@ else fail(`/login returned ${login.status}`);
 // matters is that the code able to print the error can also see a URL — so
 // locate the chunk containing the error string and require credentials to be
 // reachable from the same loaded set.
-const chunks = [...new Set([...login.body.matchAll(/\/_next\/static\/chunks\/[A-Za-z0-9._%-]+\.js/g)].map((m) => m[0]))];
+const chunks = [...new Set([...login.body.matchAll(/\/_next\/static\/chunks\/[^"\s<>]+\.js/g)].map((m) => m[0]))];
 if (chunks.length === 0) fail("no client chunks found on /login");
 
 const sources = new Map();

@@ -1119,5 +1119,809 @@
     "usage": "Illustrative stock photography only. Do not imply Gray Yachts represents this vessel, its owner, or the location. No endorsement claims. No verified model/property releases on file.",
     "id": "a8752a232b7c0e4c6cae3400f1fd23f13b75e14057b807dae62ac65d22622bd1",
     "contentSha256": "8f118b51537c3bfbdcdb62f24b1e3dd128301d7fd251d8dcb76d4d7026123252"
+  },
+  {
+    "sourceAssetId": "pexels:34712723",
+    "source": "https://www.pexels.com/photo/monaco-harbor-with-luxury-yachts-and-scenic-views-34712723/",
+    "downloadUrl": "https://images.pexels.com/photos/34712723/pexels-photo-34712723.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "label": "Port Hercule panorama, illustrative undated Monaco photograph",
+    "photographer": "Jan Korgaard",
+    "credit": "Photo: Jan Korgaard / Pexels. Illustrative Monaco harbor photograph; not verified as the 2026 show.",
+    "license": "Pexels License",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "attributionRequired": false,
+    "changes": "Downloaded at 1600px; no other changes.",
+    "eventYear": null,
+    "url": "/newsletter/licensed/pexels-34712723.jpg",
+    "id": "0881c3eee49946009be7bfbca2d009ee31c469dcc039fbbb91647b0f73990e7d",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "tags": [
+      "monaco",
+      "harbor",
+      "show-context"
+    ],
+    "usage": "Contextual illustration only. Do not imply 2026 event photography, endorsement or Gray Yachts representation. Preserve source, attribution and license links; any CC image adaptation retains its license. No model/property releases supplied.",
+    "contentSha256": "d4a0da018a819dcedadff6aad203c2812bf811e38f91b4416ee6607011758718"
+  },
+  {
+    "sourceAssetId": "commons:MYS_2022_2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:MYS_2022_2.jpg",
+    "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d2/MYS_2022_2.jpg",
+    "label": "Port Hercule during the 2022 Monaco Yacht Show, archival",
+    "photographer": "102Legobrick",
+    "credit": "Photo: 102Legobrick / Wikimedia Commons, MYS 2022 2.jpg. CC BY-SA 4.0. Original image unchanged.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attributionRequired": true,
+    "changes": "None. Original bytes retained; displayed without cropping.",
+    "eventYear": 2022,
+    "url": "/newsletter/licensed/monaco-show-2022-2.jpg",
+    "id": "d0114b401848e9fd7d0dcb4d5dd10d2b16cd70965698985b4a8caba44b01e6f1",
+    "licenseCheckedAt": "2026-09-24",
+    "commercialUse": true,
+    "tags": [
+      "monaco",
+      "harbor",
+      "show-context"
+    ],
+    "usage": "Contextual illustration only. Do not imply 2026 event photography, endorsement or Gray Yachts representation. Preserve source, attribution and license links; any CC image adaptation retains its license. No model/property releases supplied.",
+    "contentSha256": "1708830e19f6d0c0a7a8004ae9c9eb30f33a4a1ea76a0eea01e554abcb81b35b"
+  },
+  {
+    "id": "1b2e570922094c7d567ff251df55a4683d34e8253428111e7059314d4cd91ab8",
+    "sourceAssetId": "commons:2018_Fort_Lauderdale_International_Boat_Show_(1).jpg",
+    "url": "/shows/flibs.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:2018_Fort_Lauderdale_International_Boat_Show_(1).jpg",
+    "label": "A boat display at the 2018 Fort Lauderdale International Boat Show.",
+    "credit": "Tamanoeconomico / Wikimedia Commons. 2018 Fort Lauderdale International Boat Show (1).jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2018,
+    "tags": [
+      "flibs",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "A boat display at the 2018 Fort Lauderdale International Boat Show. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "1a3d4c567e8e9cf4b659591e17431ce6406295dee9f1cdd8cbb17f9fa05afaa2"
+  },
+  {
+    "id": "6d026724ca87ce5b677de55cd5b43fff54d02023f62d10241d2beb8dab6bdaa5",
+    "sourceAssetId": "commons:West_Palm_Beach_-_Waterfront_-_Intracoastal_Waterway_&_Downtown_Skyline_-_Panorama_(15300572403).jpg",
+    "url": "/shows/palm-beach.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:West_Palm_Beach_-_Waterfront_-_Intracoastal_Waterway_%26_Downtown_Skyline_-_Panorama_(15300572403).jpg",
+    "label": "West Palm Beach waterfront. City illustration, not current show coverage.",
+    "credit": "Jared / Wikimedia Commons. West Palm Beach - Waterfront - Intracoastal Waterway & Downtown Skyline - Panorama (15300572403).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "palm-beach",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "West Palm Beach waterfront. City illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "0becf45e1fe2c780bf255828af124fbf15c19233822fa96ac63f2fa3217987bf"
+  },
+  {
+    "id": "82f66d82564ce15df266b027191e942faec8b08881e02c48f9ce113073cc81ee",
+    "sourceAssetId": "commons:SUNREEF_YACHTS_AT_THE_CANNES_YACHTING_FESTIVAL.JPG",
+    "url": "/shows/cannes.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:SUNREEF_YACHTS_AT_THE_CANNES_YACHTING_FESTIVAL.JPG",
+    "label": "Sunreef’s dockside display at the 2014 Cannes Yachting Festival.",
+    "credit": "Sunreef Yachts / Wikimedia Commons. SUNREEF YACHTS AT THE CANNES YACHTING FESTIVAL.JPG",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2014,
+    "tags": [
+      "cannes",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Sunreef’s dockside display at the 2014 Cannes Yachting Festival. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "61ca5bc0e5c6dfa61662011129fe31a3c441f26a4a9f26c60a38187560c4dffb"
+  },
+  {
+    "id": "4e6b7586eb6cdd2b1f1a31cd2970dd12a0765830460695673694709acbf9ea6d",
+    "sourceAssetId": "commons:Bavaria_boot_Düsseldorf_20070121a.jpg",
+    "url": "/shows/boot-dusseldorf.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bavaria_boot_D%C3%BCsseldorf_20070121a.jpg",
+    "label": "Bavaria sailing yachts inside boot Düsseldorf, 2007.",
+    "credit": "Sir James / Wikimedia Commons. Bavaria boot Düsseldorf 20070121a.jpg",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2007,
+    "tags": [
+      "boot-dusseldorf",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Bavaria sailing yachts inside boot Düsseldorf, 2007. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "d8c0ede0deafa694b67f1878de102c838395eba0ecb888baa341e23513b87d9e"
+  },
+  {
+    "id": "1cf4e3d3f2a00c0d03b45f48ef134ff20948db21b77212bf78dd334b428c6c6e",
+    "sourceAssetId": "commons:Sea_Isle_Marina_Miami_Florida_left_20100213.jpg",
+    "url": "/shows/miami.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sea_Isle_Marina_Miami_Florida_left_20100213.jpg",
+    "label": "Sea Isle Marina in Miami, 2010. Harbor illustration, not current show coverage.",
+    "credit": "Averette / Wikimedia Commons. Sea Isle Marina Miami Florida left 20100213.jpg",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "miami",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Sea Isle Marina in Miami, 2010. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "63737cded611d4e5a8366d8968791f16867a0c8c4ce6e966541b5403b87cdcfd"
+  },
+  {
+    "id": "0a2d4b0459fcc19f159893794c48f6c8d3018cb87d12b3de2a2b1c515dc70662",
+    "sourceAssetId": "commons:Salone_nautico_47_Genova_02.jpg",
+    "url": "/shows/genoa.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Salone_nautico_47_Genova_02.jpg",
+    "label": "Yachts at the 2007 Genoa International Boat Show.",
+    "credit": "Alessio Sbarbaro / Wikimedia Commons. Salone nautico 47 Genova 02.jpg",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2007,
+    "tags": [
+      "genoa",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Yachts at the 2007 Genoa International Boat Show. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "ea4c4e3bf347af805eb9e07d489a1a094c82345191f13b378503f734052fdd8c"
+  },
+  {
+    "id": "795e3f7187c996d302c3735510efae9c7309ef78f8ae4916a23b2ddeb5891262",
+    "sourceAssetId": "commons:Aerial_Shot_Of_Southampton_Boat_Show_2015.png",
+    "url": "/shows/southampton.png",
+    "source": "https://commons.wikimedia.org/wiki/File:Aerial_Shot_Of_Southampton_Boat_Show_2015.png",
+    "label": "An aerial view of Southampton Boat Show, 2015.",
+    "credit": "Ghunt britishmarine / Wikimedia Commons. Aerial Shot Of Southampton Boat Show 2015.png",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2015,
+    "tags": [
+      "southampton",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "An aerial view of Southampton Boat Show, 2015. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "57228f05fb4ba25d2a4f477d69e241713e561f8653a1d329291a8e59e7e57873"
+  },
+  {
+    "id": "46d71f124ec3b59e9a60cd9d499454d71f2cfb45d2bc13720708fd829fa3449d",
+    "sourceAssetId": "commons:View_from_Dubai_Harbour.jpg",
+    "url": "/shows/dubai.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:View_from_Dubai_Harbour.jpg",
+    "label": "A view from Dubai Harbour, 2022. Harbor illustration, not current show coverage.",
+    "credit": "Ahsan Younas / Wikimedia Commons. View from Dubai Harbour.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "dubai",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "A view from Dubai Harbour, 2022. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "e6dc48cf47581086810dedf0181eaaf781f31294a9ac627827b3d7974e3a2293"
+  },
+  {
+    "id": "828413b2a32f057d73201b95e6dc932ffec624ef8466b1a76f548dd10659817b",
+    "sourceAssetId": "commons:Port_of_Palma_de_Mallorca1.jpg",
+    "url": "/shows/palma.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Port_of_Palma_de_Mallorca1.jpg",
+    "label": "The port of Palma de Mallorca, 2003. Harbor illustration, not current show coverage.",
+    "credit": "Amic Hoteles Hotel Horizonte from Islas Baleares, España / Wikimedia Commons. Port of Palma de Mallorca1.jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "palma",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "The port of Palma de Mallorca, 2003. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "27f1e649292fc5187cf1dcb2b97dba8366f69872cac632d9659e88528ab3d6c2"
+  },
+  {
+    "id": "f8b719adbf82050e3fc0ae9ecd7a7a0d9e3b3fbefdb1d923d7e7c4b65032a792",
+    "sourceAssetId": "commons:Salón_Náutico_Barcelona_2011_(6347214256).jpg",
+    "url": "/shows/barcelona.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sal%C3%B3n_N%C3%A1utico_Barcelona_2011_(6347214256).jpg",
+    "label": "Boats on display at the 2011 Barcelona boat show.",
+    "credit": "Salón Internacional Náutico de Barcelona from Barcelona, España / Wikimedia Commons. Salón Náutico Barcelona 2011 (6347214256).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2011,
+    "tags": [
+      "barcelona",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Boats on display at the 2011 Barcelona boat show. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "16e7bf587787fb901fbd3958c8d044edc9968c945db046a2a301675aaae0aee4"
+  },
+  {
+    "id": "0cd76a8f8a3873fbc2f93aad09ef114e49fc48c4035867450f9c24d72eb33200",
+    "sourceAssetId": "commons:Sentosa_Cove,_Singapore_2024-09-27_4.jpg",
+    "url": "/shows/singapore.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sentosa_Cove,_Singapore_2024-09-27_4.jpg",
+    "label": "Sentosa Cove waterfront, Singapore, 2024. Location illustration, not current show coverage.",
+    "credit": "Renek78 / Wikimedia Commons. Sentosa Cove, Singapore 2024-09-27 4.jpg",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "singapore",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Sentosa Cove waterfront, Singapore, 2024. Location illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "8e2a0c36d00a4e91feb84bd31dec88d1156fce883e3e805091f0a18eb4e54249"
+  },
+  {
+    "id": "2cac6adb76ec915e4659e65727c2477343d06630c62a8c632c6afd30fb711be5",
+    "sourceAssetId": "commons:Phuket_2019_11.jpg",
+    "url": "/shows/thailand.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Phuket_2019_11.jpg",
+    "label": "Royal Phuket Marina, 2019. Marina illustration, not current show coverage.",
+    "credit": "Phuketian.S / Wikimedia Commons. Phuket 2019 11.jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "thailand",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Royal Phuket Marina, 2019. Marina illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "e1c5fbc2487ca6e1d214ee3fad6b5dd5e8b1d1040b83c336b07d4fcbedf21b45"
+  },
+  {
+    "id": "31c3f99314d90a71fffd43316d50920c80f39adb652376deb3adfb92b32ffca5",
+    "sourceAssetId": "commons:Sanctuary_Cove_Marina,_Queensland_01.jpg",
+    "url": "/shows/sanctuary-cove.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sanctuary_Cove_Marina,_Queensland_01.jpg",
+    "label": "Sanctuary Cove Marina, Queensland, 2019. Marina illustration, not current show coverage.",
+    "credit": "Kgbo / Wikimedia Commons. Sanctuary Cove Marina, Queensland 01.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "sanctuary-cove",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Sanctuary Cove Marina, Queensland, 2019. Marina illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "43fd5dfa6e91abd9e8f2661c00a979e0f20aea16bc6c7b941d835e4fb957712f"
+  },
+  {
+    "id": "efd8f45e8f0cc4d586927dde3ed907a1973734888808101937d9328c70cc0573",
+    "sourceAssetId": "commons:Bed_berth.jpg",
+    "url": "/shows/sydney.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bed_berth.jpg",
+    "label": "A Seawind catamaran berth at the 2006 Sydney International Boat Show.",
+    "credit": "Charlie Brewer from Sydney, Australia / Wikimedia Commons. Bed berth.jpg",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2006,
+    "tags": [
+      "sydney",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "A Seawind catamaran berth at the 2006 Sydney International Boat Show. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "31749a0070d6b848a078901ec36ac63df42d68c70b962817ce392a3810ed0d11"
+  },
+  {
+    "id": "ad02fc432fa2927b1f3a4e751f7cc733042960aa6992e590408532e054f7a355",
+    "sourceAssetId": "commons:Sydney_(AU),_Darling_Harbour_--_2019_--_3199-201.jpg",
+    "url": "/shows/sydney-on-water.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sydney_(AU),_Darling_Harbour_--_2019_--_3199-201.jpg",
+    "label": "Darling Harbour at night, 2019. Harbor illustration, not current show coverage.",
+    "credit": "Dietmar Rabich / Wikimedia Commons. Sydney (AU), Darling Harbour -- 2019 -- 3199-201.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "sydney-on-water",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Darling Harbour at night, 2019. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "30743c86a6d62edd57e351d2100eb3c7f808cca475bab2483994740dc63adfee"
+  },
+  {
+    "id": "341d39e0985594f497db2b15f1d86cbf464926d366c9df94dd6bfba17072e9e1",
+    "sourceAssetId": "commons:JapanInternationalBoatShow2009float.JPG",
+    "url": "/shows/japan.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:JapanInternationalBoatShow2009float.JPG",
+    "label": "The floating exhibition at Japan International Boat Show, 2009.",
+    "credit": "アップロード者 / Wikimedia Commons. JapanInternationalBoatShow2009float.JPG",
+    "license": "Public domain",
+    "licenseUrl": "https://commons.wikimedia.org/wiki/Commons:Public_domain",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2009,
+    "tags": [
+      "japan",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "The floating exhibition at Japan International Boat Show, 2009. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "29505ba0cb010dbb4aa178ee983c705fbea10ed683882c1f9d9712d6d3401253"
+  },
+  {
+    "id": "e1a26c470592018aaaa5cc24255904e72f4d1c750a03200ee451df0357b1e2cd",
+    "sourceAssetId": "commons:Shanghai_Skyline_2012.jpg",
+    "url": "/shows/shanghai.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Shanghai_Skyline_2012.jpg",
+    "label": "Shanghai city skyline. City illustration, not current show coverage.",
+    "credit": "Yourusernamewillbepublic2 / Wikimedia Commons. Shanghai Skyline 2012.jpg",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "shanghai",
+      "city"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Shanghai city skyline. City illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "afc8a28701a64972aaed0efe64eff79cfc3a614745a2f0a241f619a2681485a5"
+  },
+  {
+    "id": "dfc2fcbdebb1a66b08212aed3a940e50424f5ec6c6caffb187cc12d2b986a0dd",
+    "sourceAssetId": "commons:Grande_motte_01.jpg",
+    "url": "/shows/multihull.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Grande_motte_01.jpg",
+    "label": "The marina at La Grande-Motte, 2004. Venue illustration, not current show coverage.",
+    "credit": "Alain Caraco at French Wikipedia / Wikimedia Commons. Grande motte 01.jpg",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "multihull",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "The marina at La Grande-Motte, 2004. Venue illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "0029d83faf7b8c5f1e22e82429f69a086524f20b9cdd8336e9996c767c6dbe66"
+  },
+  {
+    "id": "86791c31d90bc9f1ecd53e9b22d9fbca582de89680a05780095e7632cd3833b3",
+    "sourceAssetId": "commons:Espace_Grand_Pavois_Fishing_(4).JPG",
+    "url": "/shows/grand-pavois.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Espace_Grand_Pavois_Fishing_(4).JPG",
+    "label": "An outboard display in the Grand Pavois Fishing area, 2022.",
+    "credit": "Jean-Pierre Bazard Jpbazard / Wikimedia Commons. Espace Grand Pavois Fishing (4).JPG",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2022,
+    "tags": [
+      "grand-pavois",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "An outboard display in the Grand Pavois Fishing area, 2022. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "adab044e6a6e2172d4c80e97faacb3cc29bbd43469c9b057f1821fbfaa2b4532"
+  },
+  {
+    "id": "9fa2903813254fdd1cf60ea9a9127b7a6e93577e191c38269d4e24683daa2084",
+    "sourceAssetId": "commons:Annapolis_Harbor_alongside_Dock_Street_by_Don_Ramey_Logan.jpg",
+    "url": "/shows/annapolis-power.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Annapolis_Harbor_alongside_Dock_Street_by_Don_Ramey_Logan.jpg",
+    "label": "Annapolis harbor, 2015. Harbor illustration, not current show coverage.",
+    "credit": "Don Ramey Logan / Wikimedia Commons. Annapolis Harbor alongside Dock Street by Don Ramey Logan.jpg",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "annapolis-power",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Annapolis harbor, 2015. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "764954d766988fe1c8459b0a285b08d5282d7eb9bfc9fb1aede00b6665bbccc4"
+  },
+  {
+    "id": "1c3cfe86134102c982aeb7c94a1ec5cdedd393e3c7aa6de38e3a74108f035fb5",
+    "sourceAssetId": "commons:Annapolis_harbor.jpg",
+    "url": "/shows/annapolis-sail.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Annapolis_harbor.jpg",
+    "label": "Annapolis harbor in winter, 2025. Harbor illustration, not current show coverage.",
+    "credit": "Bernini123 / Wikimedia Commons. Annapolis harbor.jpg",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "annapolis-sail",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Annapolis harbor in winter, 2025. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "f239fe355827f8d0e4f7b6c81f6866e182dc4930f6c18164682f177b1a8bc59a"
+  },
+  {
+    "id": "8567c58af5038588197891249f255cee09ae48d3d6364bae080d99b756e82a6c",
+    "sourceAssetId": "commons:Bannister's_Wharf,_Newport_Rhode_island.jpg",
+    "url": "/shows/newport.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Bannister%27s_Wharf,_Newport_Rhode_island.jpg",
+    "label": "Bannister’s Wharf in Newport, Rhode Island, 2021. Location illustration, not current show coverage.",
+    "credit": "Kenneth C. Zirkel / Wikimedia Commons. Bannister's Wharf, Newport Rhode island.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "newport",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Bannister’s Wharf in Newport, Rhode Island, 2021. Location illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "8a8898cea26b75efa0a95cab27b2ce9c2ae98a9e5d461a60312eea0cae69fe0b"
+  },
+  {
+    "id": "3818d8d42e00369a148a6773307b60d5942cd9f34373255e9cc402a332a34d33",
+    "sourceAssetId": "commons:Boats_on_Lake_Union_(Seattle,_Washington).jpg",
+    "url": "/shows/seattle.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Boats_on_Lake_Union_(Seattle,_Washington).jpg",
+    "label": "Boats on Lake Union, Seattle, 2011. Harbor illustration, not current show coverage.",
+    "credit": "Visitor7 / Wikimedia Commons. Boats on Lake Union (Seattle, Washington).jpg",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "seattle",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Boats on Lake Union, Seattle, 2011. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "dc9c138c7c1092692b19346ef2b661f2a8a178d92d6d350c23662e4d93f9e13c"
+  },
+  {
+    "id": "bdc78f04d9d745f71dc01e72a647b9636eda650da6e69e316404bcb1dfda1949",
+    "sourceAssetId": "commons:Sunset_over_English_Harbour_in_Antigua.JPG",
+    "url": "/shows/antigua.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sunset_over_English_Harbour_in_Antigua.JPG",
+    "label": "Sunset over English Harbour, Antigua, 2015. Harbor illustration, not current show coverage.",
+    "credit": "Sakturner / Wikimedia Commons. Sunset over English Harbour in Antigua.JPG",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "antigua",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Sunset over English Harbour, Antigua, 2015. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "714ab50bd8e8523c54681f2598e7bf832197e8f668acf8a2c795b56a01354d5c"
+  },
+  {
+    "id": "32bc2b5424c5719a9fe72c9085bce87ae4b6dc5c18557495a8e54c7cddbff909",
+    "sourceAssetId": "commons:View_from_Palamidi_castle_-_1_(Bourtzi_castle_and_part_of_Nafplio).jpg",
+    "url": "/shows/medys.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:View_from_Palamidi_castle_-_1_(Bourtzi_castle_and_part_of_Nafplio).jpg",
+    "label": "A view of Nafplio from Palamidi, 2019. Location illustration, not current show coverage.",
+    "credit": "Annatsach / Wikimedia Commons. View from Palamidi castle - 1 (Bourtzi castle and part of Nafplio).jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "medys",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "A view of Nafplio from Palamidi, 2019. Location illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "6bbc24290e7d1e3e0c6834c29248f00592274fe7eea2438a6c3aa0a15c33f3bb"
+  },
+  {
+    "id": "ca8258a12f9b0b55fe40b2b67f41ae2daa10999100ee1c154ff6ba999771b8e8",
+    "sourceAssetId": "commons:Entrance_to_Messukeskus_in_October_2025.jpg",
+    "url": "/shows/helsinki.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Entrance_to_Messukeskus_in_October_2025.jpg",
+    "label": "Messukeskus entrance during a different fair, 2025. Venue illustration, not the boat show.",
+    "credit": "JIP / Wikimedia Commons. Entrance to Messukeskus in October 2025.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "helsinki",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Messukeskus entrance during a different fair, 2025. Venue illustration, not the boat show. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "084202ff6b4d9ce05ac93c293cef58d36806117088ffd64f9903e91194afbaec"
+  },
+  {
+    "id": "1ca08a84cd6d230d1098914bd1ba729d349d8132aeb3b6e128d863885887bb15",
+    "sourceAssetId": "commons:São_Paulo_Boat_Show_Internacional_2011_-_panoramio.jpg",
+    "url": "/shows/sao-paulo.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:S%C3%A3o_Paulo_Boat_Show_Internacional_2011_-_panoramio.jpg",
+    "label": "A boat on display at São Paulo Boat Show, 2011.",
+    "credit": "Claudio Oliveira Lim… / Wikimedia Commons. São Paulo Boat Show Internacional 2011 - panoramio.jpg",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2011,
+    "tags": [
+      "sao-paulo",
+      "event"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "A boat on display at São Paulo Boat Show, 2011. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "848a8846ba82a3b86da3abc07ed01e72f163f15aaef05b858bf906e4bcde1ec9"
+  },
+  {
+    "id": "8301938e4dd2b867dd1ad4093c6b157a0f937aa3da478f1d82de5aab6898c560",
+    "sourceAssetId": "commons:Viaduct_Harbour.jpg",
+    "url": "/shows/auckland.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Viaduct_Harbour.jpg",
+    "label": "Viaduct Harbour in Auckland, 2021. Harbor illustration, not current show coverage.",
+    "credit": "Nurg / Wikimedia Commons. Viaduct Harbour.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "auckland",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Viaduct Harbour in Auckland, 2021. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "9c126758b6d424b7a9c49e8b6a4448bbe3d92291b1e4e4c4d651901d8cd2db4e"
+  },
+  {
+    "id": "2c218ebe290790d71ae99a56b19b40fced4657536943aed17955a3554956c936",
+    "sourceAssetId": "commons:Ataköy_Marina_(16288946550).jpg",
+    "url": "/shows/bosphorus.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Atak%C3%B6y_Marina_(16288946550).jpg",
+    "label": "Ataköy Marina, Istanbul, 2013. Harbor illustration, not current show coverage.",
+    "credit": "Jorge Franganillo / Wikimedia Commons. Ataköy Marina (16288946550).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "bosphorus",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Ataköy Marina, Istanbul, 2013. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "71a106b29d477d993ff6b948662d9f4132da662e08cefe64ab7653395168eb50"
+  },
+  {
+    "id": "9db86afdf4302fdb389774489aa414dbeafe9851dd2125391302e99ce857d4b2",
+    "sourceAssetId": "commons:Victoria_&_Alfred_Waterfront_2022_01.jpg",
+    "url": "/shows/boatica.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Victoria_%26_Alfred_Waterfront_2022_01.jpg",
+    "label": "Victoria & Alfred Waterfront, Cape Town, 2022. Harbor illustration, not current show coverage.",
+    "credit": "TapticInfo / Wikimedia Commons. Victoria & Alfred Waterfront 2022 01.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": null,
+    "tags": [
+      "boatica",
+      "venue"
+    ],
+    "changes": "Wikimedia display-size derivative; no creative alterations. Original source linked.",
+    "usage": "Victoria & Alfred Waterfront, Cape Town, 2022. Harbor illustration, not current show coverage. Preserve credits and license; no endorsement or listing representation implied. CC share-alike applies to adaptations of this image.",
+    "contentSha256": "367fd46395cc2652866815cd068775161930e0ca18700382fbcb5c5123ea4d6b"
+  },
+  {
+    "sourceAssetId": "commons:MY_Ahpo_tender_garage.jpg",
+    "url": "/newsletter/licensed/monaco-ahpo-2022.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:MY_Ahpo_tender_garage.jpg",
+    "label": "Ahpo tender garage at Monaco Yacht Show 2022",
+    "credit": "102Legobrick / Wikimedia Commons. MY Ahpo tender garage.jpg. Original unchanged.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "licenseCheckedAt": "2026-09-24",
+    "eventYear": 2022,
+    "changes": "None; original bytes.",
+    "usage": "Archive photo only, 2022 Monaco show. No claim of listing, endorsement or a 2026 launch.",
+    "id": "1e9c8803da7d10cd609b398a5658591303223c7238112b2db873cc6afdb18482",
+    "contentSha256": "a68ea32e6e500d0912f4675e6dded1e1925d6c864a5549a51aae3037a2a092cd"
+  },
+  {
+    "id": "02dbcf8dde1245bc2b234886d9a24f304f84bb8f346456668fd2961a0cc27f07",
+    "sourceAssetId": "commons:Axopar_EM1B0229_(49902523981).jpg",
+    "url": "/brands/axopar.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Axopar_EM1B0229_(49902523981).jpg",
+    "label": "Axopar photographed in Vaxholm, Sweden. Archive image; model not independently confirmed.",
+    "credit": "Bengt Nyman from Vaxholm, Sweden / Wikimedia Commons. Axopar EM1B0229 (49902523981).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "b2500446550b7f3df49bc715703aaa138ba1be64f1de8b4c4ba660f8372e3c28",
+    "tags": [
+      "brand",
+      "axopar",
+      "archive"
+    ],
+    "usage": "Axopar photographed in Vaxholm, Sweden. Archive image; model not independently confirmed. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "3c890a4c261697b5c63fe1cd83163bbcb1ba08a66d31c3ccf72e45184d2b448e",
+    "sourceAssetId": "commons:Sirena_88_in_Port_of_Rhodes_29_July_2025.jpg",
+    "url": "/brands/sirena.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sirena_88_in_Port_of_Rhodes_29_July_2025.jpg",
+    "label": "Sirena 88 in the port of Rhodes, July 2025. Archive photograph, not the 118 or 42M project.",
+    "credit": "Pjotr Mahhonin / Wikimedia Commons. Sirena 88 in Port of Rhodes 29 July 2025.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "163e9ec86021056a23957c2d28fba1af7d31a4ee621fd2d0fee023aee2f86a87",
+    "tags": [
+      "brand",
+      "sirena",
+      "archive"
+    ],
+    "usage": "Sirena 88 in the port of Rhodes, July 2025. Archive photograph, not the 118 or 42M project. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "1f5e3cb679373ccf7da019749ce07f7c4259c6623acd97773057d3e7dadd5e8c",
+    "sourceAssetId": "commons:Saxdor_200_Sport,_Interboot_2020,_Friedrichshafen_(IB200224).jpg",
+    "url": "/brands/saxdor.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Saxdor_200_Sport,_Interboot_2020,_Friedrichshafen_(IB200224).jpg",
+    "label": "Saxdor 200 Sport at Interboot, 2020. Archive photograph, not the newer 460 series.",
+    "credit": "Matti Blume / Wikimedia Commons. Saxdor 200 Sport, Interboot 2020, Friedrichshafen (IB200224).jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "e959ef814f5ccf1fcebb776dcecc074144d83ce7b7d18f2a896d60357109c90e",
+    "tags": [
+      "brand",
+      "saxdor",
+      "archive"
+    ],
+    "usage": "Saxdor 200 Sport at Interboot, 2020. Archive photograph, not the newer 460 series. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "14a5c36d45e891f912316a186f6a6944a605355cfe511a5b70b9e7a69318b959",
+    "sourceAssetId": "commons:Candela_C-8_hydrofoil.jpg",
+    "url": "/brands/candela.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Candela_C-8_hydrofoil.jpg",
+    "label": "Candela C-8 hydrofoil. Model photograph; specifications should be checked with the builder.",
+    "credit": "Boberger / Wikimedia Commons. Candela C-8 hydrofoil.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "e893d63f301171f5dad92b8a9200300a2e3966a967cd0944bc4209d3a437c388",
+    "tags": [
+      "brand",
+      "candela",
+      "archive"
+    ],
+    "usage": "Candela C-8 hydrofoil. Model photograph; specifications should be checked with the builder. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "d952a45cc279d2ff42f64b689edb975bbb98e2711f86e7e17a2aaf03bafb5783",
+    "sourceAssetId": "commons:AquaRIVA_super_in_Venice.jpg",
+    "url": "/brands/riva.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:AquaRIVA_super_in_Venice.jpg",
+    "label": "Aquariva Super in Venice. Archive model photograph.",
+    "credit": "Abxbay / Wikimedia Commons. AquaRIVA super in Venice.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "3e47490cc726fe673f76929678ef946f9fda173b9964bc5ce26efa0c233248a6",
+    "tags": [
+      "brand",
+      "riva",
+      "archive"
+    ],
+    "usage": "Aquariva Super in Venice. Archive model photograph. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "f04cbe5baa2c0609d12a78bc66f7b27cf38fe11567c0ef41a1783c1ab3062122",
+    "sourceAssetId": "commons:Pershing_Yacht_-_Pescara.jpg",
+    "url": "/brands/pershing.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Pershing_Yacht_-_Pescara.jpg",
+    "label": "Pershing 76 in Pescara. Archive model photograph.",
+    "credit": "Raboe001 / Wikimedia Commons. Pershing Yacht - Pescara.jpg",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "e13a0a297e5356f5904c73f519432e5cfb54b86202c7b8fa9d4b473db7b890ef",
+    "tags": [
+      "brand",
+      "pershing",
+      "archive"
+    ],
+    "usage": "Pershing 76 in Pescara. Archive model photograph. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "cacc8f8bddeaeee3aafbbb0c07160e272318c5ed2e8d9d575748086b79aba0b6",
+    "sourceAssetId": "commons:VOILES_DE_SAINT_TROPEZ_2009_(7301961576).jpg",
+    "url": "/brands/wally.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:VOILES_DE_SAINT_TROPEZ_2009_(7301961576).jpg",
+    "label": "A Wally sailing yacht at Les Voiles de Saint-Tropez, 2009. Archive photograph.",
+    "credit": "Jean Francois Fournier Photographe from cannes, france / Wikimedia Commons. VOILES DE SAINT TROPEZ 2009 (7301961576).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "d929c65ef4df615f14144e6e25a1b30e9e38ef5778c3705d3c87b36aa52020b5",
+    "tags": [
+      "brand",
+      "wally",
+      "archive"
+    ],
+    "usage": "A Wally sailing yacht at Les Voiles de Saint-Tropez, 2009. Archive photograph. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "963ed46c13090941733d7deef9a6a0ca360efc4df000dddc87f1c7acaac70eb7",
+    "sourceAssetId": "commons:Four_Winns_NZ7_2382_(49923774423).jpg",
+    "url": "/brands/four-winns.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Four_Winns_NZ7_2382_(49923774423).jpg",
+    "label": "A Four Winns boat photographed in Vaxholm, Sweden. Model not independently confirmed.",
+    "credit": "Bengt Nyman from Vaxholm, Sweden / Wikimedia Commons. Four Winns NZ7 2382 (49923774423).jpg",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "36705f354212ff1beeaaed2372460025457389814788f4112f046ef12aa5c441",
+    "tags": [
+      "brand",
+      "four-winns",
+      "archive"
+    ],
+    "usage": "A Four Winns boat photographed in Vaxholm, Sweden. Model not independently confirmed. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
+  },
+  {
+    "id": "dd27ee19ee268345ef7ca66f5efef092bc01f2e9f32eba69a5bdd5390e0fa0d6",
+    "sourceAssetId": "commons:JeanneauNC9Vaxholm20150803.JPG",
+    "url": "/brands/jeanneau.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:JeanneauNC9Vaxholm20150803.JPG",
+    "label": "Jeanneau NC 9 in Vaxholm, August 2015. Archive model photograph.",
+    "credit": "Patrik Nylin / Wikimedia Commons. JeanneauNC9Vaxholm20150803.JPG",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "licenseCheckedAt": "2026-09-24",
+    "changes": "Wikimedia display-size derivative; displayed without cropping.",
+    "contentSha256": "03bf0ffd516d419524a162caae7198fe3ac40186d8e453d1a2b978a25629c2c3",
+    "tags": [
+      "brand",
+      "jeanneau",
+      "archive"
+    ],
+    "usage": "Jeanneau NC 9 in Vaxholm, August 2015. Archive model photograph. Preserve source and license links. Model archive, not current availability or evidence of current launches. No endorsement implied."
   }
 ]

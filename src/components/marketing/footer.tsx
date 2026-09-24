@@ -10,10 +10,14 @@ const services = [
 ];
 
 const connect = [
+  { label: "Boat selling guides", href: "/insights" },
+  { label: "International boat shows", href: "/boat-shows" },
+  { label: "Featured boat brands", href: "/brands" },
+  { label: "Connor Gray", href: "/about-connor-gray" },
   { label: "The Gray Yachts newsletter", href: "/newsletter" },
   { label: "425-671-8474", href: "tel:4256718474" },
   { label: "@grayyachts_", href: "https://instagram.com/grayyachts_" },
-  { label: "Schedule Consultation", href: "#contact" },
+  { label: "Schedule Consultation", href: "/#contact" },
 ];
 
 export default function Footer() {
