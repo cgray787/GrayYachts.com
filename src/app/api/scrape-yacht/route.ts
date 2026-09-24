@@ -1,3 +1,4 @@
+import { fetchBoatsGroupListing } from "@/lib/boats-group-api";
 import { capturedYacht } from "@/lib/captured-yacht";
 import { extractWithVision } from "@/lib/yacht-screenshot-extract";
 import { photoBucket } from "@/lib/yacht-photo-store";
@@ -2140,7 +2141,7 @@ export async function GET(request: NextRequest) {
          and isolated numbers on pages that are not single listings.
      v3: sail-aware speed ceiling, and reject a top speed that is really the
          engine's horsepower read twice. */
-  const SCRAPE_LOGIC_VERSION = 4;
+  const SCRAPE_LOGIC_VERSION = 5;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });
@@ -2150,7 +2151,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const data = await scrapeYacht(url);
+    // Configured official feed takes priority. Absent credentials make no request.
+    let official = null;
+    try { official = await fetchBoatsGroupListing(url); }
+    catch { console.warn("[scrape-yacht] Official inventory feed unavailable; using existing fallbacks."); }
+    if (official) {
+      try { official.data.imageUrl = await resolveYachtPhoto(await photoBucket(), url, official.photos, false); }
+      catch { /* Preserve factual specs even when image storage is temporarily unavailable. */ }
+      if (!official.data.imageUrl) official.data.flags?.push("Listing photo unavailable; retry or upload the original photo.");
+    }
+    const data = official?.data ?? await scrapeYacht(url);
     const response = NextResponse.json(data, {
       headers: {
         // Public, 24h shared cache. The frontend talks to /api/scrape-yacht
