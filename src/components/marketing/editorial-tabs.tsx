@@ -13,15 +13,13 @@ const sections = [
 
 export default function EditorialTabs({className = '', prominent=false}: {className?:string;prominent?:boolean}) {
   const pathname = usePathname();
-  if (prominent) return <nav aria-label="Yacht research" data-editorial-navigation className={`relative border-b border-[#162636]/10 bg-white px-4 py-6 sm:px-6 lg:px-10 ${className}`}>
-    <div className="grid grid-cols-2 gap-1.5 rounded-[24px] border border-[#162636]/10 bg-gradient-to-b from-[#f9f9f7] to-[#efefeb] p-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,1),0_8px_24px_-18px_rgba(22,38,54,0.25)] md:grid-cols-5 md:rounded-full">
+  if (prominent) return <nav aria-label="Yacht research" data-editorial-navigation className={`relative border-b border-[#162636]/15 bg-white px-4 sm:px-6 lg:px-10 ${className}`}>
+    <div className="grid grid-cols-2 md:grid-cols-5">
       {sections.map(({href,label},index) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return <Link key={href} href={href} aria-current={active ? 'page' : undefined}
-          className={`group relative flex min-h-14 items-center justify-center gap-2.5 rounded-full border px-3 py-3 text-center text-[15px] font-semibold tracking-[0.015em] transition-[color,background-color,box-shadow,border-color] duration-200 motion-reduce:transition-none lg:min-h-16 lg:text-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#806336] ${index===4?'col-span-2 md:col-span-1':''} ${active ? 'border-[#34495b] bg-gradient-to-b from-[#24394a] to-[#101e2b] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_3px_8px_rgba(15,30,43,0.18)]' : 'border-transparent text-[#334455] hover:border-[#d9cbb4] hover:bg-white hover:text-[#101e2b] hover:shadow-sm'}`}>
-          <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${active?'bg-[#dfc18e] shadow-[0_0_8px_rgba(223,193,142,0.5)]':'bg-transparent'}`}/>
-          <span>{label}</span>
-          <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0"/>
+          className={`group flex min-h-16 items-center justify-center px-3 py-2 text-center text-xs font-medium uppercase tracking-[0.2em] transition-colors duration-300 motion-reduce:transition-none lg:min-h-20 lg:text-sm focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#806336] ${index===4?'col-span-2 md:col-span-1':''} ${active ? 'text-[#806336]' : 'text-[#162636] hover:text-[#806336]'}`}>
+          <span className={`border-b-2 py-4 transition-colors duration-300 motion-reduce:transition-none ${active?'border-[#b39460]':'border-transparent group-hover:border-[#b39460]/50'}`}>{label}</span>
         </Link>;
       })}
     </div>
