@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
 const navItems = [
+  { label: "Seller inquiries", href: "/portal/seller-inquiries", icon: Inbox },
   {
     label: "Dashboard",
     href: "/portal/dashboard",
