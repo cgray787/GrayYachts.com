@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sell My Boat in Seattle | Connor Gray | Gray Yachts</title>
 <link rel="canonical" href="https://grayyachts.com/sell">
-<meta name="description" content="Answer 5 quick questions and get a real Pacific Northwest market valuation for your yacht — with recent sold comps — from a working broker.">
+<meta name="description" content="Answer 7 quick questions and get a real Pacific Northwest market valuation for your yacht — with recent sold comps — from a working broker.">
 <meta name="robots" content="index,follow">
 <meta property="og:title" content="What Is Your Yacht Worth in Today's PNW Market?">
-<meta property="og:description" content="5 quick questions. A real market valuation with recent sold comps — not an algorithm guess.">
+<meta property="og:description" content="7 quick questions. A real market valuation with recent sold comps — not an algorithm guess.">
 <meta property="og:image" content="https://grayyachts.com/sell/img/hero.jpg">
 <meta property="og:url" content="https://grayyachts.com/sell">
 <meta name="twitter:card" content="summary_large_image">
@@ -439,7 +439,7 @@ source: Client
     </div>
     <h1 class="lead"><b>Sell Your Yacht</b><span class="lead-sub">For full market value</span></h1>
     <p class="hero-q">What is your yacht worth in today's <em>Pacific Northwest</em> market?</p>
-    <p class="sub">Answer 6 quick questions and get a real market valuation — with recent Pacific Northwest sold comps from a working broker. Not an algorithm guess. We focus on vessels from $500,000 to $5 million.</p>
+    <p class="sub">Answer 7 quick questions and get a real market valuation — with recent Pacific Northwest sold comps from a working broker. Not an algorithm guess. We focus on vessels from $500,000 to $5 million.</p>
     <a class="btn" href="#quizWrap" id="startTop">Find out what she's worth <span aria-hidden="true">→</span></a>
     <div class="meta">
       <span><i>✓</i>About 60 seconds</span>
@@ -642,6 +642,7 @@ source: Client
   <span style="opacity:.7">Valuations are broker estimates based on comparable sales, not survey appraisals.</span>
 </footer>
 
+<script src="/measurement.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
    CONFIG — everything you edit lives here.
@@ -702,31 +703,18 @@ function pixel(ev,p){ if(window.fbq) fbq('track',ev,p||{}); }
   fbq('init',CONFIG.META_PIXEL_ID); fbq('track','PageView');
 })();
 
-/* ---------- attribution ---------- */
-const p = new URLSearchParams(location.search);
-/* Capture on first touch and persist: a reload or a bounce back into the page
-   would otherwise strip the query string and orphan the lead from its ad. */
-const ATTR_KEY='gy_attr';
-function readAttr(){
-  const q=k=>p.get(k)||'';
-  const cookie=k=>(document.cookie.match('(^|; )'+k+'=([^;]*)')||[])[2]||'';
-  return {
-    utm_source:q('utm_source'), utm_medium:q('utm_medium'), utm_campaign:q('utm_campaign'),
-    utm_content:q('utm_content'), utm_term:q('utm_term'), utm_id:q('utm_id'),
-    fbclid:q('fbclid'), ad_id:q('ad_id'), adset_id:q('adset_id'), campaign_id:q('campaign_id'),
-    placement:q('placement'),
-    fbp:cookie('_fbp'), fbc:cookie('_fbc'),
-    landing_page:location.href.split('#')[0], referrer:document.referrer||''
-  };
+/* ---------- attribution and funnel measurement ---------- */
+const measure = (name, params) => { try { window.GYMeasurement?.event(name, params); } catch (_) {} };
+const getAttribution = () => { try { return window.GYMeasurement?.context() || {}; } catch (_) { return {}; } };
+let submissionId = null;
+let submissionSignature = null;
+let submitting = false;
+let transitionPending = false;
+function advance(){
+  if(transitionPending) return;
+  transitionPending=true;
+  setTimeout(()=>{ transitionPending=false; next(); },190);
 }
-let attribution;
-try{
-  const saved=sessionStorage.getItem(ATTR_KEY);
-  const fresh=readAttr();
-  const hasNew=fresh.utm_source||fresh.fbclid||fresh.ad_id;
-  if(saved && !hasNew) attribution=JSON.parse(saved);
-  else { attribution=fresh; sessionStorage.setItem(ATTR_KEY,JSON.stringify(attribution)); }
-}catch(e){ attribution=readAttr(); }
 
 /* ---------- render config-driven sections ---------- */
 $('trustBar').innerHTML = CONFIG.TRUST.map(t =>
@@ -914,6 +902,7 @@ function scrollQuiz(){ $('quizWrap').scrollIntoView({behavior:'smooth',block:'st
 
 function render(){
   const cur=QUESTIONS[idx];
+  measure('questionnaire_step_view',{step_name:cur.key,step_number:idx+1});
   $('qText').textContent=cur.q;
   $('qOpts').innerHTML=''; $('qChips').innerHTML='';
   $('qOpts').style.display='none'; $('qChips').style.display='none'; $('qInputWrap').style.display='none';
@@ -932,7 +921,7 @@ function render(){
       b.type='button'; b.className='chip'+(answers[cur.key]===text?' sel':''); b.textContent=text;
       b.onclick=()=>{
         if(text==='Other'){ askOtherBrand(); return; }
-        answers[cur.key]=text; b.classList.add('sel'); setTimeout(next,190);
+        answers[cur.key]=text; b.classList.add('sel'); advance();
       };
       $('qChips').appendChild(b);
     });
@@ -942,7 +931,7 @@ function render(){
       const b=document.createElement('button');
       b.type='button'; b.className='opt'+(answers[cur.key]===text?' sel':'');
       b.innerHTML='<span class="dot"></span><span>'+esc(text)+'</span>';
-      b.onclick=()=>{ answers[cur.key]=text; b.classList.add('sel'); setTimeout(next,190); };
+      b.onclick=()=>{ answers[cur.key]=text; b.classList.add('sel'); advance(); };
       $('qOpts').appendChild(b);
     });
   }
@@ -956,7 +945,7 @@ function askOtherBrand(){
   el.dataset.mode='brand';
   setTimeout(()=>el.focus(),100);
 }
-function next(){ if(idx<QUESTIONS.length-1){ idx++; render(); } else { gate(); } }
+function next(){ measure('questionnaire_step_complete',{step_name:QUESTIONS[idx].key,step_number:idx+1}); if(idx<QUESTIONS.length-1){ idx++; render(); } else { gate(); } }
 
 function gate(){
   setProgress(QUESTIONS.length+1);
@@ -965,11 +954,13 @@ function gate(){
     dl.insertAdjacentHTML('beforeend',
       `<dt>${esc(q.q.replace(/\?$/,''))}</dt><dd>${esc(answers[q.key])}</dd>`); });
   show('s-gate'); scrollQuiz();
+  measure('questionnaire_contact_view');
   pixel('ViewContent',{content_name:'valuation_gate'});
 }
 
 /* ---------- events ---------- */
 function beginQuiz(){
+  measure('questionnaire_start');
   show('s-quiz'); idx=0; render(); scrollQuiz();
   pixel('ViewContent',{content_name:'valuation_quiz_start'});
 }
@@ -978,7 +969,7 @@ $('startTop').onclick = e => { e.preventDefault(); beginQuiz(); };
 
 $('qNext').onclick = () => {
   const el=$('qInput'), v=el.value.trim();
-  if(v.length<2){ $('qErr').classList.add('on'); el.setAttribute('aria-invalid','true'); return; }
+  if(v.length<2){ measure('form_validation_error',{step_name:QUESTIONS[idx].key,error_type:'required'}); $('qErr').classList.add('on'); el.setAttribute('aria-invalid','true'); return; }
   $('qErr').classList.remove('on'); el.removeAttribute('aria-invalid');
   if(el.dataset.mode==='brand'){ answers['brand']=v; delete el.dataset.mode; el.value=''; next(); }
   else { answers[QUESTIONS[idx].key]=v; next(); }
@@ -1083,6 +1074,7 @@ $('drop').addEventListener('drop', e => addFiles(e.dataTransfer && e.dataTransfe
 /* ---------- submit ---------- */
 $('form').addEventListener('submit', async e=>{
   e.preventDefault();
+  if(submitting) return;
   const name=$('fname').value.trim(), email=$('email').value.trim(), phone=$('phone').value.trim();
   const okEmail=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
   const digits=phone.replace(/\D/g,'').replace(/^1(?=\d{10}$)/,'');
@@ -1095,6 +1087,7 @@ $('form').addEventListener('submit', async e=>{
   $('e-email').classList.toggle('on',!okEmail); $('email').setAttribute('aria-invalid',!okEmail);
   $('e-phone').classList.toggle('on',!okPhone); $('phone').setAttribute('aria-invalid',!okPhone);
   if(!name||!okEmail||!okPhone){
+    measure('form_validation_error',{step_name:'contact',error_type:!name?'name':!okEmail?'email':'phone'});
     /* focus the first invalid field so keyboard and screen-reader users are
        taken to the problem instead of being silently rejected */
     const first = !name ? 'fname' : (!okEmail ? 'email' : 'phone');
@@ -1103,10 +1096,14 @@ $('form').addEventListener('submit', async e=>{
   }
   if($('hp').value) return;
 
+  submitting=true;
+  const signature=JSON.stringify({name,email,phone,answers,photos:shots.map(sh=>sh.b64)});
+  if(signature!==submissionSignature){ submissionId=crypto.randomUUID(); submissionSignature=signature; }
+  measure('inquiry_submit');
   const btn=$('submit'); btn.disabled=true; btn.textContent='Sending…'; $('e-form').classList.remove('on');
   const payload={
     _subject:`New Gray Yachts valuation lead — ${name} (${answers.year_make_model||answers.brand||'vessel'})`,
-    name, email, phone, ...answers, ...attribution, submitted_at:new Date().toISOString(),
+    name, email, phone, ...answers, ...getAttribution(), submission_id:submissionId, submitted_at:new Date().toISOString(),
     photos: shots.map(sh => ({ filename: sh.filename, content: sh.b64 }))
   };
   try{
@@ -1114,8 +1111,13 @@ $('form').addEventListener('submit', async e=>{
       method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
       body:JSON.stringify(payload)});
     if(!r.ok) throw new Error('http '+r.status);
+    const result=await r.json();
+    if(result.ok!==true || result.accepted!==true || !result.lead_id) throw new Error('not_accepted');
+    measure('generate_lead',{lead_id:result.lead_id});
     done(name);
   }catch(err){
+    submitting=false;
+    measure('inquiry_submit_error',{error_type:'submission_failed'});
     console.error('[lead submit failed]', err && err.message ? err.message : err);
     btn.disabled=false; btn.innerHTML='Send My Valuation <span aria-hidden="true">→</span>';
     $('e-form').textContent = CONFIG.LEAD_ENDPOINT
@@ -1126,7 +1128,7 @@ $('form').addEventListener('submit', async e=>{
 });
 function done(name){
   const first=name.split(' ')[0];
-  $('doneTitle').textContent=`Thanks, ${first} — it's on the way.`;
+  $('doneTitle').textContent=`Thanks, ${first} — your request is received.`;
   $('doneBody').textContent=`I'll put together a market range for your ${answers.year_make_model||answers.brand||'vessel'} using recent Puget Sound sold comps and send it over shortly. If you'd rather talk it through, just reply to that email or pick up when I call.`;
   show('s-done'); scrollQuiz(); setProgress(0); $('bar').classList.remove('on'); $('stepTxt').textContent='';
   pixel('Lead',{content_name:'yacht_valuation',content_category:answers.timeframe||''});
