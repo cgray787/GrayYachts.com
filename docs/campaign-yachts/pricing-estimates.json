@@ -1,0 +1,30 @@
+{
+  "checked": "2026-10-06",
+  "method": "Rounded budgeting ranges inferred from comparable new-boat asking listings. Not confirmed 2027 JBY prices or appraisals. Includes uncertainty for model year and equipment; taxes, duties, delivery and options may change total.",
+  "pershing": {
+    "range_usd": [
+      3300000,
+      3800000
+    ],
+    "comparable": "2025 new Pershing 6X Ancona, EUR 2,985,000, displayed USD 3,515,912",
+    "source": "https://www.boats.com/power-boats/2025-pershing-6x-9643650/"
+  },
+  "sirena": {
+    "range_usd": [
+      1900000,
+      2300000
+    ],
+    "comparables": [
+      {
+        "price_usd": 1969400,
+        "description": "2027 new Sirena 48 La Paz, different boat and engines",
+        "source": "https://boats.com/power-boats/2027-sirena-48-10242293/"
+      },
+      {
+        "price_usd": 1976120,
+        "description": "2026 new Sirena 48 Lymington, tax not paid; displayed currency conversion",
+        "source": "https://www.yachtworld.com/yacht/2026-sirena-48-10056866/"
+      }
+    ]
+  }
+}

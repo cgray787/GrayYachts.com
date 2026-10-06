@@ -1,5 +1,5 @@
 export type CampaignYacht = {
- slug: string; name: string; year: string; location: string; title: string;
+ estimatedPrice: string; slug: string; name: string; year: string; location: string; title: string;
  intro: string; story: string; description: string; source: string;
  specs: { label: string; value: string }[];
  features: { title: string; text: string }[];
@@ -9,13 +9,14 @@ export type CampaignYacht = {
 export const campaignYachts: CampaignYacht[] = [
  {
   video: {provider:"vimeo",id:"1229950847",source:"https://vimeo.com/1229950847"},
+  estimatedPrice: "$3.3–$3.8 million",
   slug: "pershing-6x", name: "Pershing 6X", year: "2027", location: "Fort Lauderdale, Florida",
   title: "Life’s too short.\nBuy the yacht.",
   intro: "Italian design. Open water. A very different kind of weekend.",
   story: "Make the journey the occasion.",
   description: "Explore the Pershing 6X with Connor Gray: performance, ownership considerations, current pricing and a personal discovery call.",
   source: "https://jeffbrownyachts.com/inventory/boat/2027-pershing-6x-10332235",
-  specs: [{label:"Length overall",value:"62.2 ft"},{label:"Advertised top speed",value:"48 knots"},{label:"Beam",value:"15.8 ft"},{label:"Asking price",value:"On request"}],
+  specs: [{label:"Length overall",value:"62.2 ft"},{label:"Advertised top speed",value:"48 knots"},{label:"Beam",value:"15.8 ft"},{label:"Budget estimate · USD",value:"$3.3–$3.8M"}],
   features: [
    {title:"Performance with presence",text:"Twin MAN V12 engines and a low, sculpted profile make the 6X a distinctive choice for coastal escapes."},
    {title:"Room to slow down",text:"A full-beam master suite and an inviting salon give you a comfortable place to return after a day on the water."},
@@ -30,13 +31,14 @@ export const campaignYachts: CampaignYacht[] = [
  },
  {
   video: {provider:"youtube",id:"MQmlljWDDHk",source:"https://www.youtube.com/watch?v=MQmlljWDDHk"},
+  estimatedPrice: "$1.9–$2.3 million",
   slug:"sirena-48",name:"Sirena 48",year:"2027",location:"San Diego, California",
   title:"More weekends.\nLess someday.",
   intro:"Bring your favorite people. Leave the everyday behind.",
   story:"Stay a little longer.",
   description:"Discover the Sirena 48 with Connor Gray: three guest cabins, flybridge living, ownership guidance and a personal discovery call.",
   source:"https://jeffbrownyachts.com/inventory/boat/2027-sirena-48-48-46",
-  specs:[{label:"Length overall",value:"52.76 ft"},{label:"Guest cabins",value:"3"},{label:"Guest heads",value:"2"},{label:"Asking price",value:"On request"}],
+  specs:[{label:"Length overall",value:"52.76 ft"},{label:"Guest cabins",value:"3"},{label:"Guest heads",value:"2"},{label:"Budget estimate · USD",value:"$1.9–$2.3M"}],
   features:[
    {title:"Space for your people",text:"Three guest cabins create room for family and friends to turn a day on the water into a longer escape."},
    {title:"Life on the flybridge",text:"An elevated outdoor gathering space brings lunch, conversation and coastal views together."},

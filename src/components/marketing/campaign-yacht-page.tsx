@@ -23,7 +23,7 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
     <p className={serif + " mt-5 text-3xl text-[#e2c79d]"}>Life’s too short. Buy the yacht.</p>
     <p className="mt-5 max-w-md text-base leading-7 text-slate-200">{pershing ? "A 62-foot Pershing for the owner who enjoys the run as much as the destination." : "Three guest cabins and a flybridge made for weekends with family and friends."}</p>
     <div className="mt-8 flex flex-wrap items-center gap-6"><a href="#contact-connor" className={cta}>Request pricing & a call <ArrowRight size={15}/></a><a href="#yacht-film" className="text-[11px] uppercase tracking-[0.16em] text-white underline underline-offset-8">Watch the film</a></div>
-    <div className="mt-7 w-fit border-l-2 border-gold bg-bg-primary/75 px-5 py-4"><p className={label + " text-slate-300"}>Asking price</p><p className="mt-2 text-3xl font-bold tracking-tight text-gold sm:text-4xl">Price on request</p></div><p className="mt-3 text-[11px] text-slate-300">Sistership shown</p>
+    <div className="mt-7 w-fit border-l-2 border-gold bg-bg-primary/75 px-5 py-4"><p className={label + " text-slate-300"}>Estimated purchase budget · USD</p><p className="mt-2 text-3xl font-bold tracking-tight text-gold sm:text-4xl">{yacht.estimatedPrice}</p><p className="mt-3 max-w-md text-xs leading-5 text-slate-300">Estimated purchase budget in USD, based on comparable listings. Not a quote for this yacht. Options, taxes, duties and delivery may change the total; confirm current pricing with Connor.</p></div><p className="mt-3 text-[11px] text-slate-300">Sistership shown</p>
    </div>
   </section>
 
