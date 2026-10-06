@@ -1,0 +1,15 @@
+// Creates a recipient-specific HTML draft; never sends an email.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {execFileSync} from 'node:child_process';
+const args=Object.fromEntries(process.argv.slice(2).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),x.slice(i+1)];}));
+if(!args['--name']||!args['--input']||!args['--output'])throw Error('Required: --name=Name --input=template.html --output=draft.html. Optional --email=address --prospect=id --live=yes. Default is test preview.');
+const live=args['--live']==='yes';if(live&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args['--email']??''))throw Error('Live recipient requires an email');
+const token=crypto.randomBytes(24).toString('hex');const esc=s=>String(s).replaceAll("'","''");
+let html=fs.readFileSync(args['--input'],'utf8');let i=0;const links=[];
+html=html.replace(/href="([^"]+)"/g,(match,raw)=>{const u=raw.replaceAll('&amp;','&');let key;if(u.startsWith('mailto:')&&u.includes('Discovery'))key='talk';else if(u.startsWith('mailto:'))key='email';else if(u.startsWith('tel:'))key='phone';else if(u.includes('/yachts/sirena-48'))key=u.includes('#yacht-film')?'sirena_film':'sirena';else if(u.includes('/yachts/pershing-6x'))key=u.includes('#yacht-film')?'pershing_film':'pershing';else if(u.includes('irs.gov/'))key='irs';else if(/^https:\/\/grayyachts.com\/?$/.test(u))key='home';else throw Error('Unmapped email link: '+u);key+='--'+(++i);links.push({key,destination:u});return `href="https://grayyachts.com/c/${token}/${key}"`;});
+html=html.replace('Reply with a day and time that works for you, or use the link below. I’ll confirm our discovery call.','Use the link below to suggest a day and time. I’ll follow up to confirm our discovery call.');
+html=html.replace('</body>',`<p style="max-width:600px;margin:14px auto;font:11px/1.6 Arial,sans-serif;color:#65717b;text-align:center">This email uses individual links and an image to measure engagement. <a href="https://grayyachts.com/c/${token}/privacy">Email privacy</a>.</p><img src="https://grayyachts.com/api/campaign/open/${token}" width="1" height="1" alt="" style="border:0" /></body>`);
+const sql=`INSERT INTO campaign_recipients(token,name,email,prospect_id,campaign,is_test) VALUES('${token}','${esc(args['--name'])}','${esc(args['--email']??'')}','${esc(args['--prospect']??'')}','yacht-ownership',${live?0:1});`;
+execFileSync('npx',['wrangler','d1','execute','grayyachts-newsletter','--remote','--command',sql],{stdio:'pipe'});
+fs.mkdirSync(path.dirname(args['--output']),{recursive:true});fs.writeFileSync(args['--output'],html);
+fs.writeFileSync(args['--output']+'.json',JSON.stringify({token,name:args['--name'],prospect_id:args['--prospect']??'',is_test:!live,status:'draft-not-sent',links,activity_url:'https://grayyachts.com/portal/campaign-activity'+(!live?'?test=1':'')},null,2)+'\n');
+console.log(`Saved ${live?'LIVE RECIPIENT DRAFT':'TEST PREVIEW'}: ${args['--output']} (${links.length+1} tracked links + open pixel). Nothing sent.`);

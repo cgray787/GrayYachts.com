@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
 const navItems = [
+  { label: "Campaign Activity", href: "/portal/campaign-activity", icon: Target },
   {
     label: "Dashboard",
     href: "/portal/dashboard",

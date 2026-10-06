@@ -1,0 +1,3 @@
+import CallForm from './request-form';
+export const metadata={title:'A conversation with Connor | Gray Yachts',robots:{index:false,follow:false},referrer:'no-referrer' as const};
+export default function Page(){return <section className="mx-auto max-w-2xl px-6 pb-24 pt-36"><p className="text-xs uppercase tracking-[.2em] text-gold">Gray Yachts · 15-minute discovery call</p><h1 className="mt-5 font-[family-name:var(--font-cormorant)] text-5xl">Where would you like to go?</h1><p className="my-6 text-text-secondary">Tell me a little about your plans and suggest a time. I’ll confirm availability with you personally. Your request does not reserve a calendar slot.</p><CallForm/></section>;}

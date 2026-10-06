@@ -1,0 +1,25 @@
+import {redirect} from 'next/navigation';
+import {createClient} from '@/lib/supabase/server';
+import {isAdmin} from '@/lib/admin';
+import {db} from '@/lib/campaign-tracking';
+export const dynamic='force-dynamic';
+export const metadata={title:'Campaign activity | Gray Yachts',robots:{index:false,follow:false}};
+type Row={token:string;name:string;campaign:string;prospect_id:string;is_test:number;opens:number;clicks:number;automated:number;last_activity:string|null};
+type Event={id:string;name:string;is_test:number;kind:string;link:string;suspected_automation:number;created_at:string};
+type Call={id:string;name:string;email:string;phone:string;preferred_time:string;timezone:string;message:string;status:string;is_test:number};
+export default async function Page({searchParams}:{searchParams:Promise<{prospect?:string;test?:string}>}){
+ const client=await createClient();const{data:{user}}=await client.auth.getUser();if(!user)redirect('/login?redirect=/portal/campaign-activity');if(!isAdmin(user.email))redirect('/portal/dashboard');
+ const q=await searchParams;const test=q.test==='1'?1:0;const prospect=q.prospect??'';const store=await db();
+ const rows=(await store.prepare(`SELECT r.token,r.name,r.campaign,r.prospect_id,r.is_test,
+ SUM(CASE WHEN e.kind='open' THEN 1 ELSE 0 END) AS opens,
+ SUM(CASE WHEN e.kind='click' THEN 1 ELSE 0 END) AS clicks,
+ SUM(CASE WHEN e.suspected_automation=1 THEN 1 ELSE 0 END) AS automated,MAX(e.created_at) AS last_activity
+ FROM campaign_recipients r LEFT JOIN campaign_events e ON e.token=r.token
+ WHERE r.is_test=? AND (?='' OR r.prospect_id=?) GROUP BY r.token ORDER BY last_activity DESC`).bind(test,prospect,prospect).all<Row>()).results;
+ const events=(await store.prepare(`SELECT e.*,r.name,r.is_test FROM campaign_events e JOIN campaign_recipients r ON r.token=e.token WHERE r.is_test=? AND (?='' OR r.prospect_id=?) ORDER BY e.created_at DESC LIMIT 100`).bind(test,prospect,prospect).all<Event>()).results;
+ const calls=(await store.prepare(`SELECT c.*,r.is_test FROM campaign_call_requests c JOIN campaign_recipients r ON r.token=c.token WHERE r.is_test=? AND (?='' OR r.prospect_id=?) ORDER BY c.created_at DESC LIMIT 100`).bind(test,prospect,prospect).all<Call>()).results;
+ return <div className="mx-auto max-w-6xl space-y-8"><header><p className="text-xs uppercase tracking-widest text-gold">Gray Yachts · Private campaign reporting</p><h1 className="my-3 text-4xl font-[family-name:var(--font-cormorant)]">Every conversation starts somewhere.</h1><p className="text-text-secondary">Recorded opens are estimates, including privacy-proxy loads. Clicks may include scanners or forwarded links. Only a confirmed call is labeled booked. All times below are UTC unless a time zone is specified.</p><nav className="mt-5 flex gap-5 text-gold"><a href="/portal/campaign-activity">Live recipients</a><a href="/portal/campaign-activity?test=1">Test previews</a><a href={'/portal/campaign-activity?test='+test+(prospect?'&prospect='+encodeURIComponent(prospect):'')}>Refresh activity</a></nav></header><p>{test?'TEST DATA — excluded from live campaign results':'LIVE CAMPAIGN DATA'}</p>
+ <div className="overflow-x-auto rounded border border-border"><table className="w-full text-left text-sm"><thead className="bg-bg-card"><tr>{['Recipient','Campaign','Recorded opens','Link requests','Possible automated events','Last activity'].map(x=><th className="p-4" key={x}>{x}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.token} className="border-t border-border"><td className="p-4">{r.name}</td><td className="p-4">{r.campaign}</td><td className="p-4">{r.opens}</td><td className="p-4">{r.clicks}</td><td className="p-4">{r.automated}</td><td className="p-4">{r.last_activity??'No activity'}</td></tr>)}</tbody></table>{!rows.length&&<p className="p-5">No recipients in this view. Draft previews appear under Test previews.</p>}</div>
+ <section><h2 className="mb-4 text-2xl">Call requests & bookings</h2>{!calls.length&&<p className="text-text-secondary">No call requests yet.</p>}<div className="grid gap-4 md:grid-cols-2">{calls.map(c=><article key={c.id} className="rounded border border-border p-5"><strong>{c.name} · {c.status==='confirmed'?'Booked — manually confirmed':'Requested — confirmation needed'}</strong><p className="my-3">{c.preferred_time.replace('T',' ')} · {c.timezone}</p><p>{c.email} · {c.phone}</p><p className="my-3 whitespace-pre-wrap">{c.message}</p>{c.status==='requested'&&<form action="/api/campaign/confirm-call" method="post"><input type="hidden" name="id" value={c.id}/><button className="rounded border border-gold px-4 py-2 text-gold">Mark booked after agreeing the time</button></form>}</article>)}</div></section>
+ <section><h2 className="mb-4 text-2xl">Latest 100 events</h2><ul className="divide-y divide-border">{events.map(e=><li className="py-3" key={e.id}><strong>{e.name}</strong> · {e.kind==='open'?'Recorded open (unconfirmed)':e.kind.replaceAll('_',' ')}{e.link?' · '+e.link:''} · {e.created_at}{e.suspected_automation===1&&<span className="ml-2 text-amber-400">Possible automated traffic</span>}</li>)}</ul></section></div>;
+}

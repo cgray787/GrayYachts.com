@@ -1,0 +1,46 @@
+{
+  "token": "ab11d4b5be58f9f8752a01729c60bafa08329ca7af5c959c",
+  "name": "Jamie Hillend — preview",
+  "prospect_id": "ee4b197d7190119204451f97",
+  "is_test": true,
+  "status": "draft-not-sent",
+  "links": [
+    {
+      "key": "home--1",
+      "destination": "https://grayyachts.com"
+    },
+    {
+      "key": "sirena--2",
+      "destination": "https://grayyachts.com/yachts/sirena-48?utm_source=email&utm_medium=outreach&utm_campaign=yacht_ownership&utm_content=sirena-48"
+    },
+    {
+      "key": "sirena--3",
+      "destination": "https://grayyachts.com/yachts/sirena-48?utm_source=email&utm_medium=outreach&utm_campaign=yacht_ownership&utm_content=sirena-48"
+    },
+    {
+      "key": "sirena_film--4",
+      "destination": "https://grayyachts.com/yachts/sirena-48?utm_source=email&utm_medium=outreach&utm_campaign=yacht_ownership&utm_content=sirena-48#yacht-film"
+    },
+    {
+      "key": "sirena--5",
+      "destination": "https://grayyachts.com/yachts/sirena-48?utm_source=email&utm_medium=outreach&utm_campaign=yacht_ownership&utm_content=sirena-48"
+    },
+    {
+      "key": "talk--6",
+      "destination": "mailto:grayyachts@gmail.com?subject=Discovery+call+%E2%80%94+Sirena+48&body=Hi+Connor%2C%0A%0ACould+we+schedule+15+minutes+to+discuss+the+Sirena+48%3F%0A%0AMy+preferred+day%2Ftime+and+time+zone%3A%0AMy+phone+number%3A%0A%0AThank+you%21"
+    },
+    {
+      "key": "phone--7",
+      "destination": "tel:+14256718474"
+    },
+    {
+      "key": "email--8",
+      "destination": "mailto:grayyachts@gmail.com"
+    },
+    {
+      "key": "irs--9",
+      "destination": "https://www.irs.gov/taxtopics/tc704"
+    }
+  ],
+  "activity_url": "https://grayyachts.com/portal/campaign-activity?test=1"
+}
