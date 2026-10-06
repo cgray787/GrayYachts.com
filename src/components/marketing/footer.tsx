@@ -10,6 +10,7 @@ const services = [
 ];
 
 const connect = [
+  { label: "Explore Pershing & Sirena", href: "/yachts" },
   { label: "Boat selling guides", href: "/insights" },
   { label: "International boat shows", href: "/boat-shows" },
   { label: "Featured boat brands", href: "/brands" },
