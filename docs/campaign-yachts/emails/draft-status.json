@@ -1,0 +1,21 @@
+{
+  "status": "draft-not-sent",
+  "pricing": "Awaiting Connor\u2019s confirmed asking prices; source listings say request price.",
+  "sender": "grayyachts@gmail.com",
+  "recipients": [],
+  "tax_source": "https://www.irs.gov/taxtopics/tc704",
+  "drafts": [
+    {
+      "model": "Pershing 6X",
+      "subject": "Life\u2019s too short. Buy the yacht\u2014with a plan.",
+      "html": "pershing-6x.html",
+      "text": "pershing-6x.txt"
+    },
+    {
+      "model": "Sirena 48",
+      "subject": "Your next weekend could look like this.",
+      "html": "sirena-48.html",
+      "text": "sirena-48.txt"
+    }
+  ]
+}

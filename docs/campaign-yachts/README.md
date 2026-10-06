@@ -25,3 +25,9 @@ October 6, 2026: added a full-width Pershing cruising photograph, replaced the S
 Pershing film: Jeff Brown Yachts listing embeds https://vimeo.com/1229950847 (oEmbed confirmed title Pershing 6X, uploader Jeff Brown). Sirena film: https://www.youtube.com/watch?v=MQmlljWDDHk (oEmbed confirmed Sirena 48, SIRENA YACHTS). New image URLs are recorded in media-upgrade.json. No media ownership transfer is implied; all remain model/sistership media.
 
 Deployment 5871c2df-8492-445b-b05f-2c8768d5372c. ESLint, production TypeScript/static build, guarded deployment, live route/image/contact/sitemap checks and media markup checks passed. Sirena iframe loaded its titled YouTube player and duration in Chrome; complete playback and mobile visual QA were not verified.
+
+## Email drafts and visible prices
+
+Added emails/pershing-6x.html and emails/sirena-48.html plus matching plain-text drafts and draft-status.json. These are local review artifacts, not Gmail drafts and not sent or scheduled. Each has the Gray Yachts logo, two sistership photos, UTM-tagged landing links, a film link and a discovery-call mailto invitation. Business phone/email/address are included; opt-out replies require manual suppression before any future sends. Pricing awaits Connor's supplied amounts: both listings advertise request price. No estimates were substituted. Tax language remains conditional and was checked against IRS Topic 704 on October 6.
+
+Price styling is now a dark panel with large bold gold type in email drafts and detail-page heroes, and bold gold type on /yachts cards. Email markup checks validated images, link schemes, campaign links, video anchors and price styles. Website lint, TypeScript build and guarded deployment checks passed.
