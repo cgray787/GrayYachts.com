@@ -35,3 +35,7 @@ Price styling is now a dark panel with large bold gold type in email drafts and 
 ## User-authorized estimated prices
 
 Connor explicitly requested approximate online pricing rather than exact quotes. Added prominently labeled estimated purchase budgets in USD: Pershing 6X $3.3–$3.8 million and Sirena 48 $1.9–$2.3 million, across both detail pages, collection cards, specs and both HTML/plain-text email drafts. These ranges are inferred budgeting guidance, not dealer-confirmed asks. Adjacent copy explains options, taxes, duties and delivery may change the total. Evidence and method are in pricing-estimates.json. Actual JBY listings remain request price. No email was sent.
+
+## Approved business-sale tax copy
+
+User approved the conditional business-sale wording after discussion of deductions versus tax savings. Applied to both HTML/plain-text email drafts and both shared yacht detail pages. On pages it is a visible gold-bordered block immediately before the contact section, with bold headings and the conditional up-to-100% first-year bonus depreciation sentence. The adjacent explanation retains CPA review and eligibility limitations and distinguishes deductions from tax savings. No 70–80% tax-savings claim was added. Existing IRS references retained. Earlier deployment was stopped before publish to incorporate the subsequent bold/visible placement request.

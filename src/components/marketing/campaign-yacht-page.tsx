@@ -51,6 +51,17 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
    <YachtFilm yacht={yacht}/>
   </section>
 
+  <section id="ownership-tax-planning" className={shell + " pb-14 md:pb-20"}>
+   <div className="border-l-4 border-gold bg-bg-secondary p-7 sm:p-10">
+    <h2 className={serif + " text-4xl font-bold text-gold md:text-5xl"}>Selling your business?</h2>
+    <p className="mt-5 max-w-3xl text-xl font-bold leading-relaxed text-text-primary md:text-2xl">Explore yacht ownership as part of your next chapter—and your tax planning.</p>
+    <p className="mt-5 max-w-3xl text-lg font-bold leading-relaxed text-gold">Qualifying business-use yachts may be eligible for up to 100% first-year bonus depreciation on their eligible basis.</p>
+    <p className="mt-5 max-w-3xl text-base leading-7 text-text-primary">I’ll help you find the yacht while your CPA evaluates the deductions available to you.</p>
+    <p className="mt-5 max-w-3xl text-sm leading-6 text-text-secondary">Buying a yacht or selling a business alone does not establish eligibility. Deductions reduce taxable income; they are not dollar-for-dollar tax savings. Your CPA must evaluate qualifying use, timing, loss limitations and potential recapture. Personal entertainment use generally does not qualify. Tax eligibility has not been established for this yacht.</p>
+    <p className="mt-4 text-xs text-text-secondary"><a href="https://www.irs.gov/taxtopics/tc704" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">IRS depreciation guidance</a><span className="mx-3">·</span><a href="https://www.irs.gov/publications/p463" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Entertainment-use rules</a></p>
+   </div>
+  </section>
+
   <section id="contact-connor" className="scroll-mt-24 border-y border-border bg-bg-secondary">
    <div className={shell + " grid gap-10 py-14 md:grid-cols-[1.3fr_1fr] md:gap-20 md:py-20"}>
     <div>
@@ -70,13 +81,6 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
   </section>
 
   <section className={shell + " py-10"}>
-   <details className="border-b border-border pb-6">
-    <summary className="cursor-pointer text-sm text-gold">Considering charter ownership and potential tax benefits?</summary>
-    <div className="mt-4 max-w-3xl text-xs leading-6 text-text-secondary">
-     <p>Qualifying business property may be eligible for 100% first-year bonus depreciation on its eligible basis. Buying a yacht alone does not establish eligibility; personal entertainment use generally does not qualify. Your tax adviser must assess business use, timing, loss limitations and potential recapture. Deductions are not dollar-for-dollar tax savings. Charter suitability and tax eligibility have not been established for this yacht.</p>
-     <p className="mt-3"><a href="https://www.irs.gov/taxtopics/tc704" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">IRS depreciation guidance</a><span className="mx-3">·</span><a href="https://www.irs.gov/publications/p463" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Entertainment-use rules</a></p>
-    </div>
-   </details>
    <div className="flex flex-wrap items-center justify-between gap-5 pt-7">
     <Link href="/yachts" className={label + " text-text-secondary hover:text-gold"}>Both yachts</Link>
     <Link href={"/yachts/"+other.slug} className="inline-flex items-center gap-3 text-sm text-gold">Explore the {other.name}<ArrowRight size={15}/></Link>
