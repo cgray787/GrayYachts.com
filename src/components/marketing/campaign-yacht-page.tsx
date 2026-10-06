@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import YachtFilm from "./yacht-film";
+import YachtInquiryForm from "./yacht-inquiry-form";
 import { ArrowRight, Phone } from "lucide-react";
 import { campaignYachts, discoveryEmail, type CampaignYacht } from "@/lib/campaign-yachts";
 
@@ -67,16 +68,17 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
     <div>
      <p className={label + " text-gold"}>Talk with Connor</p>
      <h2 className={serif + " mt-4 text-4xl font-light leading-tight md:text-5xl"}>Is this the yacht<br/>you’ve been looking for?</h2>
-     <p className="mt-5 max-w-md text-sm leading-7 text-text-secondary">Let’s spend 15 minutes on your plans, current pricing and what ownership would involve. Send a time that works for you and I’ll confirm.</p>
+     <p className="mt-5 max-w-md text-sm leading-7 text-text-secondary">Ask about pricing, arrange a viewing, or suggest a time for a 15-minute call. Send a short inquiry and I’ll follow up personally.</p>
      <div className="mt-7"><a href={discoveryEmail(yacht.name)} className={cta}>Email Connor <ArrowRight size={15}/></a></div>
      <p className="mt-3 text-[11px] text-text-secondary">Opens a draft in your email app.</p>
     </div>
-    <address className="self-center border-l border-gold/30 pl-7 not-italic">
+    <div className="space-y-8"><YachtInquiryForm yacht={yacht.name}/>
+    <address className="border-t border-gold/30 pt-6 not-italic">
      <p className={serif + " text-3xl"}>Connor Gray</p><p className={label + " mt-2 text-gold"}>Gray Yachts</p>
      <a href="tel:+14256718474" className="mt-6 flex items-center gap-3 text-lg hover:text-gold"><Phone size={16}/>425-671-8474</a>
      <a href="mailto:grayyachts@gmail.com" className="mt-3 block break-all text-sm text-text-secondary hover:text-gold">grayyachts@gmail.com</a>
      <p className="mt-5 text-xs leading-6 text-text-secondary">2288 W Commodore Way<br/>Seattle, WA 98199</p>
-    </address>
+    </address></div>
    </div>
   </section>
 

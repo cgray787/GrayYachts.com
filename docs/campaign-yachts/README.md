@@ -39,3 +39,7 @@ Connor explicitly requested approximate online pricing rather than exact quotes.
 ## Approved business-sale tax copy
 
 User approved the conditional business-sale wording after discussion of deductions versus tax savings. Applied to both HTML/plain-text email drafts and both shared yacht detail pages. On pages it is a visible gold-bordered block immediately before the contact section, with bold headings and the conditional up-to-100% first-year bonus depreciation sentence. The adjacent explanation retains CPA review and eligibility limitations and distinguishes deductions from tax savings. No 70–80% tax-savings claim was added. Existing IRS references retained. Earlier deployment was stopped before publish to incorporate the subsequent bold/visible placement request.
+
+## Short inquiry form
+
+Added a campaign-specific client form to both yacht pages under #contact-connor. Required name/email, optional phone/message, automatic yacht name, honeypot, length limits, disabled submitting state, explicit failure fallback and confirmed-success state. Uses existing POST /api/inquiry without modifying global fleet forms or backend routing. Existing API delivers to connorgray@jeffbrownyachts.com; visitor fallback uses the user-specified grayyachts@gmail.com and phone. No automatic calendar booking or newsletter subscription. Production end-to-end inbox delivery was not exercised because no test email was authorized. Targeted lint and production TypeScript/static build passed.
