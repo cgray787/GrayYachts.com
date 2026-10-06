@@ -1,0 +1,21 @@
+{
+  "photos": [
+    {
+      "file": "sirena-48-aerial.jpg",
+      "source": "https://jeffbrownyachts.com/images/jcogs_img/cache/EBD-0080-D_-_abcdef_-_0a55ad9222ab22aeeec340b80baa676bc3e2fdc5.jpg"
+    },
+    {
+      "file": "sirena-48-cabin.jpg",
+      "source": "https://jeffbrownyachts.com/images/jcogs_img/cache/Jeff-Brown-20393_-_abcdef_-_bb6032f14131e77f52bf57254f8b125e59d28d67.jpg"
+    },
+    {
+      "file": "pershing-6x-running.jpg",
+      "source": "https://jeffbrownyachts.com/images/jcogs_img/cache/Pershing6XCruising_0011_52531_-_abcdef_-_279df86bdff16df04d76056f8748696d92fe6afa.jpg"
+    }
+  ],
+  "videos": {
+    "pershing": "https://vimeo.com/1229950847",
+    "sirena": "https://www.youtube.com/watch?v=MQmlljWDDHk"
+  },
+  "checked": "2026-10-06"
+}

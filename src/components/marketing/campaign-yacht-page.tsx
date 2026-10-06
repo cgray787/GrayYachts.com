@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import YachtFilm from "./yacht-film";
 import { ArrowRight, Phone } from "lucide-react";
 import { campaignYachts, discoveryEmail, type CampaignYacht } from "@/lib/campaign-yachts";
 
@@ -21,7 +22,7 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
     <h1 className={serif + " mt-5 text-7xl font-light leading-none sm:text-8xl lg:text-[112px]"}>{yacht.name}</h1>
     <p className={serif + " mt-5 text-3xl text-[#e2c79d]"}>Life’s too short. Buy the yacht.</p>
     <p className="mt-5 max-w-md text-base leading-7 text-slate-200">{pershing ? "A 62-foot Pershing for the owner who enjoys the run as much as the destination." : "Three guest cabins and a flybridge made for weekends with family and friends."}</p>
-    <div className="mt-8"><a href="#contact-connor" className={cta}>Request pricing & a call <ArrowRight size={15}/></a></div>
+    <div className="mt-8 flex flex-wrap items-center gap-6"><a href="#contact-connor" className={cta}>Request pricing & a call <ArrowRight size={15}/></a><a href="#yacht-film" className="text-[11px] uppercase tracking-[0.16em] text-white underline underline-offset-8">Watch the film</a></div>
     <p className="mt-5 text-[11px] text-slate-300">Price on request · Sistership shown</p>
    </div>
   </section>
@@ -38,10 +39,16 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
     <a href={yacht.source} target="_blank" rel="noopener noreferrer" className="text-xs text-gold underline underline-offset-4">View full specifications</a>
    </div>
    <div className="grid gap-5 md:grid-cols-2">
-    {yacht.photos.slice(1).map(p=><figure key={p.src}><img src={p.src} alt={p.alt} loading="lazy" width={1600} height={1067} className="aspect-[4/3] w-full object-cover"/><figcaption className="mt-3 text-[11px] text-text-secondary">{p.alt.replace(" sistership", "")} · Sistership shown</figcaption></figure>)}
+    {yacht.photos.slice(1).map((p,i)=><figure key={p.src} className={i===0 ? "md:col-span-2" : ""}><img src={p.src} alt={p.alt} loading="lazy" width={1600} height={1067} className="h-auto w-full"/><figcaption className="mt-3 text-[11px] text-text-secondary">{p.alt.replace(" sistership", "")} · Sistership shown</figcaption></figure>)}
    </div>
    <p className="mt-8 max-w-2xl text-sm leading-7 text-text-secondary">{pershing ? "The listing includes twin MAN V12 engines, a full-beam master suite and a hydraulic swim platform. Ask Connor for the current specification, delivery options and pricing." : "The listing includes three guest cabins, two guest heads and a flybridge with outdoor seating. Ask Connor about the current configuration, delivery options and pricing."}</p>
    <p className="mt-3 text-[11px] leading-5 text-text-secondary">Details checked October 6, 2026. Photos show a sistership. Equipment, specifications and availability require confirmation.</p>
+  </section>
+
+  <section id="yacht-film" className={shell + " scroll-mt-24 pb-14 md:pb-20"}>
+   <p className={label + " text-gold"}>The film</p>
+   <h2 className={serif + " mb-8 mt-3 text-4xl font-light"}>See the {yacht.name} in motion.</h2>
+   <YachtFilm yacht={yacht}/>
   </section>
 
   <section id="contact-connor" className="scroll-mt-24 border-y border-border bg-bg-secondary">

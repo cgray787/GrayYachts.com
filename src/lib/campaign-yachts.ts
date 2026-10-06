@@ -3,10 +3,12 @@ export type CampaignYacht = {
  intro: string; story: string; description: string; source: string;
  specs: { label: string; value: string }[];
  features: { title: string; text: string }[];
+ video: { provider: "vimeo" | "youtube"; id: string; source: string };
  photos: { src: string; alt: string; caption: string }[];
 };
 export const campaignYachts: CampaignYacht[] = [
  {
+  video: {provider:"vimeo",id:"1229950847",source:"https://vimeo.com/1229950847"},
   slug: "pershing-6x", name: "Pershing 6X", year: "2027", location: "Fort Lauderdale, Florida",
   title: "Life’s too short.\nBuy the yacht.",
   intro: "Italian design. Open water. A very different kind of weekend.",
@@ -21,11 +23,13 @@ export const campaignYachts: CampaignYacht[] = [
   ],
   photos: [
    {src:"/images/campaign-yachts/pershing-6x-1.jpg",alt:"Pershing 6X sistership cruising at sea",caption:"Italian performance, out on the open water."},
+   {src:"/images/campaign-yachts/pershing-6x-running.jpg",alt:"Pershing 6X sistership underway, viewed from the bow",caption:"Underway"},
    {src:"/images/campaign-yachts/pershing-6x-2.jpg",alt:"Pershing 6X sistership salon and helm",caption:"A salon with the sea in every direction."},
    {src:"/images/campaign-yachts/pershing-6x-3.jpg",alt:"Pershing 6X sistership lower-deck interior",caption:"A quieter side of life aboard."}
   ]
  },
  {
+  video: {provider:"youtube",id:"MQmlljWDDHk",source:"https://www.youtube.com/watch?v=MQmlljWDDHk"},
   slug:"sirena-48",name:"Sirena 48",year:"2027",location:"San Diego, California",
   title:"More weekends.\nLess someday.",
   intro:"Bring your favorite people. Leave the everyday behind.",
@@ -39,9 +43,10 @@ export const campaignYachts: CampaignYacht[] = [
    {title:"Cruise your way",text:"Explore coastal stops or settle into a gentler pace. Start with the journeys you want to take, then plan ownership around them."}
   ],
   photos:[
-   {src:"/images/campaign-yachts/sirena-48-1.jpg",alt:"Sirena 48 sistership on the water",caption:"A new perspective on your next weekend."},
+   {src:"/images/campaign-yachts/sirena-48-aerial.jpg",alt:"Sirena 48 sistership on the water",caption:"A new perspective on your next weekend."},
+   {src:"/images/campaign-yachts/sirena-48-1.jpg",alt:"Sirena 48 sistership cruising",caption:"On the water"},
    {src:"/images/campaign-yachts/sirena-48-3.jpg",alt:"Sirena 48 sistership covered flybridge dining area",caption:"A table with a view worth sharing."},
-   {src:"/images/campaign-yachts/sirena-48-2.jpg",alt:"Sirena 48 sistership exterior and deck details",caption:"Thoughtful details, from deck to deck."}
+   {src:"/images/campaign-yachts/sirena-48-cabin.jpg",alt:"Sirena 48 sistership guest cabin",caption:"Thoughtful details, from deck to deck."}
   ]
  }
 ];
