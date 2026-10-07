@@ -1,0 +1,757 @@
+{
+  "checkedAt": "2026-10-07",
+  "source": "https://jeffbrownyachts.com/inventory/filter",
+  "sourceTotal": 90,
+  "pageCount": 8,
+  "count": 83,
+  "coverage": "All paginated linked inventory cards; sold cards without listing links are omitted. Availability requires confirmation.",
+  "yachts": [
+    {
+      "name": "2027 Axopar 38 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-38-xc-cross-cabin-270624",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-38-xc-cross-cabin-power-10356009-20261002135132009-1_-_abcdef_-_d4c9dbac9887e1fc14d3b29647945b37e449050e.jpg",
+      "price": "$653,310",
+      "location": "Newport Beach, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 38 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-38-xc-cross-cabin-270606",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-38-xc-cross-cabin-power-10355011-20261002090403098-1_-_abcdef_-_6e3d6e4045ec59764611a6c2b38aa86fdbc83402.jpg",
+      "price": "$637,120",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 38 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-38-xc-cross-cabin-270626",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-38-xc-cross-cabin-power-10357893-20261005135632953-1_-_abcdef_-_27029d83d3b6d3881fcceefc73f6b8dd1c02d0b6.jpg",
+      "price": "$616,490",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 29 Sun-Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-29-sun-top",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Axopar_29_Sun_Top_DSC03369_-_abcdef_-_6379f5c613ff9088803198caf5a120a4e2e02611.jpeg",
+      "price": "$355,690",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 29 Sun-Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-29-sun-top-270011",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-29-sun-top-power-10258817-20260722115725042-3_-_abcdef_-_2b9ba7b87628002067956d9b4d8b051ff500259c.jpg",
+      "price": "$348,480",
+      "location": "Kailua-Kona, HI",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 29 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-29-xc-cross-cabin-270012",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Axopar-29-Listing-on-YachtWay-4_-_abcdef_-_d19821bfe97e57092c523eb48ac319098c72a341.jpg",
+      "price": "$340,780",
+      "location": "Newport Beach, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Axopar 29 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-29-xc-cross-cabin-270010",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-29-xc-cross-cabin-power-10265380-20260728120622904-1_-_abcdef_-_df821a4034675189c31352460bb7981fc70c2481.jpg",
+      "price": "$335,830",
+      "location": "Seattle, WA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Sirena 78",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-sirena-78",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Sirena_78_General_Listing_Photo_1_-_abcdef_-_37f3b495ddd890e0a29188fd4a9b09e847031f82.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Sirena"
+    },
+    {
+      "name": "2023 Riva 56 Rivale",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-riva-56-rivale-10320675",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-riva-56-rivale-power-10320675-20260911114505580-1_-_abcdef_-_88e6966e8a4d810b3e6924235325a0072bd73db3.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Riva"
+    },
+    {
+      "name": "2027 Pershing 6X",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-pershing-6x-10332235",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Pershing6XCruising_0003_52523_-_abcdef_-_e63ff05129824d90aafbcd6fbd1062ec3ff5ff41.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Pershing"
+    },
+    {
+      "name": "2027 Sirena 118",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-sirena-118",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-sirena-118-power-10324408-20260915163240721-2_-_abcdef_-_82e9e58ca081c5891013ff1e85ee4ba583f44d69.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Sirena"
+    },
+    {
+      "name": "2027 Axopar 38 Cross Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-38-cross-top-10320628",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-38-cross-top-power-10320628-20260911114153705-1_-_abcdef_-_b4cb84c8af4827004406eb3303b64ef1922f2e89.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Brabus 1000 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-brabus-1000-xc-cross-cabin",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-brabus-1000-power-10319373-20260910115834704-1_-_abcdef_-_712095128d86fcbe7560d376ba2777d1d2a95571.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Brabus"
+    },
+    {
+      "name": "2027 Axopar 45 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-axopar-45-xc-cross-cabin-251212",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2027-axopar-45-xc-cross-cabin-power-10222999-20260728150113062-1_-_abcdef_-_2702694f22c8372a88c87cb8222a3d18dd7717df.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2027 Sirena 48",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2027-sirena-48-48-46",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/EBD-0013-D_-_abcdef_-_74b8ab0d9d5b4aa462e4124d4c1d518f515211c7.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Sirena"
+    },
+    {
+      "name": "2026 Everglades 375 Center Console",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-everglades-375-center-console-375-26",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Everglades-Jeff-Brown-For-Sale-YachtWay-2_-_abcdef_-_b887106d596a844dab7f78cb0d5ba22f4445a62c.jpg",
+      "price": "$1,274,515",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Everglades"
+    },
+    {
+      "name": "2026 Everglades 335 Center Console",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-everglades-335-center-console-335-205",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Everglades-335-205-Jeff-Brown-Listing-on-YachtWay-1_-_abcdef_-_6ebf370e87e10866e92c5cc58dfb301428d029cd.jpg",
+      "price": "$716,405",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Everglades"
+    },
+    {
+      "name": "2026 Axopar 38 Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-38-cross-cabin-260805",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-38-cross-cabin-power-10064660-20260515111323960-1_-_abcdef_-_ce8a150e53e8525fd904be13b685634dc5f97fb5.jpg",
+      "price": "$601,030",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 38 Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-38-cross-cabin-260755",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/DJI_20260521111941_0507_D_-_abcdef_-_6bc0daa49cc9ed85239cb40942556e5fda2b446a.jpg",
+      "price": "$597,000",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 38 Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-38-cross-cabin-260893",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-38-cross-cabin-power-10163802-20260427081742425-3_-_abcdef_-_6da0c78c29d0e646d07cf4735d6e36d76438c467.jpg",
+      "price": "$580,730",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 38 Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-38-cross-cabin-260872",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-38-cross-cabin-power-10163802-20260603132857810-2_-_abcdef_-_61b66f38dd2413e8eac55788588047a12521f568.jpg",
+      "price": "$579,860",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 38 Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-38-cross-cabin-260814",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-38-cross-cabin-power-10062084-20260121153116172-1_-_abcdef_-_3203fc689128168bcf88ff7bd1c9ed8b81f2c9c9.jpg",
+      "price": "$567,590",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Everglades 273 Center Console",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-everglades-273-center-console-273-26",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Everglades-273-Jeff-Brown-Listing-on-YachtWay-2_-_abcdef_-_5c6236afa435f0c9645a3caf3b8cb366b70f50ef.jpg",
+      "price": "$387,960",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Everglades"
+    },
+    {
+      "name": "2026 Axopar 29 XC AC Twin 200 White Chalk",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-29-xc-ac-twin-200-white-chalk-250442",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-29-xc-cross-cabin-power-9967955-20260406102407734-3_-_abcdef_-_571bf71d9b7e56658c0f728112820d09819d8d85.jpg",
+      "price": "$331,787",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 29 CCX",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-29-ccx-260481",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-29-ccx-power-10094049-20261005123526227-1_-_abcdef_-_a659d3a704fa615ed02ef2704776b78f07cc4fc9.jpg",
+      "price": "$320,256",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar AX29 CCX",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-ax29-ccx-250438",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-ax29-ccx-power-9874280-20260216105606093-4_-_abcdef_-_c4934dbdd5c01fe07f32375acd4d60e51c5fa3af.jpg",
+      "price": "$319,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 29 CCX",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-29-ccx-260146",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-29-ccx-power-10096374-20261005112356150-1_-_abcdef_-_60a8b3a157ffe97e81943bf63d33ebe670072eb2.jpg",
+      "price": "$305,521",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 29 XC Aft Sofa Twin 200 Brabus Sandstone",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-29-xc-aft-sofa-twin-200-brabus-sandstone-250443",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-29-xc-aft-sofa-twin-200-brabus-sandstone-power-9968356-20251114155809871-2_-_abcdef_-_26a9139eba8a83a21510b0adb40c1446e1076b23.jpg",
+      "price": "$297,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Four Winns H2 OB",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-four-winns-h2-ob-fw-87492",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/87492-Jeff-Brown-Listing-on-YachtWay-1_-_abcdef_-_d4a8ce79ccb7bff2fa03fbf345fcb46589e6caae.jpg",
+      "price": "$129,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Four Winns"
+    },
+    {
+      "name": "2026 Four Winns H1 OB",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-four-winns-h1-ob-fw-87491",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/FourWinns-H1-OB-Jeff-Brown-Listing-on-YachtWay-1-FW-87491_-_abcdef_-_93ec8d489bde01a16ca08306af19d85699ef2697.jpg",
+      "price": "$79,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Four Winns"
+    },
+    {
+      "name": "2026 Wally wallypower50",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-wally-wallypower50-10352146",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-wally-wallypower50-power-10352146-20260930162543411-3_-_abcdef_-_adca3b63fea7e2ab7cb3567b5331bfc5d85595d3.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2026 Pershing GTX116",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-pershing-gtx116",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/PershingGTX116Cruising_0017_73669_-_abcdef_-_f1a8186df0edf92ffd6f8ed19b6e183bc5e45cfe.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Pershing"
+    },
+    {
+      "name": "2026 Pershing GTX70",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-pershing-gtx70-10333063",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-pershing-gtx70-power-10333063-20260923095346611-1_-_abcdef_-_699c4064c2b2a6022bcb7281cee3f1b97a3fadef.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Pershing"
+    },
+    {
+      "name": "2026 Wally wallytender43",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-wally-wallytender43-10330995",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-wally-wallytender43-power-9620112-20260701075716887-1_-_abcdef_-_9efb8e40e8c2ee18f757c2d037793a76fa46d6c4.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2026 Wally wallypower50",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-wally-wallypower50",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026_Wally_Wallypower50_-_1_-_abcdef_-_dc477b064d7d07f106d52e1043d1c7d6db893ab8.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2026 Sirena 48",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-sirena-48-48-38",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-sirena-48-power-9707807-20250307115119111-1_XLARGE_-_abcdef_-_fc25cedae5da048fb5d25458b0428d2245c7ca02.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Sirena"
+    },
+    {
+      "name": "2026 Axopar 45 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-45-xc-ac-brabus-med-lithium-260674",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-axopar-45-xc-cross-cabin-power-10024675-20260728153427141-1_-_abcdef_-_597d82550b8b602718b8fad0e28134f6e2ce0860.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 45 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-45-xc-cross-cabin-251182",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/DSC04397-web_-_abcdef_-_d993edebf5e37b1fab3e8c90e9b1bc49ed05b1e0.jpg",
+      "price": "Request Price",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Brabus 1500",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-brabus-shadow-1500-251261",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/L1004738_-_abcdef_-_72fc13566b68b1d92b9676cae4c1f962b33e4659.jpg",
+      "price": "Request Price",
+      "location": "Newport Beach, CA",
+      "status": "for sale",
+      "brand": "Brabus"
+    },
+    {
+      "name": "2026 Wally wallytender48X",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-wally-wallytender48x-10331971",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2026-wally-wallytender48x-power-10331971-20260922125036026-3_-_abcdef_-_17ef7d7476924dec192911c3fea101760d0c9f9c.jpg",
+      "price": "Request Price",
+      "location": "Huntington, NY",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2026 Axopar 45 Cross Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-45-cross-top-251197",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/251197-Jeff-Brown-Listing-on-YachtWay-10_-_abcdef_-_59b35e675dc00f89529e9a3fec9d751f88262db9.jpg",
+      "price": "Request Price",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Everglades 395 Center Console",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-everglades-395-center-console-92",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-everglades-395-center-console-power-10206581-20260603165805460-4_-_abcdef_-_928c5a06a19437d191e69daa4e0948916c82545e.jpg",
+      "price": "$1,472,000",
+      "location": "Edgewater, FL",
+      "status": "for sale",
+      "brand": "Everglades"
+    },
+    {
+      "name": "2025 Axopar 37 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-37-xc-cross-cabin-10077468",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-axopar-37-xc-cross-cabin-power-10077468-20260208190623381-1_-_abcdef_-_be6d58fd2b87390e0f507896bd6c29572f01c026.jpg",
+      "price": "$449,900",
+      "location": "Ventura, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Axopar XC Cross Cabin 37",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-xc-cross-cabin-37-10294689",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-axopar-xc-cross-cabin-37-power-10294689-20260820100739570-0_-_abcdef_-_121ad354720d2d145c1af9423a7655f32d6234ce.jpg",
+      "price": "$330,000",
+      "location": "Wilmington, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Axopar 29 CCX",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-29-ccx-241170",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-axopar-29-ccx-power-9621725-20241216113039442-1_XLARGE_-_abcdef_-_5c526e88385daa42ef109bcf018292b67ae4affd.jpg",
+      "price": "$291,627",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Axopar 29 Sun Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-29-sun-top-250348",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-axopar-29-sun-top-power-9710456-20260114075216154-1_-_abcdef_-_18df07838018a042cd3090e0248dfc3aedbbf31b.jpg",
+      "price": "$269,000",
+      "location": "Charleston, SC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Axopar 29 Sun-Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-29-sun-top-10329855",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2025-axopar-29-sun-top-power-10329855-20260920130215595-4_-_abcdef_-_d96cd6d67e988c63454cc2f3492e5bb63ef1921b.jpg",
+      "price": "$229,000",
+      "location": "Page, AZ",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2025 Axopar 45 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2025-axopar-45-240062",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/240062-Jeff-Brown-Listing-on-YachtWay-35_-_abcdef_-_60267df4a3bfe9a07f2acaa6782c1d04d2357507.jpg",
+      "price": "Request Price",
+      "location": "Charleston, SC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2024 Axopar 45 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-axopar-45-xc-cross-cabin-10333457",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-axopar-45-xc-cross-cabin-power-10333457-20260923132423769-0_-_abcdef_-_ae4dad1cf5eb422d5fc8d2f33071ed61d89890f8.jpg",
+      "price": "$879,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2024 Axopar 37 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-axopar-37-xc-cross-cabin-10271573",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-axopar-37-xc-cross-cabin-power-10271573-20260803050724322-1_-_abcdef_-_cc162124a4833813fac48d02a8b2dbd1cbff4c30.jpg",
+      "price": "$399,950",
+      "location": "Oxnard, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2024 Axopar 37 XC Cross Cabin Aft Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-axopar-37-xc-cross-cabin-aft-cabin-240313",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Axopar-37-Aft-Cabin-3-web_-_abcdef_-_43c15d73a7b6fa73a11919a138b0ef52b903a5d0.jpg",
+      "price": "$382,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2026 Axopar 29 XC Aft Sofa Twin 200 Brabus Plat Grey Chalk",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2026-axopar-29-xc-aft-sofa-twin-200-brabus-plat-grey-chalk-250444",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/IMG_5272-2_-_abcdef_-_ec22fbc7d45dacdf0370b3e0c3cdadf49b908492.jpg",
+      "price": "$329,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2024 Axopar 29 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-axopar-29-xc-cross-cabin-10327412",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-axopar-29-xc-cross-cabin-power-10327412-20260917142403722-3_-_abcdef_-_cb1e3d589009aa4c91e3c58feb5c39856c27f6b3.jpg",
+      "price": "$269,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2024 Riva 48 Dolceriva",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-riva-48-dolceriva",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024_OctRiva__1063_-_abcdef_-_5f2e742306d0500d989e687a8fcf4533fb452db5.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Riva"
+    },
+    {
+      "name": "2024 Riva 66 Ribelle",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-riva-66-ribelle-r66-25",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-riva-66-ribelle-power-9675235-20250611101124849-1_XLARGE_-_abcdef_-_c50cf754531eecb7a406f0fd51acdc2b43f54cf4.jpg",
+      "price": "Request Price",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Riva"
+    },
+    {
+      "name": "2024 Wally power58X",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-wallypower58x-w58-03",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-wally-wallypower-58x-power-9664143-20260127085637667-3_-_abcdef_-_856444d91b98bbca5a681cf7805c3c4cd9470f4c.png",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2024 Riva 38 Rivamare",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2024-rivamare-38-38-86",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2024-riva-38-rivamare-power-9606395-20250221144051260-1_XLARGE_-_abcdef_-_f110596a3b14c237ae8ba57ad31e2236a83b5e45.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Riva"
+    },
+    {
+      "name": "2023 Pardo Yachts 38",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-pardo-yachts-38-9595993",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2023-pardo-yachts-p38-power-9595993-20241028101943343-1_XLARGE_281_29_-_abcdef_-_88d18350de8791857109fd60e980168effac60de.jpg",
+      "price": "$599,000",
+      "location": "Newport Beach, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2023 Axopar 37 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-axopar-37-xc-cross-cabin-230857",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/230857-2023-axopar-37-xc-cross-cabin-brabus-trim-with-wet-bar-power-9804363-20251111094834207-2_-_abcdef_-_fbf35a8a578508ee3b9d04c35fc5a25bd578c4d2.jpg",
+      "price": "$369,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2023 Axopar 37 XC Cross Cabin Wet Bar",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-axopar-37-xc-cross-cabin-wet-bar",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/8641929_20221230112655359_1_XLARGE_-_abcdef_-_b669fc3d79b0a00e591b2caa6426aeba4eea2be6.jpg",
+      "price": "$339,000",
+      "location": "Seattle, WA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2023 Brabus Shadow 500 T-Top AFT Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/brabus-shadow-500-t-top-aft-cabin",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/1-2023-brabus-shadow-500-t-top-aft-cabin-power-8729898-20240715141147582-1_XLARGE_-_abcdef_-_c9e4255f2a716f3ddd453112c94792960d43a661.jpg",
+      "price": "$329,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Brabus"
+    },
+    {
+      "name": "2023 Brabus Shadow 500 T-Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-brabus-shadow-500-t-top-231019",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2023-brabus-shadow-500-t-top-power-9589439-20250305104423104-1_XLARGE_-_abcdef_-_f09d84ac7835671500db1a545a42f9665b2128e6.jpg",
+      "price": "$305,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Brabus"
+    },
+    {
+      "name": "2023 Brabus Shadow 500 Black Ops",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-brabus-shadow-500-black-ops-10193265",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2023-brabus-shadow-500-black-ops-power-10193265-20260522172637792-1_-_abcdef_-_027419620f9121b114590f67d15ee95f1f4a98be.jpg",
+      "price": "$299,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Brabus"
+    },
+    {
+      "name": "2023 Wally tender48",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-wallytender48-48-24",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2023-wally-wallytender-48-power-9664117-20251111145038783-1-48-24_-_abcdef_-_14544c857e1028fd54acc498ee96e22e5d6e1e9a.jpg",
+      "price": "Request Price",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Wally"
+    },
+    {
+      "name": "2023 Pearl 95",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2023-pearl-95",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/jeff_brown_yachts_Pearl_Yacht_95_-_abcdef_-_264923b557afc000827876ce6ac5b1845104d328.jpg",
+      "price": "Request Price",
+      "location": "Fort Lauderdale, FL",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2022 Axopar 37 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2022-axopar-37-xc-cross-cabin-10179151",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2022-axopar-37-xc-cross-cabin-power-10179151-20260525094644742-1_-_abcdef_-_3434f2f17d62dd558d7bb20715959f62cbd983b0.jpg",
+      "price": "$358,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2022 Axopar 37 XC Cross Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2022-axopar-37-xc-cross-cabin-10329826",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2022-axopar-37-xc-cross-cabin-power-10329826-20260920124226112-1_-_abcdef_-_fdab83517cc707ffa1fd6320e6cf7ee3e6a3c592.jpg",
+      "price": "$349,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2022 Axopar 37 Cross Cabin Brabus Trim",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2022-axopar-37-cross-cabin-brabus-trim-9818444",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2022-axopar-37-cross-cabin-brabus-trim-power-9818444-20250528144532213-1_XLARGE_-_abcdef_-_14c646cf78dbac2ce598d19eb795b03c33d0a94e.jpg",
+      "price": "$309,000",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2021 Riva 110 Dolcevita",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-riva-110-dolceriva-mira",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-riva-110-dolcevita-power-10314198-20260930110128586-3_-_abcdef_-_5af594b07d0ebaf4dd38b7db28dcf8af3ec58c2c.png",
+      "price": "$12,000,000",
+      "location": "Seattle, WA",
+      "status": "for sale",
+      "brand": "Riva"
+    },
+    {
+      "name": "2021 Sabre 45 Salon Express",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-sabre-45-salon-express",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-sabre-45-salon-express-power-10336520-20260930142556007-1_-_abcdef_-_0678a80e03f4566305bb470efe985663e77926f7.jpg",
+      "price": "$1,239,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2021 Axopar Brabus 37 Sun-Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-axopar-brabus-37-sun-top-10288570",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-axopar-brabus-37-sun-top-power-10288570-20260815100923767-0_-_abcdef_-_06f685888c52f7b9a0d5d4fa563a85b32b93da1a.jpg",
+      "price": "$249,000",
+      "location": "Kihei Maui, HI",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2021 Axopar 28",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-axopar-28-9925439",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-axopar-28-power-9925439-20250827102948901-0_-_abcdef_-_ccb35b7de3312c40eff3ff156284c02accf0f4c5.jpg",
+      "price": "$189,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2021 Axopar 28 Cabin",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-axopar-28-cabin-10309746",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-axopar-28-cabin-power-10309746-20260901134340364-0_-_abcdef_-_b0a07fa45cc08a3e4c667b49983d041f638cb1b6.jpg",
+      "price": "$169,999",
+      "location": "Kalispell, MT",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2021 Axopar 22 Spyder",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2021-axopar-22-spyder-10090797",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2021-axopar-22-spyder-power-9700634-20250301112320071-1_XLARGE_-_abcdef_-_9ec9241a105a77823892473552e731af4d6f1e12.jpg",
+      "price": "$67,900",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2020 Axopar AX 28 T Top",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2020-axopar-ax-28-t-top-10284257",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2020-axopar-ax-28-t-top-power-10284257-20260812233527301-3_-_abcdef_-_6f9ccc287ff9b306dc512776931e4dde8bdf4494.jpg",
+      "price": "$162,500",
+      "location": "Honolulu, HI",
+      "status": "for sale",
+      "brand": "Axopar"
+    },
+    {
+      "name": "2018 Palm Beach Motor Yachts 55",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2018-palm-beach-motor-yachts-55-10214684",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/Palm-Beach-55-Jeff-Brown-Listing-on-YachtWay-41-sunset_-_abcdef_-_705fdded5856b2615f8ab95958469116646785cb.jpg",
+      "price": "$1,895,000",
+      "location": "Wrightsville Beach, NC",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2016 Back Cove 30",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2016-back-cove-30-10282368",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2016-BACK-COVE-30-31_-_abcdef_-_732ebb93c5a438bbac377b47c35b044e5b31f79e.jpg",
+      "price": "$299,000",
+      "location": "Edmonds, WA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2014 Aspen C100",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2014-aspen-c100-10238452",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2014-aspen-c100-power-10238452-20260722140636505-1_-_abcdef_-_da13f2f1c4eb6b7279cffd2f6d7a4892e0298032.jpg",
+      "price": "$349,999",
+      "location": "Sausalito, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2013 Cabo 36 Express",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2013-cabo-36-express-9121781",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2013-cabo-36-express-power-9121781-20260224212245333-1_-_abcdef_-_5d4ccc4850269558a0d2755ff5c259d445bc7be8.jpg",
+      "price": "$275,000",
+      "location": "Oxnard, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2011 Hylas 56",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2011-hylas-56-4145952",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/9061609_20231024090750469_1_XLARGE_-_abcdef_-_65f6fd510c70f71faf4d03c1c63f0e14f82bc394.jpg",
+      "price": "$799,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2006 J Boats J/124",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2006-j-boats-j-124-10226173",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2006-j-boats-j124-sail-10226173-20260619141135320-1_-_abcdef_-_0124ec13e39c70ab10cf7dce7f8c3417b1bfd847.jpg",
+      "price": "$209,000",
+      "location": "Newport Beach, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2002 Zodiac Hurricane 733",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2002-zodiac-hurricane-733-9884100",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2002-zodiac-hurricane-733-power-9884100-20250923085109699-0_-_abcdef_-_43ab1f3ddfe4b1d4c9c18717e3141eb3c8ededab.jpg",
+      "price": "$55,000",
+      "location": "Kailua Kona, HI",
+      "status": "for sale",
+      "brand": "Brokerage"
+    },
+    {
+      "name": "2001 Carver 564",
+      "url": "https://jeffbrownyachts.com/inventory/boat/2001-carver-564-10003538",
+      "image": "https://jeffbrownyachts.com/images/jcogs_img/cache/2001-carver-564-power-10003538-20251105161318415-0_-_abcdef_-_ddfa2aab9272b1b2ecd7a60230c842f803914d51.jpg",
+      "price": "$299,000",
+      "location": "San Diego, CA",
+      "status": "for sale",
+      "brand": "Brokerage"
+    }
+  ]
+}
