@@ -67,3 +67,13 @@ Inventory capture: `python3 scripts/refresh-discovery-inventory.py`. Captured al
 Sources: https://jeffbrownyachts.com/inventory/filter ; https://jeffbrownyachts.com/brands ; https://www.irs.gov/publications/p946 ; https://www.irs.gov/publications/p463 ; IRS January 14, 2026 guidance https://www.irs.gov/newsroom/treasury-irs-issue-guidance-on-the-additional-first-year-depreciation-deduction-amended-as-part-of-the-one-big-beautiful-bill . Conditional eligible-basis depreciation only; no promised tax savings, no automatic LLC eligibility. Brokerage guidance is distinguished from CPA tax review.
 
 Validation: TypeScript, targeted ESLint, all 83 image requests, desktop/mobile browser checks, brand filtering, search, load more, inquiry presence and no horizontal mobile overflow. No test inquiries sent. Preflight preserved all 16 live fleet pages.
+
+## 2026-10-07 — Dedicated tax section and campaign draft
+
+Moved `/yachts#tax-planning` immediately beneath the hero/navigation. Added a potential-tax-savings label, prominent CTA, and an explicitly hypothetical $300,000 usable deduction × 35% = $105,000 tax reduction. No percentage-of-purchase-price promise. Retained CPA eligibility review, personal/client-entertainment exclusions, loss limits, recapture and no automatic offset of business-sale gains.
+
+Sources checked: https://www.irs.gov/publications/p946 ; https://www.irs.gov/publications/p463 ; https://www.irs.gov/newsroom/treasury-irs-issue-guidance-on-the-additional-first-year-depreciation-deduction-amended-as-part-of-the-one-big-beautiful-bill .
+
+Draft only: `emails/ownership-tax-draft.html` and `.txt`. Includes existing yacht/Connor images, public page links with campaign UTMs, business contact/address and reply-unsubscribe instruction. No email sent, no bulk sequence enrolled, no new tracking pixel installed. Resolve first_name placeholders and review recipients/suppression records before use. UTMs alone do not identify an individual opener or clicker.
+
+Validation: TypeScript and targeted ESLint passed; Playwright confirmed section order, unique anchor, correct example, no page errors or mobile overflow; email images loaded and desktop HTML preview inspected.
