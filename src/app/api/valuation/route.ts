@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import {
+  attachPhotos,
+  insertLead,
+  storageConfigured,
+  uploadPhoto,
+  type StoredPhoto,
+} from "@/lib/valuation-store";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +125,33 @@ export async function POST(req: Request) {
     });
   }
 
+  /* Durable copy for the auto-reply pipeline (n8n GY-010 polls
+     valuation_leads for status='new'). Runs before the email so a Resend
+     outage still leaves the lead on file, and never blocks the email if
+     Supabase is the one that is down. */
+  let leadId: string | null = null;
+  if (storageConfigured()) {
+    try {
+      const answerMap: Record<string, string> = {};
+      for (const [k] of ORDER) if (body[k]) answerMap[k] = String(body[k]);
+      const attributionMap: Record<string, string> = {};
+      for (const k of ATTRIBUTION) if (body[k]) attributionMap[k] = String(body[k]);
+      leadId = await insertLead({ name, email, phone, answers: answerMap, attribution: attributionMap });
+      if (leadId && attachments.length) {
+        const stored: StoredPhoto[] = [];
+        for (const [i, a] of attachments.entries()) {
+          const p = await uploadPhoto(leadId, i, a.content);
+          if (p) stored.push(p);
+        }
+        if (stored.length) await attachPhotos(leadId, stored);
+      }
+    } catch (err) {
+      console.error("[valuation] storage failed (email still goes out)", err);
+    }
+  } else {
+    console.error("[valuation] storage not configured — lead will not reach the auto-reply queue");
+  }
+
   const answers = ORDER.filter(([k]) => body[k])
     .map(([k, label]) => `<tr><td style="padding:4px 14px 4px 0;color:#8892A5">${label}</td><td style="padding:4px 0;color:#0f172a"><strong>${esc(body[k])}</strong></td></tr>`)
     .join("");
@@ -187,5 +221,5 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, lead_id: leadId });
 }
