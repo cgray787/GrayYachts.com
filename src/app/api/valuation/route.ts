@@ -56,7 +56,9 @@ function esc(v: unknown) {
   return String(v ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export async function POST(req: Request) {
@@ -64,6 +66,10 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
+    return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
   }
 
@@ -82,6 +88,13 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
+  if (name.length > 160 || phone.length > 80 || email.length > 254 ||
+      !/^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/.test(email)) {
+    return NextResponse.json({ ok: false, error: "invalid_contact" }, { status: 400 });
+  }
+  for (const [k] of ORDER) if (body[k]) body[k] = String(body[k]).slice(0, 1500);
+  for (const k of ATTRIBUTION) if (body[k]) body[k] = String(body[k]).slice(0, 2000);
 
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -109,7 +122,7 @@ export async function POST(req: Request) {
   for (const p of rawPhotos.slice(0, MAX_PHOTOS)) {
     if (!p || typeof p !== "object") continue;
     const { filename, content } = p as { filename?: unknown; content?: unknown };
-    if (typeof content !== "string" || !content) continue;
+    if (typeof content !== "string" || !content || !/^\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(content)) continue;
     // base64 decodes to roughly 3/4 of its own length.
     photoBytes += Math.floor(content.length * 0.75);
     if (photoBytes > MAX_PHOTO_BYTES) {
@@ -137,13 +150,17 @@ export async function POST(req: Request) {
       const attributionMap: Record<string, string> = {};
       for (const k of ATTRIBUTION) if (body[k]) attributionMap[k] = String(body[k]);
       leadId = await insertLead({ name, email, phone, answers: answerMap, attribution: attributionMap });
-      if (leadId && attachments.length) {
+      if (leadId) {
         const stored: StoredPhoto[] = [];
         for (const [i, a] of attachments.entries()) {
-          const p = await uploadPhoto(leadId, i, a.content);
-          if (p) stored.push(p);
+          try {
+            const p = await uploadPhoto(leadId, i, a.content);
+            if (p) stored.push(p);
+          } catch {
+            console.error("[valuation] one photo upload failed; preserving the lead");
+          }
         }
-        if (stored.length) await attachPhotos(leadId, stored);
+        await attachPhotos(leadId, stored);
       }
     } catch (err) {
       console.error("[valuation] storage failed (email still goes out)", err);
@@ -196,7 +213,10 @@ export async function POST(req: Request) {
     </p>
   </div>`;
 
-  const res = await fetch("https://api.resend.com/emails", {
+  let res: Response;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
+    signal: AbortSignal.timeout(20000),
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -212,12 +232,17 @@ export async function POST(req: Request) {
     }),
   });
 
+  } catch {
+    console.error("[valuation] notification delivery unavailable");
+    return NextResponse.json(leadId ? { ok: true, lead_id: leadId } : { ok: false, error: "send_failed" }, { status: leadId ? 200 : 502 });
+  }
+
   if (!res.ok) {
     const detail = await res.text();
     console.error("[valuation] resend failed", res.status, detail);
     return NextResponse.json(
-      { ok: false, error: "send_failed" },
-      { status: 502 },
+      leadId ? { ok: true, lead_id: leadId } : { ok: false, error: "send_failed" },
+      { status: leadId ? 200 : 502 },
     );
   }
 

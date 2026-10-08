@@ -42,11 +42,13 @@ export function storageConfigured(): boolean {
 export async function insertLead(input: ValuationLeadInput): Promise<string | null> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/valuation_leads`, {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: headers({
       "Content-Type": "application/json",
       Prefer: "return=representation",
     }),
     body: JSON.stringify({
+      status: "held", // Release only after photo uploads finish.
       name: input.name,
       email: input.email,
       phone: input.phone,
@@ -78,6 +80,7 @@ export async function uploadPhoto(
   const path = `${leadId}/${index + 1}.jpg`;
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: headers({ "Content-Type": "image/jpeg", "x-upsert": "true" }),
     body: bytes,
   });
@@ -95,8 +98,9 @@ export async function uploadPhoto(
 export async function attachPhotos(leadId: string, photos: StoredPhoto[]): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/valuation_leads?id=eq.${leadId}`, {
     method: "PATCH",
+    signal: AbortSignal.timeout(20000),
     headers: headers({ "Content-Type": "application/json", Prefer: "return=minimal" }),
-    body: JSON.stringify({ photos }),
+    body: JSON.stringify({ photos, status: "new" }),
   });
   if (!res.ok) {
     console.error("[valuation] photo attach failed", res.status, await res.text());
