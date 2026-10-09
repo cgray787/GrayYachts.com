@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
 import { STAGES, type LeadStage } from "@/lib/fb-leads";
+import { triageReply } from "@/lib/reply-triage-run";
 
 /** Every mutation re-checks the caller. Server actions are public endpoints —
  * the page-level gate does not protect them. */
@@ -73,7 +74,12 @@ export async function logReply(listingId: string, body: string) {
     .insert({ listing_id: listingId, direction: "in", body: trimmed, step: "Reply" });
   if (error) throw new Error(error.message);
 
+  // Jev reads the reply in context and may override the trigger's regex stage.
+  // Best-effort: a Jev outage leaves the trigger's result in place.
+  await triageReply(db, listingId, trimmed);
+
   revalidatePath("/portal/leads");
+  revalidatePath(`/portal/leads/${listingId}`);
 }
 
 export async function saveNote(listingId: string, note: string) {

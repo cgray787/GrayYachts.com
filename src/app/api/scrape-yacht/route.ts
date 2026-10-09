@@ -5,6 +5,8 @@ import { photoBucket } from "@/lib/yacht-photo-store";
 import { resolveYachtPhoto } from "@/lib/resolve-yacht-photo";
 import { blockedListingPage, photosFromHtml } from "@/lib/yacht-photo-candidates";
 import { NextRequest, NextResponse } from "next/server";
+import { jev, jevAvailable } from "@/lib/jev";
+import { applyVerification, buildVerifyQuestions, buildVerifyState, htmlToText } from "@/lib/scrape-verify";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -1793,7 +1795,24 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     confidence: "high",
   };
 
-  return runSanityChecks(draft, {
+  // Jev verification: ask, per field, whether the page text supports,
+  // contradicts, or is silent on the merged value. Contradicted values are
+  // dropped before the sanity pass so a wrong builder never reaches the card.
+  const verifyFlags: string[] = [];
+  let verified: ScrapedYacht = draft;
+  const verifyText = md ?? (html ? htmlToText(html) : null);
+  if (jevAvailable() && verifyText && verifyText.length > 200) {
+    const result = await jev(buildVerifyState(draft, verifyText, pageTitle, url), buildVerifyQuestions(draft), "scrape-verify");
+    if (result) {
+      const outcome = applyVerification(draft, result.answers as Parameters<typeof applyVerification>[1]);
+      verified = outcome.record;
+      verifyFlags.push(...outcome.flags);
+      if (outcome.identityContradicted) verified.confidence = "low";
+      console.log("[scrape-verify]", JSON.stringify(outcome.verdicts));
+    }
+  }
+
+  const checked = runSanityChecks(verified, {
     inferredLengthFt,
     urlLengthFt: urlData.lengthFt ?? null,
     urlYear: urlData.year ?? null,
@@ -1801,6 +1820,10 @@ async function scrapeYacht(url: string): Promise<ScrapedYacht> {
     pageTitle,
     sourceUrl: url,
   });
+  if (verifyFlags.length === 0) return checked;
+  const flags = [...verifyFlags, ...checked.flags];
+  const confidence = checked.confidence === "high" ? "medium" : checked.confidence;
+  return { ...checked, flags, confidence };
 }
 
 /* ------------------------------------------------------------------ */
@@ -2141,7 +2164,7 @@ export async function GET(request: NextRequest) {
          and isolated numbers on pages that are not single listings.
      v3: sail-aware speed ceiling, and reject a top speed that is really the
          engine's horsepower read twice. */
-  const SCRAPE_LOGIC_VERSION = 5;
+  const SCRAPE_LOGIC_VERSION = 6;
   const versionedUrl =
     request.url + (request.url.includes("?") ? "&" : "?") + "__v=" + SCRAPE_LOGIC_VERSION;
   const cacheKey = new Request(versionedUrl, { method: "GET" });

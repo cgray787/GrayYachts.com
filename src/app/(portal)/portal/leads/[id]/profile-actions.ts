@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { triageReply } from "@/lib/reply-triage-run";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -59,10 +60,12 @@ export async function logProfileMessage(listingId: string, direction: "in" | "ou
   await requireAdmin();
   const message = body.trim();
   if (!message) throw new Error("message is required");
-  const { error } = await createAdminClient().from("fb_lead_messages").insert({
+  const db = createAdminClient();
+  const { error } = await db.from("fb_lead_messages").insert({
     listing_id: listingId, direction, step: direction === "in" ? "Reply" : "Manual note", body: message,
   });
   if (error) throw new Error(error.message);
+  if (direction === "in") await triageReply(db, listingId, message);
   refresh(listingId);
 }
 
