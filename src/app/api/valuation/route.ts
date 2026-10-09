@@ -1,3 +1,4 @@
+import {listingUrl} from "@/lib/valuation-details";
 import { NextResponse } from "next/server";
 import {
   attachPhotos,
@@ -32,6 +33,8 @@ const ORDER = [
   ["length", "Length"],
   ["brand", "Brand"],
   ["year_make_model", "Year, make & model"],
+  ["location", "Boat location"],
+  ["existing_listing_url", "Existing listing"],
   ["engine_hours", "Engine hours"],
   ["condition", "Condition"],
 ] as const;
@@ -93,9 +96,11 @@ export async function POST(req: Request) {
       !/^[^\s<>"@]+@[^\s<>"@]+\.[^\s<>"@]+$/.test(email)) {
     return NextResponse.json({ ok: false, error: "invalid_contact" }, { status: 400 });
   }
-  for (const [k] of ORDER) if (body[k]) body[k] = String(body[k]).slice(0, 1500);
+  for (const [k] of ORDER) if (k !== "existing_listing_url" && body[k]) body[k] = String(body[k]).slice(0, 1500);
   for (const k of ATTRIBUTION) if (body[k]) body[k] = String(body[k]).slice(0, 2000);
 
+  try { body.existing_listing_url=listingUrl(body.existing_listing_url)??''; } catch { return NextResponse.json({ok:false,error:'invalid_listing_url'},{status:400}); }
+  body.location=String(body.location??'').trim().slice(0,200);
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     // Fail loudly rather than swallowing a lead we cannot deliver.
@@ -146,7 +151,7 @@ export async function POST(req: Request) {
   if (storageConfigured()) {
     try {
       const answerMap: Record<string, string> = {};
-      for (const [k] of ORDER) if (body[k]) answerMap[k] = String(body[k]);
+      for (const [k] of ORDER) if (k !== "existing_listing_url" && body[k]) answerMap[k] = String(body[k]);
       const attributionMap: Record<string, string> = {};
       for (const k of ATTRIBUTION) if (body[k]) attributionMap[k] = String(body[k]);
       leadId = await insertLead({ name, email, phone, answers: answerMap, attribution: attributionMap });
