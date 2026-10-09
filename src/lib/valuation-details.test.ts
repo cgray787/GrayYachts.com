@@ -1,0 +1,2 @@
+import {expect,it} from 'vitest';import {listingUrl} from './valuation-details';
+it('accepts optional public listing URLs and rejects dangerous inputs',()=>{expect(listingUrl('')).toBeNull();expect(listingUrl('www.yachtworld.com/yacht/example-123#photos')).toBe('https://www.yachtworld.com/yacht/example-123');for(const s of ['javascript:alert(1)','https://user:pass@example.com/x','http://127.0.0.1/x','http://192.168.1.1/x','https://example.com:3000/x'])expect(()=>listingUrl(s)).toThrow();});

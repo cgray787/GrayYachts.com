@@ -704,6 +704,8 @@ const QUESTIONS = [
       'Catalina','Carver','Boston Whaler','Ranger Tugs','Meridian','Other'] },
   { key:'year_make_model', q:'Year, make & model?', input:true,
     placeholder:'e.g. 2018 Grand Banks 42 Heritage' },
+  { key:'location', q:'Where is the boat kept?', input:true, optional:true, placeholder:'City and state, e.g. Seattle, WA (optional)' },
+  { key:'existing_listing_url', q:'Already listed for sale?', input:true, optional:true, placeholder:'Paste the listing link, or leave blank' },
   { key:'engine_hours', q:'How many engine hours?',
     opts:['Under 500','500 – 1,000','1,000 – 2,000','2,000 – 3,500','Over 3,500','Not sure'] },
   { key:'condition', q:'What condition is she in?',
@@ -946,7 +948,7 @@ function render(){
 
   if(cur.input){
     $('qInputWrap').style.display='block';
-    const el=$('qInput'); el.placeholder=cur.placeholder||''; el.value=answers[cur.key]||'';
+    const el=$('qInput'); el.type=cur.key==='existing_listing_url'?'url':'text'; el.maxLength=cur.key==='existing_listing_url'?2000:200; $('qNext').textContent=cur.optional?'Continue / Skip':'Continue'; $('qErr').textContent='Please enter a valid answer.'; el.placeholder=cur.placeholder||''; el.value=answers[cur.key]||'';
     $('qErr').classList.remove('on'); el.removeAttribute('aria-invalid');
     setTimeout(()=>el.focus(),120);
   } else if(cur.chips){
@@ -975,7 +977,7 @@ function render(){
 function askOtherBrand(){
   $('qChips').style.display='none';
   $('qInputWrap').style.display='block';
-  const el=$('qInput'); el.placeholder='Which brand?'; el.value='';
+  const el=$('qInput'); el.type='text'; el.maxLength=200; el.placeholder='Which brand?'; el.value='';
   $('qErr').textContent='Please enter the brand.'; $('qErr').classList.remove('on');
   el.dataset.mode='brand';
   setTimeout(()=>el.focus(),100);
@@ -1002,7 +1004,9 @@ $('startTop').onclick = e => { e.preventDefault(); beginQuiz(); };
 
 $('qNext').onclick = () => {
   const el=$('qInput'), v=el.value.trim();
-  if(v.length<2){ $('qErr').classList.add('on'); el.setAttribute('aria-invalid','true'); return; }
+  const cur=QUESTIONS[idx];
+  if(cur.key==='existing_listing_url'&&v){try{const u=new URL(/^https?:\/\//i.test(v)?v:'https://'+v);if(!['https:','http:'].includes(u.protocol)||u.username||u.password||!u.hostname.includes('.'))throw Error();}catch{$('qErr').textContent='Enter a public listing link, or leave this blank.';$('qErr').classList.add('on');el.setAttribute('aria-invalid','true');return;}}
+  if(!cur.optional&&v.length<2){ $('qErr').classList.add('on'); el.setAttribute('aria-invalid','true'); return; }
   $('qErr').classList.remove('on'); el.removeAttribute('aria-invalid');
   if(el.dataset.mode==='brand'){ answers['brand']=v; delete el.dataset.mode; el.value=''; next(); }
   else { answers[QUESTIONS[idx].key]=v; next(); }
@@ -1151,7 +1155,7 @@ $('form').addEventListener('submit', async e=>{
 function done(name){
   const first=name.split(' ')[0];
   $('doneTitle').textContent=`Thanks, ${first} — it's on the way.`;
-  $('doneBody').textContent=`Your request for your ${answers.year_make_model||answers.brand||'vessel'} is in. We’ll check current U.S. asking-price comparables, prioritizing the Northwest. Where enough comparable listings are available, your email will include a preliminary asking-price range and report; otherwise, I’ll follow up personally. If you'd rather talk it through, just reply to that email or pick up when I call.`;
+  $('doneBody').textContent=`Your request for your ${answers.year_make_model||answers.brand||'vessel'} is in. We’ll check current U.S. asking-price comparables, using your boat’s region when provided. Where enough comparable listings are available, your email will include a preliminary asking-price range and report; otherwise, I’ll follow up personally. If you'd rather talk it through, just reply to that email or pick up when I call.`;
   show('s-done'); scrollQuiz(); setProgress(0); $('bar').classList.remove('on'); $('stepTxt').textContent='';
   pixel('Lead',{content_name:'yacht_valuation',content_category:answers.timeframe||''});
 }

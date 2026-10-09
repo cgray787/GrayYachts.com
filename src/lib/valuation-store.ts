@@ -57,6 +57,8 @@ export async function insertLead(input: ValuationLeadInput): Promise<string | nu
       length: input.answers.length ?? null,
       brand: input.answers.brand ?? null,
       year_make_model: input.answers.year_make_model ?? null,
+      location: input.answers.location || null,
+      existing_listing_url: input.answers.existing_listing_url || null,
       engine_hours: input.answers.engine_hours ?? null,
       condition: input.answers.condition ?? null,
       attribution: input.attribution,
