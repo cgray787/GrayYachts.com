@@ -8,6 +8,7 @@ import {
   placeForDay,
   type DayJob,
 } from "@/lib/marine-tech/spans";
+import { pacificTime } from "@/lib/marine-tech/pacific";
 
 // Unscheduled jobs (no date in either world) arrive in the page's PendingJob
 // shape. We only need a label + status + id here, so accept a structurally
@@ -67,10 +68,10 @@ function formatTime(start: string | null | undefined): string {
   if (!start) return "";
   // Only the timestamptz column carries a time; legacy date-only rows have none.
   if (!start.includes("T")) return "";
-  const d = new Date(start);
-  if (isNaN(d.getTime())) return "";
-  let hours = d.getHours();
-  const minutes = d.getMinutes();
+  if (isNaN(new Date(start).getTime())) return "";
+  // Pacific wall clock — getHours() is UTC on the server, so a 9 AM job read
+  // "4 PM" and a midnight job read "7 AM".
+  let { hour: hours, minute: minutes } = pacificTime(start);
   const period = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
   return minutes === 0
