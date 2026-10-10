@@ -31,7 +31,21 @@ const STATUS_STYLES: Record<string, string> = {
   completed: "bg-emerald-500/15 text-emerald-300",
 };
 
-export function JobsList({ jobs }: { jobs: Job[] }) {
+/** A work-area photo a tech shot on the job from the field app. */
+export type JobPhoto = {
+  id: string;
+  job_id: string | null;
+  photo_url: string;
+  caption: string | null;
+};
+
+export function JobsList({
+  jobs,
+  photos = {},
+}: {
+  jobs: Job[];
+  photos?: Record<string, JobPhoto[]>;
+}) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
@@ -118,6 +132,30 @@ export function JobsList({ jobs }: { jobs: Job[] }) {
                       );
                     })()}
                   </div>
+
+                  {/* Photos the tech took at the boat. They appear here as soon
+                      as the phone uploads them — same rows the dashboard reads. */}
+                  {(photos[j.id]?.length ?? 0) > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {photos[j.id].map((p) => (
+                        <a
+                          key={p.id}
+                          href={p.photo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.caption ?? "Photo from the field"}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={p.photo_url}
+                            alt={p.caption ?? "Work area photo"}
+                            loading="lazy"
+                            className="h-16 w-16 rounded-lg border border-border object-cover transition-opacity hover:opacity-80"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </li>
               );
             })}

@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
-import { JobsList, type Job } from "./jobs-list";
+import { JobsList, type Job, type JobPhoto } from "./jobs-list";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export default async function JobsPage({
   const { status } = await searchParams;
 
   let jobs: Job[] | null = null;
+  let photos: Record<string, JobPhoto[]> = {};
   let configured = true;
   try {
     const db = createMarineTechClient();
@@ -36,6 +37,22 @@ export default async function JobsPage({
     if (status) query = query.eq("status", status);
     const { data } = await query;
     jobs = (data ?? []) as unknown as Job[];
+
+    // Work-area photos the techs shot from the field app. Fetched in one query
+    // for every job on screen rather than per job — a hundred jobs would
+    // otherwise be a hundred round-trips.
+    if (jobs.length > 0) {
+      const { data: pics } = await db
+        .from("report_photos")
+        .select("id, job_id, photo_url, caption")
+        .in("job_id", jobs.map((j) => j.id))
+        .is("campaign_log_id", null)
+        .order("created_at");
+      for (const p of (pics ?? []) as unknown as JobPhoto[]) {
+        if (!p.job_id) continue;
+        (photos[p.job_id] ??= []).push(p);
+      }
+    }
   } catch {
     configured = false;
   }
@@ -96,7 +113,7 @@ export default async function JobsPage({
           </p>
         </div>
       ) : (
-        <JobsList jobs={jobs ?? []} />
+        <JobsList jobs={jobs ?? []} photos={photos} />
       )}
     </div>
   );
