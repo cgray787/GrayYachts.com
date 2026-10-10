@@ -89,8 +89,10 @@ function parseMonth(value: string | undefined): { year: number; month0: number }
     const [y, m] = value.split("-").map(Number);
     if (y >= 1970 && m >= 1 && m <= 12) return { year: y, month0: m - 1 };
   }
-  const now = new Date();
-  return { year: now.getFullYear(), month0: now.getMonth() };
+  // Pacific "now" — the server clock is UTC, so after 5 PM PDT on the last of
+  // the month it opened on NEXT month.
+  const [y, m] = pacificDay(new Date().toISOString()).split("-").map(Number);
+  return { year: y, month0: m - 1 };
 }
 
 function formatMonth(year: number, month0: number): string {
@@ -215,7 +217,7 @@ export function MarineTechCalendar({
     weeks.push(row);
   }
 
-  const todayISO = toISODate(new Date());
+  const todayISO = pacificDay(new Date().toISOString()); // not the server's UTC day
   const prev = shiftMonth(year, month0, -1);
   const next = shiftMonth(year, month0, +1);
 

@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
+import { pacificDay } from "@/lib/marine-tech/pacific";
 import {
   MarineTechCalendar,
   buildMonthRange,
@@ -36,10 +37,11 @@ function resolveSelectedDay(
   monthParam: string | undefined
 ): string {
   if (dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam)) return dayParam;
-  const now = new Date();
-  const todayISO = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  // Pacific today: this renders on the server in UTC, so from 5 PM PDT the
+  // focused "today" used to be tomorrow.
+  const todayISO = pacificDay(new Date().toISOString());
   if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
-    const todayMonth = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+    const todayMonth = todayISO.slice(0, 7);
     if (monthParam !== todayMonth) return `${monthParam}-01`;
   }
   return todayISO;
