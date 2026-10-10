@@ -14,7 +14,7 @@ export type Job = {
   service_descriptions: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
 
@@ -67,7 +67,7 @@ export function JobsList({ jobs }: { jobs: Job[] }) {
             {filtered.map((j) => {
               const boatLabel = j.boats?.name
                 ? j.boats.name
-                : [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") || "Unknown vessel";
+                : (j.boats?.make_model ?? "") || "Unknown vessel";
               return (
                 <li key={j.id} className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">

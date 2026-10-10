@@ -61,7 +61,7 @@ type PendingJob = {
   service_descriptions: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
 };
 
 // A job has a client when the linked customer has a non-empty name.
@@ -89,7 +89,7 @@ async function loadPendingJobs(
   const withDescriptions = await db
     .from("jobs")
     .select(
-      "id, status, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make, model)"
+      "id, status, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make_model)"
     )
     .is("scheduled_start", null)
     .is("scheduled_date", null)
@@ -103,13 +103,16 @@ async function loadPendingJobs(
   const plain = await db
     .from("jobs")
     .select(
-      "id, status, created_at, service_types, notes, customers(name), boats(name, make, model)"
+      "id, status, created_at, service_types, notes, customers(name), boats(name, make_model)"
     )
     .is("scheduled_start", null)
     .is("scheduled_date", null)
     .neq("status", "completed")
     .order("created_at", { ascending: true })
     .limit(50);
+  // Both queries failing used to read as "nothing pending" — log it so a schema
+  // drift (e.g. the boats.make/model select, 2026-05 → 2026-10) is visible.
+  if (plain.error) console.error("[marine-tech] pending jobs query failed:", withDescriptions.error, plain.error);
   return (plain.data ?? []) as unknown as PendingJob[];
 }
 
@@ -132,7 +135,7 @@ async function loadMonthJobs(
   const withEnd = await db
     .from("jobs")
     .select(
-      "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(id, name), boats(name, make, model), marinas(name)"
+      "id, status, kind, notes, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, customers(id, name), boats(name, make_model), marinas(name)"
     )
     .or(
       `and(scheduled_start.lte.${endTs},or(scheduled_start.gte.${startTs},scheduled_end.gte.${startTs},scheduled_end_date.gte.${start})),and(scheduled_start.is.null,scheduled_date.lte.${end},or(scheduled_date.gte.${start},scheduled_end_date.gte.${start}))`
@@ -145,12 +148,13 @@ async function loadMonthJobs(
   const single = await db
     .from("jobs")
     .select(
-      "id, status, scheduled_date, customers(id, name), boats(name, make, model)"
+      "id, status, scheduled_date, customers(id, name), boats(name, make_model)"
     )
     .gte("scheduled_date", start)
     .lte("scheduled_date", end)
     .order("scheduled_date", { ascending: true })
     .limit(500);
+  if (single.error) console.error("[marine-tech] month jobs query failed:", withEnd.error, single.error);
   return (single.data ?? []) as unknown as CalendarJob[];
 }
 
@@ -217,7 +221,7 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
     const withEnd = await db
       .from("jobs")
       .select(
-        "id, status, kind, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, service_types, service_descriptions, notes, customers(name), boats(name, make, model), marinas(name), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, kind, scheduled_date, scheduled_end_date, scheduled_start, scheduled_end, location_override, day_locations, service_types, service_descriptions, notes, customers(name), boats(name, make_model), marinas(name), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .eq("id", id)
       .maybeSingle();
@@ -227,10 +231,11 @@ async function loadEditableJob(id: string): Promise<EditableJob | null> {
     const fallback = await db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, service_types, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, service_types, notes, customers(name), boats(name, make_model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .eq("id", id)
       .maybeSingle();
+    if (fallback.error) console.error("[marine-tech] job drawer query failed:", withEnd.error, fallback.error);
     if (fallback.error || !fallback.data) return null;
     return fallback.data as unknown as EditableJob;
   } catch {
@@ -339,7 +344,7 @@ export default async function MarineTechPage({
                   {overview.pendingJobs.map((j) => {
                     const boatLabel =
                       j.boats?.name ||
-                      [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
+                      (j.boats?.make_model ?? "") ||
                       "Unknown vessel";
                     return (
                       <li

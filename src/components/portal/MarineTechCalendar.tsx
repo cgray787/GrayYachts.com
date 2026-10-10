@@ -13,7 +13,7 @@ export type CalendarJob = {
   location_override?: string | null;       // free-text place when there's no marina
   day_locations?: Record<string, string> | null; // { 'YYYY-MM-DD': '<place>' } per-day place
   customers: { id?: string | null; name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
   marinas?: { name: string | null } | null;
 };
 
@@ -107,7 +107,7 @@ function boatLabel(j: CalendarJob): string {
   }
   return (
     j.boats?.name ||
-    [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
+    (j.boats?.make_model ?? "") ||
     j.customers?.name ||
     "Job"
   );

@@ -18,7 +18,7 @@ export type EditableJob = {
   service_descriptions?: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
   marinas?: { name: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
@@ -38,7 +38,7 @@ export function JobEditDrawer({
   const endVal = (job.scheduled_end ? job.scheduled_end.slice(0, 10) : job.scheduled_end_date ?? job.scheduled_date) ?? "";
   const boatLine =
     job.boats?.name ||
-    [job.boats?.make, job.boats?.model].filter(Boolean).join(" ") ||
+    (job.boats?.make_model ?? "") ||
     "Unnamed vessel";
   // Place shown as the per-day fallback: the job's marina, else its free-text
   // location override.

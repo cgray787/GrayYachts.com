@@ -29,12 +29,13 @@ export default async function JobsPage({
     let query = db
       .from("jobs")
       .select(
-        "id, status, scheduled_date, scheduled_start, scheduled_end_date, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make, model), profiles!jobs_assigned_to_fkey(full_name)"
+        "id, status, scheduled_date, scheduled_start, scheduled_end_date, created_at, service_types, service_descriptions, notes, customers(name), boats(name, make_model), profiles!jobs_assigned_to_fkey(full_name)"
       )
       .order("created_at", { ascending: false })
       .limit(100);
     if (status) query = query.eq("status", status);
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) console.error("[marine-tech] jobs list query failed:", error);
     jobs = (data ?? []) as unknown as Job[];
   } catch {
     configured = false;
