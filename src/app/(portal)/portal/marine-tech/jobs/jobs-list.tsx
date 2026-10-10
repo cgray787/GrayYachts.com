@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { pacificDay } from "@/lib/marine-tech/pacific";
 
 export type Job = {
   id: string;
@@ -14,14 +15,14 @@ export type Job = {
   service_descriptions: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
 
 // "When was this job scheduled?" — prefer the new timestamptz; fall back to
 // the legacy date column. Returns 'YYYY-MM-DD' or null.
 function jobScheduledDate(j: { scheduled_start: string | null; scheduled_date: string | null }): string | null {
-  if (j.scheduled_start) return j.scheduled_start.slice(0, 10);
+  if (j.scheduled_start) return pacificDay(j.scheduled_start); // not the UTC day
   return j.scheduled_date;
 }
 
@@ -67,7 +68,7 @@ export function JobsList({ jobs }: { jobs: Job[] }) {
             {filtered.map((j) => {
               const boatLabel = j.boats?.name
                 ? j.boats.name
-                : [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") || "Unknown vessel";
+                : (j.boats?.make_model ?? "") || "Unknown vessel";
               return (
                 <li key={j.id} className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">

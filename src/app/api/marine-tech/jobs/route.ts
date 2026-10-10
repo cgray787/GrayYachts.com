@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   let query = db
     .from("jobs")
     .select(
-      "id, status, service_types, scheduled_date, created_at, notes, assigned_to, customer_id, boat_id, customers(name), boats(name, make, model, year, hin), profiles!jobs_assigned_to_fkey(full_name)"
+      "id, status, service_types, scheduled_date, created_at, notes, assigned_to, customer_id, boat_id, customers(name), boats(name, make_model, year, hin), profiles!jobs_assigned_to_fkey(full_name)"
     )
     .order("created_at", { ascending: false })
     .limit(limit);

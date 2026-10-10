@@ -18,7 +18,7 @@ export type UnscheduledJob = {
   kind?: string | null;
   notes?: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
 };
 
 type Props = {
@@ -82,7 +82,7 @@ function boatLabel(j: {
   kind?: string | null;
   notes?: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
 }): string {
   if (isPaperwork(j)) {
     const note = j.notes?.trim();
@@ -90,7 +90,7 @@ function boatLabel(j: {
   }
   return (
     j.boats?.name ||
-    [j.boats?.make, j.boats?.model].filter(Boolean).join(" ") ||
+    (j.boats?.make_model ?? "") ||
     j.customers?.name ||
     "Job"
   );

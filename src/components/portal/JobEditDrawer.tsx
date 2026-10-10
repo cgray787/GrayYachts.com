@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { updateJobSchedule } from "@/app/(portal)/portal/marine-tech/actions";
 import { DateFieldWithCalendar } from "@/components/portal/DateFieldWithCalendar";
 import { PerDayLocations } from "@/components/portal/PerDayLocations";
+import { pacificDay } from "@/lib/marine-tech/pacific";
 
 export type EditableJob = {
   id: string;
@@ -18,7 +19,7 @@ export type EditableJob = {
   service_descriptions?: Record<string, string> | null;
   notes: string | null;
   customers: { name: string | null } | null;
-  boats: { name: string | null; make: string | null; model: string | null } | null;
+  boats: { name: string | null; make_model: string | null } | null;
   marinas?: { name: string | null } | null;
   profiles: { full_name: string | null } | null;
 };
@@ -34,11 +35,13 @@ export function JobEditDrawer({
   const paperwork = job.kind === "paperwork";
   // Show what's actually scheduled, preferring the new timestamptz columns
   // (which the Marine Tech App writes) and falling back to legacy date columns.
-  const startVal = (job.scheduled_start ? job.scheduled_start.slice(0, 10) : job.scheduled_date) ?? "";
-  const endVal = (job.scheduled_end ? job.scheduled_end.slice(0, 10) : job.scheduled_end_date ?? job.scheduled_date) ?? "";
+  // Pacific days: a UTC slice prefilled multi-day ends one day late, and Save
+  // then wrote that extra day back to the job.
+  const startVal = (job.scheduled_start ? pacificDay(job.scheduled_start) : job.scheduled_date) ?? "";
+  const endVal = (job.scheduled_end ? pacificDay(job.scheduled_end) : job.scheduled_end_date ?? job.scheduled_date) ?? "";
   const boatLine =
     job.boats?.name ||
-    [job.boats?.make, job.boats?.model].filter(Boolean).join(" ") ||
+    (job.boats?.make_model ?? "") ||
     "Unnamed vessel";
   // Place shown as the per-day fallback: the job's marina, else its free-text
   // location override.
