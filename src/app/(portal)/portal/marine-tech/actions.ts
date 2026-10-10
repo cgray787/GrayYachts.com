@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
+import { drawerSchedule } from "@/lib/marine-tech/drawer-schedule";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -40,25 +41,33 @@ export async function updateJobSchedule(formData: FormData) {
   if (status && !ALLOWED_STATUSES.has(status)) {
     throw new Error("Invalid status");
   }
-  if (start && endRaw && endRaw < start) {
-    throw new Error("End date must be on or after start date");
-  }
-
-  const end = endRaw ?? start;
-
-  // Also write scheduled_start / scheduled_end (timestamptz) at top-of-day so
-  // the Marine Tech App's calendar — which only reads scheduled_start — sees
-  // edits made here. Default to noon UTC so the date renders consistently in
-  // every browser's local TZ.
-  const startTs = start ? `${start}T12:00:00.000Z` : null;
-  const endTs = end ? `${end}T13:00:00.000Z` : null;
+  // The drawer prefills End with the job's current end, so moving only Start
+  // forward on a single-day job made End < Start. That used to throw — and
+  // with no error boundary the operator got Next's "Application error" and
+  // lost the form. Treat it as a single-day job on the new date instead.
+  const end = start && endRaw && endRaw >= start ? endRaw : start;
 
   const db = createMarineTechClient();
 
+  // Keep the Marine Tech App's real time of day (see drawerSchedule) instead of
+  // stamping T12:00Z on every save.
+  const current = await db
+    .from("jobs")
+    .select("scheduled_start, scheduled_end")
+    .eq("id", id)
+    .maybeSingle();
+  if (current.error) throw new Error(current.error.message);
+  const { scheduled_start, scheduled_end } = drawerSchedule(
+    start,
+    end,
+    current.data?.scheduled_start ?? null,
+    current.data?.scheduled_end ?? null,
+  );
+
   const update: Record<string, unknown> = {
     scheduled_date: start,
-    scheduled_start: startTs,
-    scheduled_end: endTs,
+    scheduled_start,
+    scheduled_end,
     status: status || "new",
   };
 
@@ -102,11 +111,10 @@ export async function updateJobSchedule(formData: FormData) {
     })
     .eq("id", id);
 
-  if (withEnd.error) {
-    // Fallback for environments predating scheduled_end_date / migration 031.
-    const fallback = await db.from("jobs").update(update).eq("id", id);
-    if (fallback.error) throw new Error(fallback.error.message);
-  }
+  // No reduced-field retry: migrations 014/031/039 are applied, and the old
+  // fallback silently dropped scheduled_end_date, day_locations and
+  // service_descriptions on ANY error, then redirected as if it had saved.
+  if (withEnd.error) throw new Error(withEnd.error.message);
 
   revalidatePath("/portal/marine-tech");
   redirect(`/portal/marine-tech${month ? `?month=${month}` : ""}`);
