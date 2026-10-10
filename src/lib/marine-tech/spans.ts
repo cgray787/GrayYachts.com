@@ -1,4 +1,5 @@
 import type { CalendarJob } from "@/components/portal/MarineTechCalendar";
+import { pacificDay } from "./pacific";
 
 /** Hard cap so a bad/huge scheduled_end_date can never spin the day loop. */
 const MAX_SPAN_DAYS = 60;
@@ -10,7 +11,8 @@ const MAX_SPAN_DAYS = 60;
  * null when the job is unscheduled in both worlds.
  */
 export function jobStartDay(job: CalendarJob): string | null {
-  if (job.scheduled_start) return job.scheduled_start.slice(0, 10);
+  // Pacific day, not .slice(0, 10) (the UTC day) — see ./pacific.ts.
+  if (job.scheduled_start) return pacificDay(job.scheduled_start);
   return job.scheduled_date ?? null;
 }
 
@@ -20,7 +22,7 @@ export function jobStartDay(job: CalendarJob): string | null {
  * end (caller treats that as a single-day job).
  */
 export function jobEndDay(job: CalendarJob): string | null {
-  if (job.scheduled_end) return job.scheduled_end.slice(0, 10);
+  if (job.scheduled_end) return pacificDay(job.scheduled_end);
   return job.scheduled_end_date ?? null;
 }
 

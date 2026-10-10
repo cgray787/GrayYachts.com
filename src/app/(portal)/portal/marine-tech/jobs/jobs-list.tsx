@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { pacificDay } from "@/lib/marine-tech/pacific";
 
 export type Job = {
   id: string;
@@ -21,7 +22,7 @@ export type Job = {
 // "When was this job scheduled?" — prefer the new timestamptz; fall back to
 // the legacy date column. Returns 'YYYY-MM-DD' or null.
 function jobScheduledDate(j: { scheduled_start: string | null; scheduled_date: string | null }): string | null {
-  if (j.scheduled_start) return j.scheduled_start.slice(0, 10);
+  if (j.scheduled_start) return pacificDay(j.scheduled_start); // not the UTC day
   return j.scheduled_date;
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { pacificDay } from "@/lib/marine-tech/pacific";
 
 export type CalendarJob = {
   id: string;
@@ -27,10 +28,11 @@ export function isPaperwork(j: CalendarJob | { kind?: string | null }): boolean 
 // 'YYYY-MM-DD' for whichever column was populated.
 function dateFromJob(j: CalendarJob, kind: "start" | "end"): string | null {
   if (kind === "start") {
-    if (j.scheduled_start) return j.scheduled_start.slice(0, 10);
+    // Pacific day — .slice(0, 10) is the UTC day (see lib/marine-tech/pacific).
+    if (j.scheduled_start) return pacificDay(j.scheduled_start);
     return j.scheduled_date ?? null;
   }
-  if (j.scheduled_end) return j.scheduled_end.slice(0, 10);
+  if (j.scheduled_end) return pacificDay(j.scheduled_end);
   return j.scheduled_end_date ?? null;
 }
 
