@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded local research/draft loop. Never publishes or sends messages."""
+"""Bounded local research/draft loop. Never publishes content. Its only outbound message is a failure alert emailed to Connor."""
 import argparse
 import csv
 import datetime as dt
@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 from urllib.parse import urlparse
+import urllib.request
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +23,31 @@ CONTENT = ROOT / 'content/seo'
 STATE = Path(os.environ.get('GRAYYACHTS_SEO_STATE', str(Path.home() / 'Library/Application Support/GrayYachts/seo-editorial')))
 ZONE = ZoneInfo('America/Los_Angeles')
 LABEL = 'com.grayyachts.seo-editorial'
+ALERT_TO = 'connorgray@jeffbrownyachts.com'
+ALERT_FROM = 'Gray Yachts SEO Agent <onboarding@resend.dev>'
+
+def alert(subject, body):
+    # Same Resend key and recipient as the /sell watchdog (scripts/sell-watchdog.sh).
+    key=subprocess.run(['security','find-generic-password','-a','grayyachts-watchdog','-s','resend-api-key','-w'],capture_output=True,text=True).stdout.strip()
+    if not key:raise RuntimeError('no Resend key in keychain')
+    req=urllib.request.Request('https://api.resend.com/emails',method='POST',data=json.dumps({'from':ALERT_FROM,'to':[ALERT_TO],'subject':subject,'text':body}).encode(),headers={'Authorization':f'Bearer {key}','Content-Type':'application/json','User-Agent':'grayyachts-seo-editorial/1'})
+    with urllib.request.urlopen(req,timeout=25) as resp:resp.read()
+
+def notify(subject, body):
+    # An alert that fails to send must never change the run's own outcome.
+    try:alert(subject,body);print('Alert emailed to '+ALERT_TO)
+    except Exception as exc:print(f'Alert not sent: {exc}')
+
+def cli_failure(proc):
+    # With --output-format json the CLI reports its error on stdout, not stderr.
+    parts=[f'CLI exit {proc.returncode}']
+    out=(proc.stdout or '').strip()
+    try:payload=json.loads(out)
+    except ValueError:payload=None
+    if isinstance(payload,dict):parts.append(f"{payload.get('subtype','error')}: {payload.get('result') or payload.get('errors') or 'no message'}"[:400])
+    elif out:parts.append('stdout: '+out[-400:])
+    if (proc.stderr or '').strip():parts.append('stderr: '+proc.stderr.strip()[-400:])
+    return ' | '.join(parts)
 
 def read(path, default=None):
     return json.loads(path.read_text()) if path.exists() else default
@@ -165,7 +191,9 @@ def run(args):
         except BlockingIOError:print('Another editorial run is active');return
         state=read(STATE/'state.json',{})
         if state.get('blocked'):
-            print('Paused after two failed runs. Inspect state.json and run resume after fixing the cause.');return
+            print('Paused after two failed runs. Inspect state.json and run resume after fixing the cause.')
+            notify('Gray Yachts SEO agent is PAUSED',f"The daily SEO run is paused after two failed runs and did nothing today.\n\nLast error: {state.get('lastError')}\nLast attempt: {state.get('lastAttempt')}\nLast success: {state.get('lastSuccess')}\n\nAfter fixing the cause, run:\n  python3 scripts/seo/editorial_loop.py resume\n\nState: {STATE/'state.json'}")
+            sys.exit(1)
         day=today(); key=day.isoformat()
         if state.get('lastSuccess')==key and not args.dry_run:print('Already completed today');return
         program=read(CONTENT/'program.json')
@@ -186,7 +214,7 @@ def run(args):
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
                 proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=600)
-            if proc.returncode:raise RuntimeError(f'CLI exit {proc.returncode}: {proc.stderr[-500:]}')
+            if proc.returncode:raise RuntimeError(cli_failure(proc))
             payload=json.loads(proc.stdout)
             if payload.get('is_error'):raise RuntimeError(payload.get('result','CLI reported failure'))
             result=payload.get('structured_output')
@@ -217,7 +245,9 @@ def run(args):
             failures=state.get('failures',0)+1
             state.update(failures=failures,blocked=failures>=2,lastError=str(exc)[:700],lastAttempt=timestamp())
             write(STATE/'state.json',state)
-            print(json.dumps({'status':'blocked' if failures>=2 else 'failed','error':str(exc)[:700]}));sys.exit(1)
+            print(json.dumps({'status':'blocked' if failures>=2 else 'failed','error':str(exc)[:700]}))
+            notify('Gray Yachts SEO agent '+('PAUSED after 2 failures' if failures>=2 else 'run failed'),f"Error: {str(exc)[:700]}\nFailures in a row: {failures}\n"+('The agent is now paused. After fixing the cause, run: python3 scripts/seo/editorial_loop.py resume' if failures>=2 else 'It will retry at the next scheduled run.')+f"\n\nState: {STATE/'state.json'}")
+            sys.exit(1)
 
 def install():
     if sys.platform!='darwin':raise RuntimeError('This installer uses macOS launchd')

@@ -32,4 +32,41 @@ class EditorialLoopTests(unittest.TestCase):
   for n in range(14):ids.update(s['id'] for s in loop.choose_topics(dt.date(2026,9,24)+dt.timedelta(days=n)))
   all_ids={s['id'] for s in loop.read(loop.CONTENT/'shows.json')}
   self.assertTrue(all_ids<=ids,all_ids-ids)
+class FailureVisibilityTests(unittest.TestCase):
+ def setUp(self):
+  import tempfile,argparse
+  self.tmp=tempfile.TemporaryDirectory();self.state=Path(self.tmp.name)
+  self.saved=(loop.STATE,loop.alert,loop.subprocess.run);loop.STATE=self.state
+  self.alerts=[];loop.alert=lambda subject,body:self.alerts.append((subject,body))
+  self.args=argparse.Namespace(dry_run=False)
+ def tearDown(self):
+  loop.STATE,loop.alert,loop.subprocess.run=self.saved;self.tmp.cleanup()
+ def fake_cli(self,code,stdout,stderr=''):
+  import types
+  loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=code,stdout=stdout,stderr=stderr)
+ def test_cli_error_reported_on_stdout_is_kept(self):
+  self.fake_cli(1,json.dumps({'is_error':True,'subtype':'error_during_execution','result':'OAuth token expired'}))
+  with self.assertRaises(SystemExit) as e:loop.run(self.args)
+  self.assertEqual(e.exception.code,1)
+  err=loop.read(self.state/'state.json')['lastError']
+  self.assertIn('error_during_execution',err);self.assertIn('OAuth token expired',err)
+ def test_non_json_stdout_is_kept(self):
+  self.fake_cli(1,'network unreachable')
+  with self.assertRaises(SystemExit):loop.run(self.args)
+  self.assertIn('network unreachable',loop.read(self.state/'state.json')['lastError'])
+ def test_failure_sends_alert_with_reason(self):
+  self.fake_cli(1,'network unreachable')
+  with self.assertRaises(SystemExit):loop.run(self.args)
+  self.assertEqual(len(self.alerts),1);self.assertIn('network unreachable',self.alerts[0][1])
+ def test_paused_run_alerts_and_exits_nonzero(self):
+  loop.write(self.state/'state.json',{'blocked':True,'failures':2,'lastError':'CLI exit 1: boom'})
+  with self.assertRaises(SystemExit) as e:loop.run(self.args)
+  self.assertEqual(e.exception.code,1)
+  self.assertEqual(len(self.alerts),1);self.assertIn('boom',self.alerts[0][1]);self.assertIn('resume',self.alerts[0][1])
+ def test_alert_failure_never_masks_run_result(self):
+  def broken(subject,body):raise OSError('no network')
+  loop.alert=broken
+  loop.write(self.state/'state.json',{'blocked':True,'failures':2,'lastError':'x'})
+  with self.assertRaises(SystemExit) as e:loop.run(self.args)
+  self.assertEqual(e.exception.code,1)
 if __name__=='__main__':unittest.main()
