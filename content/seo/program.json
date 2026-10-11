@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "targetDomain": "grayyachts.com",
   "primaryGoal": "Qualified yacht seller inquiries for Connor Gray",
   "timezone": "America/Los_Angeles",
@@ -35,5 +35,106 @@
     "ownerAccount": "connorgray@jeffbrownyachts.com",
     "mediaProperty": "sc-domain:grayyachts.media exists",
     "nextStep": "Wait for Google processing; submit sitewide sitemap after SEO deployment. Metrics imports/API remain unconnected."
-  }
+  },
+  "keywordTargets": [
+    {
+      "phrase": "how to sell a boat in washington state",
+      "intent": "seller",
+      "targetPage": "new seller guide",
+      "evidence": "Google autocomplete, 2026-10-10; top results were spam copies and generic advice, no authoritative guide",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "what is my boat worth to sell",
+      "intent": "seller",
+      "targetPage": "/sell (currently noindex)",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "boat valuation tool",
+      "intent": "seller",
+      "targetPage": "/sell (currently noindex)",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "what percentage do boat brokers charge",
+      "intent": "seller",
+      "targetPage": "new seller guide",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "boat broker fees",
+      "intent": "seller",
+      "targetPage": "new seller guide",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "boat consignment near me",
+      "intent": "seller",
+      "targetPage": "new seller guide explaining brokerage versus consignment",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "sell my yacht online",
+      "intent": "seller",
+      "targetPage": "/sell (currently noindex)",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "yacht broker seattle",
+      "intent": "broker",
+      "targetPage": "/",
+      "evidence": "Google autocomplete, 2026-10-10; top results held by Worth Avenue Yachts, Alexander Marine, Seattle Yachts, NW Yachtnet",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "yacht brokerage seattle",
+      "intent": "broker",
+      "targetPage": "/",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "boat broker seattle",
+      "intent": "broker",
+      "targetPage": "/",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "yachts for sale seattle",
+      "intent": "buyer",
+      "targetPage": "/fleet",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "sailboats for sale seattle",
+      "intent": "buyer",
+      "targetPage": "/fleet",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "ocean alexander for sale seattle",
+      "intent": "buyer",
+      "targetPage": "/fleet/ocean-alexander-548",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    },
+    {
+      "phrase": "ocean alexander for sale bc",
+      "intent": "buyer",
+      "targetPage": "/fleet/ocean-alexander-548",
+      "evidence": "Google autocomplete, 2026-10-10",
+      "monthlyVolume": null
+    }
+  ],
+  "keywordTargetsNote": "Phrases people type, from Google autocomplete. Search volumes are unknown, not zero. Search Console showed only brand look-alike queries over the 90 days to 2026-10-10."
 }

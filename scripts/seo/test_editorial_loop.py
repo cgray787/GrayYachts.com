@@ -159,4 +159,29 @@ class AnswerEngineTests(unittest.TestCase):
  def test_prompt_carries_answer_engine_rules(self):
   p=(loop.ROOT/'scripts/seo/research-prompt.md').read_text()
   for phrase in ['main conclusion','how and why','define','counterpoint','easily confused','one idea','tabs']:self.assertIn(phrase,p.lower(),phrase)
+class KeywordTargetTests(unittest.TestCase):
+ def test_program_lists_evidence_backed_keyword_targets(self):
+  targets=loop.read(loop.CONTENT/'program.json')['keywordTargets']
+  self.assertGreaterEqual(len(targets),8)
+  for k in targets:
+   self.assertIn(k['intent'],['seller','broker','buyer'])
+   self.assertTrue(k['evidence']);self.assertIsNone(k['monthlyVolume'],'volumes are unknown, never guessed')
+ def test_prompt_context_sent_to_cli_carries_keyword_targets(self):
+  import tempfile,argparse,types
+  saved=(loop.STATE,loop.alert,loop.subprocess.run,loop.today)
+  with tempfile.TemporaryDirectory() as d:
+   loop.STATE=Path(d);loop.alert=lambda s,b:None;loop.today=lambda:dt.date(2026,10,10)
+   seen={}
+   def fake(cmd,**kw):
+    seen['input']=kw.get('input','')
+    out={'updates':[],'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'x'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
+    return types.SimpleNamespace(returncode=0,stdout=json.dumps({'is_error':False,'structured_output':out}),stderr='')
+   loop.subprocess.run=fake
+   try:loop.run(argparse.Namespace(dry_run=False))
+   finally:loop.STATE,loop.alert,loop.subprocess.run,loop.today=saved
+  ctx=json.loads(seen['input'].split('Current context:\n',1)[1])
+  self.assertTrue(any(k['phrase']=='how to sell a boat in washington state' for k in ctx['keywordTargets']))
+ def test_prompt_uses_keyword_targets_without_inventing_volume(self):
+  p=(loop.ROOT/'scripts/seo/research-prompt.md').read_text()
+  self.assertIn('keywordTargets',p)
 if __name__=='__main__':unittest.main()
