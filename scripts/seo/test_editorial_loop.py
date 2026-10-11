@@ -97,6 +97,10 @@ class PromptUpgradeTests(unittest.TestCase):
  def test_brand_short_names_are_matched(self):
   names=loop.jby_brands()
   self.assertIn('Sirena',names);self.assertIn('BRABUS',names);self.assertIn('Sirena Yachts',names)
+ def test_published_articles_disclose_dealer_brands_and_ai(self):
+  for a in json.loads((loop.CONTENT/'articles.json').read_text()):
+   self.assertNotIn('missing material connection disclosure',loop.validate_article(a,jby_brands=loop.jby_brands()),a['slug'])
+   self.assertTrue(a.get('aiAssisted'),a['slug'])
  def test_stock_ai_phrasing_is_flagged(self):
   self.article['sections'][0]['paragraphs'].append("It's important to note that every boat is different.")
   self.assertIn('unsupported promise or stock prose',loop.validate_article(self.article))

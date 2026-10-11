@@ -313,6 +313,6 @@ def main():
     elif args.command=='resume':
         state=read(STATE/'state.json',{});state.update(failures=0,blocked=False);write(STATE/'state.json',state);print('Resumed')
     elif args.command=='check':
-        checks=[{'slug':a['slug'],'issues':validate_article(a)} for a in read(CONTENT/'articles.json',[])]
+        checks=[{'slug':a['slug'],'issues':validate_article(a,jby_brands=jby_brands())} for a in read(CONTENT/'articles.json',[])]
         print(json.dumps(checks,indent=2));sys.exit(int(any(r['issues'] for r in checks)))
 if __name__=='__main__':main()
