@@ -23,6 +23,8 @@ CONTENT = ROOT / 'content/seo'
 STATE = Path(os.environ.get('GRAYYACHTS_SEO_STATE', str(Path.home() / 'Library/Application Support/GrayYachts/seo-editorial')))
 ZONE = ZoneInfo('America/Los_Angeles')
 LABEL = 'com.grayyachts.seo-editorial'
+# Prompt v1.2.0 runs took 405s (v1.0.0: 165s). 600s left too little headroom; launchd itself has no limit.
+CLI_TIMEOUT_SECONDS = 900
 ALERT_TO = 'connorgray@jeffbrownyachts.com'
 ALERT_FROM = 'Gray Yachts SEO Agent <onboarding@resend.dev>'
 
@@ -96,6 +98,13 @@ def validate_article(a, asof=None, allowed_paths=None, jby_brands=None):
     if re.search(r'<[^>]+>', text): issues.append('raw HTML in article')
     stock=r"guarantee(?:d)? (?:rank|first|top)|as an ai|delve|unparalleled|it['’]?s (?:important|worth) (?:to note|noting)|in today['’]?s (?:fast|ever|competitive|modern)|at the end of the day|look no further|game ?changer|unlock the (?:secret|potential)"
     if re.search(stock,text,re.I): issues.append('unsupported promise or stock prose')
+    # Bing (Oct 2025): AI assistants skip unanchored hype and decorative symbols when lifting answers.
+    if re.search(r"\b(?:cutting edge|next gen(?:eration)?|state of the art|world class|best in class|revolutionary|game changing|innovative)\b",text,re.I): issues.append('vague unanchored claim')
+    if re.search(r"[→←↑↓★☆✓✔✨🚀►▶•]|!!",text): issues.append('decorative symbols')
+    # AutoGEO and E-GEO: engines favor pages that state the main conclusion first.
+    opening=a['sections'][0]['paragraphs'][0] if a['sections'] and a['sections'][0]['paragraphs'] else ''
+    # Matches the prompt: the main conclusion in two or three sentences. Calibrated on a real draft (81 words, 3 sentences).
+    if len(opening.split())>120 or len(re.findall(r'[.!?](?=\s|$)',opening))>3: issues.append('opening does not lead with a concise answer')
     if 'breaking' in a['title'].lower():
         dates=[dt.date.fromisoformat(s['publishedAt'][:10]) for s in a['sources'] if s.get('publishedAt')]
         if not dates or (asof-max(dates)).days > 3: issues.append('breaking headline without recent dated source')
@@ -241,7 +250,7 @@ def run(args):
         try:
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
-                proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=600)
+                proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
             payload=json.loads(proc.stdout)
             if payload.get('is_error'):raise RuntimeError(payload.get('result','CLI reported failure'))

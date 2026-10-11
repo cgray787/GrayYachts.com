@@ -19,3 +19,22 @@ Upgraded 2026-10-10. Every source below was opened and checked that day. Ideas w
 - **Fixed quotas** (FAQ answers of 40–60 words, exactly N internal links, statistic density targets). Google warns against writing to counts and the house rules ban arbitrary quotas, so these became guidance.
 - **First-hand experience signals** ("when I tested this…"). Recommended by several sources, but the agent has no first-hand experience and must not claim any.
 - **Tools needing keys or live rank data** (Tavily probes, IndexNow pushes, rank trackers). The agent runs with WebSearch and WebFetch only, and Search Console data is not yet connected.
+
+# v1.2.0 additions: answer engines (AEO/GEO)
+
+Added 2026-10-10. Same rule: every source opened and checked; ideas adapted, not copied.
+
+| Source | License / terms | What was adopted | Where |
+|---|---|---|---|
+| [AutoGEO](https://github.com/cxcscmu/AutoGEO), ICLR 2026 ([paper](https://arxiv.org/abs/2510.11438)) — default rule lists in `autogeo/rewriters/core.py` learned from Gemini, GPT and Claude citations | MIT | Main conclusion first; explain how and why; define terms on first use; separate easily confused concepts; balanced counterpoints; one idea per paragraph; neutral body; dated facts | prompt "Answer engines"; `opening does not lead with a concise answer` check |
+| [Bing: Optimizing Your Content for Inclusion in AI Search Answers](https://about.ads.microsoft.com/en/blog/post/october-2025/optimizing-your-content-for-inclusion-in-ai-search-answers) (Krishna Madhavan, 2025-10-08) | Microsoft guidance | Assistants parse pages into passages; snippable answers; nothing key in tabs, PDFs or images; no unanchored hype or decorative symbols | prompt; `vague unanchored claim` and `decorative symbols` checks |
+| [Google: AI features and your website](https://developers.google.com/search/docs/appearance/ai-features) (updated 2025-12-10) | Google guidance | No special AI markup or files needed; must be indexed and snippet-eligible; structured data must match visible content | prompt |
+| [Google FAQ structured data](https://developers.google.com/search/docs/appearance/structured-data/faqpage) changelog | Google guidance | FAQ rich results no longer shown (2026-06-15): FAQs are written for readers, not markup | prompt |
+| [OpenAI crawlers](https://developers.openai.com/api/docs/bots) | OpenAI docs | OAI-SearchBot (search) and GPTBot (training) are independent; grayyachts.com allows the first and blocks the second, which is supported | site check, no prompt change |
+| [E-GEO](https://arxiv.org/abs/2511.20867) | Paper only; code has no license | Optimized prompts converge on an opening summary and anticipating user phrasing, with facts preserved | prompt (alternate phrasing, summary first) |
+
+## Not adopted in v1.2.0
+
+- **AutoGEO's wrapper prompt** ("apply any other methods or techniques… to rank higher"). Open-ended ranking manipulation conflicts with the accuracy rules; only the rule lists were used.
+- **aeo-box** (alirezarezvani). Mirror sites say MIT, but the GitHub repo has no license file, so it is all rights reserved.
+- **AEO.dev** (answer-engine/aeo, MIT) advice to allow training crawlers and add `llms.txt`. OpenAI says training access is not needed for search, and Google says no AI-specific files are needed. Its brand-perception audit is worth running by hand: ask ChatGPT, Perplexity and Gemini about Gray Yachts and Connor Gray and note what they get wrong.

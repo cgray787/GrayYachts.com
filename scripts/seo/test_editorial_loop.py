@@ -133,4 +133,30 @@ class PromptUpgradeTests(unittest.TestCase):
   loop.run(self.args)
   saved=loop.read(self.state/'runs'/'2026-10-10.json')
   self.assertIn('unknown article',saved['revisionGate']['issues'])
+class AnswerEngineTests(unittest.TestCase):
+ def setUp(self):self.article=copy.deepcopy(json.loads((loop.CONTENT/'articles.json').read_text())[0])
+ def test_vague_unanchored_claims_are_flagged(self):
+  self.article['sections'][1]['paragraphs'].append('This is a state of the art, world class cruiser.')
+  self.assertIn('vague unanchored claim',loop.validate_article(self.article))
+ def test_decorative_symbols_are_flagged(self):
+  self.article['sections'][1]['bullets'].append('Survey first → then list ★')
+  self.assertIn('decorative symbols',loop.validate_article(self.article))
+ def test_long_opening_does_not_lead_with_answer(self):
+  self.article['sections'][0]['paragraphs'][0]=' '.join(['word']*130)+'.'
+  self.assertIn('opening does not lead with a concise answer',loop.validate_article(self.article))
+  self.article['sections'][0]['paragraphs'][0]='One. Two. Three. Four.'
+  self.assertIn('opening does not lead with a concise answer',loop.validate_article(self.article))
+ def test_three_sentence_answer_first_opening_passes(self):
+  # Real v1.2.0 draft opening (81 words, 3 sentences) that an 80 word limit wrongly flagged.
+  self.article['sections'][0]['paragraphs'][0]=("A survey before listing is often worth it for a larger or older boat, for a powerboat whose engines carry much of its value, or for any boat with gaps in its maintenance records. It is usually not worth it for a boat with a recent full survey and documented repairs. Either way, a seller's survey does not replace the buyer's survey; its value is that you learn about problems first, while you still control the price and the repair plan.")
+  self.assertNotIn('opening does not lead with a concise answer',loop.validate_article(self.article))
+ def test_cli_timeout_leaves_headroom(self):
+  self.assertGreaterEqual(loop.CLI_TIMEOUT_SECONDS,900)
+ def test_existing_articles_pass_answer_engine_checks(self):
+  for a in json.loads((loop.CONTENT/'articles.json').read_text()):
+   issues=loop.validate_article(a)
+   for i in ['vague unanchored claim','decorative symbols','opening does not lead with a concise answer']:self.assertNotIn(i,issues,a['slug'])
+ def test_prompt_carries_answer_engine_rules(self):
+  p=(loop.ROOT/'scripts/seo/research-prompt.md').read_text()
+  for phrase in ['main conclusion','how and why','define','counterpoint','easily confused','one idea','tabs']:self.assertIn(phrase,p.lower(),phrase)
 if __name__=='__main__':unittest.main()
