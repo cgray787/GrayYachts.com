@@ -26,7 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const found = find(slug);
-  if (!found) return { title: "Listing not found — Gray Yachts" };
+  if (!found) return { title: "Listing not found — Gray Yachts", robots: { index: false } };
   const { vessel, brochure } = found;
 
   const title = `${vessel.year} ${vessel.make} — ${vessel.name} for sale | ${vessel.price} | Gray Yachts`;
@@ -37,6 +37,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: `/fleet/${slug}` },
     openGraph: {
       title,
       description,
