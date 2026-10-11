@@ -64,7 +64,7 @@ def valid_url(value):
     u = urlparse(value)
     return u.scheme == 'https' and bool(u.hostname) and not u.username and not u.password
 
-def validate_article(a, asof=None):
+def validate_article(a, asof=None, allowed_paths=None, jby_brands=None):
     """Mechanical gates only. This does not establish factual truth or ranking quality."""
     asof = asof or today()
     issues = []
@@ -87,15 +87,33 @@ def validate_article(a, asof=None):
         prose += [s['heading'], *s['paragraphs'], *s['bullets']]
         if any(not isinstance(i,int) or i < 0 or i >= len(a['sources']) for i in s['sourceIndexes']): issues.append('bad citation index')
     for q in a['faq']: prose += [q['question'],q['answer']]
+    prose += [l['anchor'] for l in a.get('internalLinks',[])] + list(a.get('disclosures',[]))
     text = '\n'.join(prose)
+    if allowed_paths is not None and any(l['path'] not in allowed_paths for l in a.get('internalLinks',[])): issues.append('unknown internal link')
+    # A brand Jeff Brown Yachts represents is a material connection; readers must be told (Google helpful content, CORE-EEAT T04).
+    if jby_brands and any(re.search(rf'\b{re.escape(b)}\b',text,re.I) for b in jby_brands) and not any(d.strip() for d in a.get('disclosures',[])): issues.append('missing material connection disclosure')
     if re.search(r'[—–-]', text): issues.append('dash in customer copy')
     if re.search(r'<[^>]+>', text): issues.append('raw HTML in article')
-    if re.search(r'guarantee(?:d)? (?:rank|first|top)|as an ai|delve|unparalleled',text,re.I): issues.append('unsupported promise or stock prose')
+    stock=r"guarantee(?:d)? (?:rank|first|top)|as an ai|delve|unparalleled|it['’]?s (?:important|worth) (?:to note|noting)|in today['’]?s (?:fast|ever|competitive|modern)|at the end of the day|look no further|game ?changer|unlock the (?:secret|potential)"
+    if re.search(stock,text,re.I): issues.append('unsupported promise or stock prose')
     if 'breaking' in a['title'].lower():
         dates=[dt.date.fromisoformat(s['publishedAt'][:10]) for s in a['sources'] if s.get('publishedAt')]
         if not dates or (asof-max(dates)).days > 3: issues.append('breaking headline without recent dated source')
     if len(text.split()) < 250: issues.append('draft needs more useful substance')
     return sorted(set(issues))
+
+def site_paths():
+    # Same static pages as src/app/sitemap.ts, plus published articles. Drafts may only suggest links that exist.
+    return ['/sell','/fleet','/boat-shows','/brands','/about-connor-gray','/insights']+[f"/insights/{a['slug']}" for a in read(CONTENT/'articles.json',[]) if a.get('status')=='published']
+
+def jby_brands():
+    # "Sirena Yachts" is usually written "Sirena 58", so also match the name without a generic suffix.
+    names=[b['name'] for b in read(CONTENT/'brands.json',[]) if str(b.get('relationship','')).startswith('JBY brand')]
+    return sorted({n for name in names for n in (name,re.sub(r'\s+(?:Yachts|Marine|Boats)$','',name,flags=re.I))})
+
+def choose_refresh_candidate(day, articles):
+    published=[a for a in articles if a.get('status')=='published']
+    return published[day.toordinal()%len(published)] if published else None
 
 def article_schema():
     string = {'type':'string'}
@@ -103,8 +121,11 @@ def article_schema():
     def obj(properties, required=None): return {'type':'object','properties':properties,'required':required or list(properties),'additionalProperties':False}
     source = obj({'title':string,'url':string,'publishedAt':{'type':['string','null']},'checkedAt':string})
     section = obj({'heading':string,'paragraphs':strings,'bullets':strings,'sourceIndexes':{'type':'array','items':{'type':'integer'}}})
-    article = obj({'slug':string,'title':string,'description':string,'category':string,'primaryKeyword':string,'sections':{'type':'array','items':section},'sources':{'type':'array','items':source},'faq':{'type':'array','items':obj({'question':string,'answer':string})}})
-    return obj({'updates':{'type':'array','items':obj({'topicId':string,'summary':string,'sourceUrl':string,'sourcePublishedAt':{'type':['string','null']},'changeType':{'enum':['new','changed','unchanged','unverified']}})},'draft':{'anyOf':[article,{'type':'null'}]},'critique':obj({'findings':strings,'revisionsMade':strings,'lesson':string}),'experimentProposal':{'type':['string','null']}})
+    intent = obj({'dominantIntent':{'enum':['informational','commercial','navigational','transactional']},'journeyStage':{'enum':['awareness','consideration','decision','ownership']},'evidence':string})
+    link = obj({'path':string,'anchor':string})
+    article = obj({'slug':string,'title':string,'description':string,'category':string,'primaryKeyword':string,'intent':intent,'sections':{'type':'array','items':section},'sources':{'type':'array','items':source},'faq':{'type':'array','items':obj({'question':string,'answer':string})},'internalLinks':{'type':'array','items':link},'disclosures':strings})
+    revision = obj({'slug':string,'reasons':strings,'changes':strings,'sources':{'type':'array','items':source},'republishTreatment':{'enum':['keepOriginalDate','lastUpdatedDate','newPublishDate']}})
+    return obj({'updates':{'type':'array','items':obj({'topicId':string,'summary':string,'sourceUrl':string,'sourcePublishedAt':{'type':['string','null']},'changeType':{'enum':['new','changed','unchanged','unverified']}})},'draft':{'anyOf':[article,{'type':'null'}]},'revisionProposal':{'anyOf':[revision,{'type':'null'}]},'earnedMediaIdeas':strings,'critique':obj({'findings':strings,'revisionsMade':strings,'lesson':string}),'experimentProposal':{'type':['string','null']}})
 
 def choose_topics(day):
     shows=read(CONTENT/'shows.json',[])
@@ -176,11 +197,17 @@ def render_review(result):
     for u in result['updates']:lines += [f"* {u['topicId']}: {u['summary']} [{u['changeType']}]",f"  Source: {u['sourceUrl']} | Published: {u['sourcePublishedAt'] or 'not established'}"]
     a=result.get('draft')
     if a:
-        lines += ['', '# '+a['title'],a['description'],'']
+        lines += ['', '# '+a['title'],a['description'],'',f"Intent: {a['intent']['dominantIntent']} | Stage: {a['intent']['journeyStage']} | Evidence: {a['intent']['evidence']}"]
+        lines += ['Disclosures: '+('; '.join(a['disclosures']) or 'none')]
+        lines += ['Internal links: '+(', '.join(f"{l['path']} ({l['anchor']})" for l in a['internalLinks']) or 'none')]
         for s in a['sections']:
             lines += ['## '+s['heading'],'',*s['paragraphs'],*['* '+b for b in s['bullets']]]
             lines += [f"Source: {a['sources'][i]['url']}" for i in s['sourceIndexes']]
         for q in a['faq']:lines += ['### '+q['question'],q['answer']]
+    rp=result.get('revisionProposal')
+    if rp:
+        lines += ['', f"## Revision proposal: {rp['slug']}",f"Republish treatment: {rp['republishTreatment']}",'### Why',*['* '+r for r in rp['reasons']],'### Changes',*['* '+c for c in rp['changes']],*[f"Source: {x['url']}" for x in rp['sources']]]
+    if result.get('earnedMediaIdeas'):lines += ['', '## Earned media ideas (for Connor to pursue)',*['* '+i for i in result['earnedMediaIdeas']]]
     lines += ['', '## Critique', *result['critique']['findings'],'## Revisions',*result['critique']['revisionsMade'],'## Lesson',result['critique']['lesson']]
     return '\n\n'.join(lines)
 
@@ -198,6 +225,7 @@ def run(args):
         if state.get('lastSuccess')==key and not args.dry_run:print('Already completed today');return
         program=read(CONTENT/'program.json')
         existing=read(CONTENT/'articles.json',[])
+        candidate=choose_refresh_candidate(day,existing)
         lessons=read(STATE/'lessons.json',[])
         prior=[]
         for p in sorted((STATE/'runs').glob('*.json'))[-10:]:
@@ -205,7 +233,7 @@ def run(args):
         week_start=day-dt.timedelta(days=day.weekday())
         count=sum(bool(r.get('draft')) and r.get('date','')>=week_start.isoformat() for r in prior)
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
-        context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in prior if r.get('draft')], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal']}
+        context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in prior if r.get('draft')], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         command=[shutil.which('claude') or str(Path.home()/'.local/bin/claude'),'-p','--output-format','json','--json-schema',json.dumps(article_schema()),'--max-budget-usd',str(program['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
         if args.dry_run:
@@ -226,11 +254,22 @@ def run(args):
             a=result.get('draft')
             if a and not may_draft:raise ValueError('Unscheduled draft returned')
             if a:
-                issues=validate_article(a)
+                issues=validate_article(a,allowed_paths=site_paths(),jby_brands=jby_brands())
                 if a['slug'] in {x['slug'] for x in context['alreadyWritten']}:issues.append('duplicate slug')
-                a.update(status='draft',author='Gray Yachts editorial team',createdAt=key,updatedAt=key,publishedAt=None,reviewedBy=None,revision=1,relatedPaths=['/sell','/fleet','/boat-shows','/brands'])
+                # aiAssisted drives the "how this was made" disclosure on the article page (Google: Who, How, Why).
+                a.update(status='draft',author='Gray Yachts editorial team',createdAt=key,updatedAt=key,publishedAt=None,reviewedBy=None,revision=1,aiAssisted=True,relatedPaths=[l['path'] for l in a['internalLinks']] or ['/sell','/fleet','/boat-shows','/brands'])
                 result['qualityGate']={'issues':issues,'status':'needs_revision' if issues else 'needs_human_fact_review'}
             else:result['qualityGate']={'issues':[],'status':'research_only'}
+            rp=result.get('revisionProposal')
+            if rp:
+                rissues=[] if candidate and rp['slug']==candidate['slug'] else ['unknown article']
+                for src in rp['sources']:
+                    if not valid_url(src['url']):rissues.append('invalid source URL')
+                    if src.get('publishedAt'):
+                        try:
+                            if dt.date.fromisoformat(src['publishedAt'][:10])>day:rissues.append('future dated source')
+                        except (ValueError,TypeError):rissues.append('invalid source date')
+                result['revisionGate']={'issues':sorted(set(rissues)),'status':'needs_revision' if rissues else 'needs_human_review'}
             result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],performanceStatus=context['performance']['status'])
             write(STATE/'runs'/f'{key}.json',result)
             (STATE/'runs'/f'{key}.md').write_text(render_review(result))

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {articles,isPublished,articleSchema,jsonLd,publishedArticles} from './editorial';
+import {articles,isPublished,articleSchema,jsonLd,publishedArticles,howThisWasMade,relatedLinks} from './editorial';
 import sitemap from '@/app/sitemap';
 describe('editorial publication boundary',()=>{
  it('excludes drafts, unreviewed posts and future posts from the sitemap',()=>{
@@ -30,4 +30,17 @@ describe('editorial publication boundary',()=>{
   expect(urls.some(u=>u.includes('/fleet/'))).toBe(true);
   expect(new Set(urls).size).toBe(urls.length);
  });
+ it('discloses AI assistance only on AI-assisted articles, with the real reviewer',()=>{
+  const base={...articles[0],reviewedBy:'Connor Gray'};
+  expect(howThisWasMade({...base,aiAssisted:undefined})).toBeNull();
+  const note=howThisWasMade({...base,aiAssisted:true});
+  expect(note).toContain('AI assistance');expect(note).toContain('Reviewed by Connor Gray');
+  expect(howThisWasMade({...base,aiAssisted:true,reviewedBy:null})).toContain('not yet been reviewed');
+ });
+ it('renders only same-site internal links',()=>{
+  const a={...articles[0],internalLinks:[{path:'/sell',anchor:'talk with Connor'},{path:'https://evil.example',anchor:'x'},{path:'//evil.example',anchor:'y'}]};
+  expect(relatedLinks(a)).toEqual([{path:'/sell',anchor:'talk with Connor'}]);
+  expect(relatedLinks({...articles[0],internalLinks:undefined})).toEqual([]);
+ });
 });
+

@@ -11,6 +11,9 @@ export type Article = {
   sections: {heading: string; paragraphs: string[]; bullets: string[]; sourceIndexes: number[]}[];
   sources: {title: string; url: string; publishedAt: string | null; checkedAt: string}[];
   faq: {question: string; answer: string}[]; relatedPaths: string[];
+  // Set by the editorial loop on drafts it writes; drives the "how this was made" note.
+  aiAssisted?: boolean; disclosures?: string[]; internalLinks?: {path: string; anchor: string}[];
+  intent?: {dominantIntent: string; journeyStage: string; evidence: string};
 };
 export const articles = articleData as Article[];
 // Preview is deliberately unavailable in production, including with an env override.
@@ -33,6 +36,15 @@ export function articleSchema(a: Article) {
     author: {'@type': 'Organization', name: a.author, url: `${SITE}/about-connor-gray`},
     publisher: {'@type': 'Organization', '@id': `${SITE}/#organization`, name: 'Gray Yachts', url: SITE},
     citation: a.sources.map(s => s.url) };
+}
+// Google's people-first guidance asks sites to make AI involvement self-evident (Who, How, Why).
+export function howThisWasMade(a: Article): string | null {
+  if (!a.aiAssisted) return null;
+  const review = a.reviewedBy?.trim() ? `Reviewed by ${a.reviewedBy} before publication.` : 'This draft has not yet been reviewed.';
+  return `How this was made: drafted with AI assistance from the public sources listed here. ${review}`;
+}
+export function relatedLinks(a: Article) {
+  return (a.internalLinks ?? []).filter(l => l.path.startsWith('/') && !l.path.startsWith('//'));
 }
 export function jsonLd(value: unknown) { return JSON.stringify(value).replace(/</g, '\\u003c'); }
 

@@ -69,4 +69,64 @@ class FailureVisibilityTests(unittest.TestCase):
   loop.write(self.state/'state.json',{'blocked':True,'failures':2,'lastError':'x'})
   with self.assertRaises(SystemExit) as e:loop.run(self.args)
   self.assertEqual(e.exception.code,1)
+class PromptUpgradeTests(unittest.TestCase):
+ def setUp(self):
+  import tempfile,argparse
+  self.article=copy.deepcopy(json.loads((loop.CONTENT/'articles.json').read_text())[0])
+  self.article.update(intent={'dominantIntent':'informational','journeyStage':'consideration','evidence':'Owners ask how a sale works before they list.'},internalLinks=[{'path':'/sell','anchor':'talk with Connor Gray about selling'}],disclosures=[])
+  self.tmp=tempfile.TemporaryDirectory();self.state=Path(self.tmp.name)
+  self.saved=(loop.STATE,loop.alert,loop.subprocess.run,loop.today);loop.STATE=self.state;loop.alert=lambda s,b:None
+  self.args=argparse.Namespace(dry_run=False)
+ def tearDown(self):
+  loop.STATE,loop.alert,loop.subprocess.run,loop.today=self.saved;self.tmp.cleanup()
+ def test_schema_carries_intent_links_disclosures_and_refresh(self):
+  schema=loop.article_schema()
+  draft=schema['properties']['draft']['anyOf'][0]['properties']
+  for k in ['intent','internalLinks','disclosures']:self.assertIn(k,draft)
+  for k in ['revisionProposal','earnedMediaIdeas']:self.assertIn(k,schema['properties'])
+ def test_unknown_internal_link_is_flagged(self):
+  self.article['internalLinks']=[{'path':'/made-up-page','anchor':'a page that does not exist'}]
+  self.assertIn('unknown internal link',loop.validate_article(self.article,allowed_paths=loop.site_paths()))
+ def test_known_internal_link_passes(self):
+  self.assertNotIn('unknown internal link',loop.validate_article(self.article,allowed_paths=loop.site_paths()))
+ def test_jby_brand_mention_requires_disclosure(self):
+  self.article['sections'][0]['paragraphs'].append('The Axopar 37 is a popular Pacific Northwest day boat.')
+  self.assertIn('missing material connection disclosure',loop.validate_article(self.article,jby_brands=['Axopar']))
+  self.article['disclosures']=['Jeff Brown Yachts, where Connor Gray works, has a commercial relationship with Axopar.']
+  self.assertNotIn('missing material connection disclosure',loop.validate_article(self.article,jby_brands=['Axopar']))
+ def test_brand_short_names_are_matched(self):
+  names=loop.jby_brands()
+  self.assertIn('Sirena',names);self.assertIn('BRABUS',names);self.assertIn('Sirena Yachts',names)
+ def test_stock_ai_phrasing_is_flagged(self):
+  self.article['sections'][0]['paragraphs'].append("It's important to note that every boat is different.")
+  self.assertIn('unsupported promise or stock prose',loop.validate_article(self.article))
+ def test_refresh_candidate_is_a_published_article_and_rotates(self):
+  arts=json.loads((loop.CONTENT/'articles.json').read_text())
+  picks={loop.choose_refresh_candidate(dt.date(2026,10,1)+dt.timedelta(days=n),arts)['slug'] for n in range(len(arts))}
+  self.assertGreater(len(picks),1)
+  for a in arts:
+   if a['slug'] in picks:self.assertEqual(a['status'],'published')
+ def fake_cli(self,result):
+  import types
+  out=json.dumps({'is_error':False,'structured_output':result})
+  loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=0,stdout=out,stderr='')
+ def result(self,**extra):
+  r={'updates':[],'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'Keep answers first.'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
+  r.update(extra);return r
+ def test_new_draft_is_marked_ai_assisted_with_related_paths(self):
+  loop.today=lambda:dt.date(2026,10,12)  # a Monday, so drafting is allowed
+  draft=copy.deepcopy(self.article)
+  for k in ['status','author','createdAt','updatedAt','publishedAt','reviewedBy','revision','relatedPaths']:draft.pop(k,None)
+  draft['slug']='a-brand-new-test-slug'
+  self.fake_cli(self.result(draft=draft))
+  loop.run(self.args)
+  saved=loop.read(self.state/'runs'/'2026-10-12.json')['draft']
+  self.assertTrue(saved['aiAssisted']);self.assertEqual(saved['relatedPaths'],['/sell'])
+ def test_revision_proposal_for_unknown_article_is_flagged_not_fatal(self):
+  loop.today=lambda:dt.date(2026,10,10)
+  proposal={'slug':'not-a-real-article','reasons':['x'],'changes':['y'],'sources':[],'republishTreatment':'lastUpdatedDate'}
+  self.fake_cli(self.result(revisionProposal=proposal))
+  loop.run(self.args)
+  saved=loop.read(self.state/'runs'/'2026-10-10.json')
+  self.assertIn('unknown article',saved['revisionGate']['issues'])
 if __name__=='__main__':unittest.main()
