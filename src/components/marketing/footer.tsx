@@ -1,12 +1,14 @@
 import Link from "next/link";
 
+// Each service links to its landing page (SEO strategy 2026-10-15) instead of /#contact.
 const services = [
-  "Sell-Side Brokerage",
-  "Buy-Side Advisory",
-  "Drone Cinematography",
-  "Yacht Photography",
-  "3D Walkthroughs",
-  "Authority Content",
+  { label: "Sell-Side Brokerage", href: "/services/yacht-brokerage" },
+  { label: "Boat Valuation", href: "/services/boat-valuation" },
+  { label: "Buy-Side Advisory", href: "/services/buyer-representation" },
+  { label: "Drone Cinematography", href: "/services/yacht-marketing" },
+  { label: "Yacht Photography", href: "/services/yacht-marketing" },
+  { label: "3D Walkthroughs", href: "/services/yacht-marketing" },
+  { label: "Authority Content", href: "/insights" },
 ];
 
 const connect = [
@@ -15,6 +17,9 @@ const connect = [
   { label: "Owner guides", href: "/insights" },
   { label: "Featured brands", href: "/brands" },
   { label: "Boat shows", href: "/boat-shows" },
+  { label: "Seattle yacht brokerage", href: "/locations/seattle" },
+  { label: "Tacoma and South Sound", href: "/locations/tacoma" },
+  { label: "Anacortes and North Sound", href: "/locations/anacortes" },
   { label: "Meet Connor Gray", href: "/about-connor-gray" },
   { label: "425-671-8474", href: "tel:4256718474" },
   { label: "@grayyachts_", href: "https://instagram.com/grayyachts_" },
@@ -44,12 +49,12 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3">
               {services.map((service) => (
-                <li key={service}>
+                <li key={service.label}>
                   <Link
-                    href="/#contact"
+                    href={service.href}
                     className="text-sm text-text-secondary transition-colors duration-300 hover:text-text-primary"
                   >
-                    {service}
+                    {service.label}
                   </Link>
                 </li>
               ))}
