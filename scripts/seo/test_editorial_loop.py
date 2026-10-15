@@ -165,7 +165,7 @@ class KeywordTargetTests(unittest.TestCase):
   self.assertGreaterEqual(len(targets),8)
   for k in targets:
    self.assertIn(k['intent'],['seller','broker','buyer'])
-   self.assertTrue(k['evidence']);self.assertIsNone(k['monthlyVolume'],'volumes are unknown, never guessed')
+   self.assertTrue(k['evidence']);self.assertIn(k['monthlyVolume'],['10K-100K','1K-10K','100-1K','10-100'],'volumes are Keyword Planner ranges, never guessed');self.assertIn('Keyword Planner',k['evidence'])
  def test_prompt_context_sent_to_cli_carries_keyword_targets(self):
   import tempfile,argparse,types
   saved=(loop.STATE,loop.alert,loop.subprocess.run,loop.today)
@@ -180,7 +180,7 @@ class KeywordTargetTests(unittest.TestCase):
    try:loop.run(argparse.Namespace(dry_run=False))
    finally:loop.STATE,loop.alert,loop.subprocess.run,loop.today=saved
   ctx=json.loads(seen['input'].split('Current context:\n',1)[1])
-  self.assertTrue(any(k['phrase']=='how to sell a boat in washington state' for k in ctx['keywordTargets']))
+  self.assertTrue(any(k['phrase']=='boat title transfer' for k in ctx['keywordTargets']))
  def test_prompt_uses_keyword_targets_without_inventing_volume(self):
   p=(loop.ROOT/'scripts/seo/research-prompt.md').read_text()
   self.assertIn('keywordTargets',p)

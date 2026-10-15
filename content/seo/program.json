@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "targetDomain": "grayyachts.com",
   "primaryGoal": "Qualified yacht seller inquiries for Connor Gray",
   "timezone": "America/Los_Angeles",
@@ -38,103 +38,485 @@
   },
   "keywordTargets": [
     {
-      "phrase": "how to sell a boat in washington state",
+      "phrase": "boat bill of sale example",
       "intent": "seller",
-      "targetPage": "new seller guide",
-      "evidence": "Google autocomplete, 2026-10-10; top results were spam copies and generic advice, no authoritative guide",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: WA boat title transfer)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "write the guide; link /locations/washington"
     },
     {
-      "phrase": "what is my boat worth to sell",
+      "phrase": "boat title transfer",
       "intent": "seller",
-      "targetPage": "/sell (currently noindex)",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: WA boat title transfer)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /locations/washington"
     },
     {
-      "phrase": "boat valuation tool",
+      "phrase": "how to transfer a boat title",
       "intent": "seller",
-      "targetPage": "/sell (currently noindex)",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: WA boat title transfer)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /locations/washington"
     },
     {
-      "phrase": "what percentage do boat brokers charge",
+      "phrase": "boat transfer of ownership",
       "intent": "seller",
-      "targetPage": "new seller guide",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: WA boat title transfer)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /locations/washington"
     },
     {
-      "phrase": "boat broker fees",
+      "phrase": "how to get a bill of sale for a boat",
       "intent": "seller",
-      "targetPage": "new seller guide",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: WA boat title transfer)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition High",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /locations/washington"
+    },
+    {
+      "phrase": "best place to sell a boat",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
+    },
+    {
+      "phrase": "best way to sell a boat",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
+    },
+    {
+      "phrase": "boat consignment",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
       "phrase": "boat consignment near me",
       "intent": "seller",
-      "targetPage": "new seller guide explaining brokerage versus consignment",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
-      "phrase": "sell my yacht online",
+      "phrase": "boat consignment sales",
       "intent": "seller",
-      "targetPage": "/sell (currently noindex)",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
-      "phrase": "yacht broker seattle",
-      "intent": "broker",
-      "targetPage": "/",
-      "evidence": "Google autocomplete, 2026-10-10; top results held by Worth Avenue Yachts, Alexander Marine, Seattle Yachts, NW Yachtnet",
-      "monthlyVolume": null
+      "phrase": "consignment boat sales near me",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
-      "phrase": "yacht brokerage seattle",
-      "intent": "broker",
-      "targetPage": "/",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "phrase": "how to sell a boat",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
-      "phrase": "boat broker seattle",
-      "intent": "broker",
-      "targetPage": "/",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "phrase": "sell a yacht",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
     },
     {
-      "phrase": "yachts for sale seattle",
+      "phrase": "sell boat",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
+    },
+    {
+      "phrase": "sell boat online",
+      "intent": "seller",
+      "targetPage": "/sell",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition High",
+      "monthlyVolume": "100-1K",
+      "action": "page exists: support it with an article that links to it"
+    },
+    {
+      "phrase": "50 foot yacht",
       "intent": "buyer",
-      "targetPage": "/fleet",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "article"
     },
     {
-      "phrase": "sailboats for sale seattle",
+      "phrase": "60 foot yacht",
       "intent": "buyer",
-      "targetPage": "/fleet",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "article"
     },
     {
-      "phrase": "ocean alexander for sale seattle",
+      "phrase": "marine survey",
       "intent": "buyer",
-      "targetPage": "/fleet/ocean-alexander-548",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "write the guide; link /services/buyer-representation"
     },
     {
-      "phrase": "ocean alexander for sale bc",
+      "phrase": "yacht price",
       "intent": "buyer",
-      "targetPage": "/fleet/ocean-alexander-548",
-      "evidence": "Google autocomplete, 2026-10-10",
-      "monthlyVolume": null
+      "targetPage": "/insights (guide: what a yacht costs)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "article"
+    },
+    {
+      "phrase": "boat survey cost",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "boat survey price",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "boat surveyor",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "boat surveyor near me",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "luxury yacht price",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: what a yacht costs)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "article"
+    },
+    {
+      "phrase": "marine survey cost",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine survey for boat",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine survey near me",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine surveyor near me",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "sea trials",
+      "intent": "buyer",
+      "targetPage": "/insights",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "article"
+    },
+    {
+      "phrase": "yacht surveyor",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "100-1K",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "boat survey cost per foot",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Medium",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "boat surveyors in my area",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Medium",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "hull survey cost",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine boat surveyor near me",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine diesel surveyors",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine engine survey cost",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine engine surveyor",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine engine surveyor near me",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Medium",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine survey checklist",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "marine survey companies",
+      "intent": "buyer",
+      "targetPage": "/insights (guide: marine survey cost)",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "10-100",
+      "action": "write the guide; link /services/buyer-representation"
+    },
+    {
+      "phrase": "back cove boats",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "beneteau boats",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "cabin boats for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "cobalt boats for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "cruisers yachts",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "jeanneau boats",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search2); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "motor yachts for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "ocean alexander for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "ocean alexander yachts for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "power catamaran for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "sea ray sundancer",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Low",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "sea ray yachts for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "trawler boats for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "trawler for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-volumes-2026-10-15); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "trawler yachts for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "trawlers for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "used catamaran for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "used motor yachts for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "1K-10K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "aft cabin boats for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition High",
+      "monthlyVolume": "100-1K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
+    },
+    {
+      "phrase": "axopar 37 for sale",
+      "intent": "buyer",
+      "targetPage": "/fleet + /brands",
+      "evidence": "Google Keyword Planner, US, Oct 2025 to Sep 2026, pulled 2026-10-15 (planner-ideas-search1); competition Medium",
+      "monthlyVolume": "100-1K",
+      "action": "brand or model guide; link /brands and matching /fleet listings"
     }
   ],
-  "keywordTargetsNote": "Phrases people type, from Google autocomplete. Search volumes are unknown, not zero. Search Console showed only brand look-alike queries over the 90 days to 2026-10-10."
+  "keywordTargetsNote": "Measured with Google Keyword Planner on 2026-10-15. Full 359 keyword map with target pages: docs/seo/keyword-map-2026-10-15.tsv on the production branch. Pages marked \"page exists\" already target the phrase; do not create a competing page, write supporting articles that link to it. Listed seller intent first: the primary goal is seller inquiries."
 }
