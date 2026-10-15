@@ -50,4 +50,10 @@ describe('service and location landing pages', () => {
       expect(footer, landingPath(p)).toContain(`"${landingPath(p)}"`);
     }
   });
+  it('do not disable dynamicParams (404s on OpenNext without an incremental cache)', () => {
+    for (const k of ['services', 'locations']) {
+      const src = readFileSync(`src/app/(marketing)/${k}/[slug]/page.tsx`, 'utf8');
+      expect(src, k).not.toMatch(/export const dynamicParams/);
+    }
+  });
 });

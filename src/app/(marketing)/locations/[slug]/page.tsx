@@ -5,7 +5,9 @@ import { findLanding, landingPages, landingPath } from '@/lib/landing-pages';
 import { LandingPageView } from '@/components/marketing/landing-page';
 
 type Props = { params: Promise<{ slug: string }> };
-export const dynamicParams = false;
+// No `dynamicParams = false`: OpenNext on Cloudflare has no incremental cache configured
+// (open-next.config.ts is empty), so prerendered pages render on demand; with dynamicParams
+// off every request 404'd in production (2026-10-15). Unknown slugs still 404 via notFound().
 export function generateStaticParams() {
   return landingPages.filter(p => p.kind === 'location').map(p => ({ slug: p.slug }));
 }
