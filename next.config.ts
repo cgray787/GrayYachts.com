@@ -54,7 +54,11 @@ const nextConfig: NextConfig = {
   // /valuation is an ad-friendly alias for the seller landing page, which is
   // the static file public/sell.html served at /sell.
   async redirects() {
-    return [{ source: "/valuation", destination: "/sell", permanent: false }];
+    return [
+      { source: "/valuation", destination: "/sell", permanent: false },
+      // Keep older Google/browser favicon references working after the move to icon.png.
+      { source: "/favicon.ico", destination: "/icon.png", permanent: true },
+    ];
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: resolvedUrl,

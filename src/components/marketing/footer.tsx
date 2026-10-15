@@ -11,6 +11,11 @@ const services = [
 
 const connect = [
   { label: "The Gray Yachts newsletter", href: "/newsletter" },
+  { label: "Yacht ownership", href: "/yachts" },
+  { label: "Owner guides", href: "/insights" },
+  { label: "Featured brands", href: "/brands" },
+  { label: "Boat shows", href: "/boat-shows" },
+  { label: "Meet Connor Gray", href: "/about-connor-gray" },
   { label: "425-671-8474", href: "tel:4256718474" },
   { label: "@grayyachts_", href: "https://instagram.com/grayyachts_" },
   { label: "Schedule Consultation", href: "#contact" },

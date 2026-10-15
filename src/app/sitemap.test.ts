@@ -24,4 +24,13 @@ describe('main sitemap',()=>{
   expect(new Set(urls).size).toBe(urls.length);
   for(const u of urls)expect(u.startsWith('https://grayyachts.com')).toBe(true);
  });
+ it('restores the 15 non-fleet pages reported by Search Console on October 15',()=>{
+  const paths = ['/about-connor-gray','/boat-shows','/brands','/insights',
+   '/insights/boat-brands-to-watch-pacific-northwest','/insights/boot-dusseldorf-2027-guide',
+   '/insights/cannes-2026-catamaran-announcements','/insights/flibs-2026-preview',
+   '/insights/international-boat-shows-owner-guide','/insights/monaco-yacht-show-2026-owner-questions',
+   '/insights/palm-beach-2027-planning','/insights/sell-my-boat-seattle',
+   '/yachts','/yachts/pershing-6x','/yachts/sirena-48'];
+  for(const path of paths)expect(urls).toContain(`https://grayyachts.com${path}`);
+ });
 });

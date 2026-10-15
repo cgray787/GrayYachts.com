@@ -1,0 +1,1332 @@
+{
+  "before_checked_at": "2026-10-15T19:10:18.073243+00:00",
+  "after_checked_at": "2026-10-15T19:16:31.050463+00:00",
+  "discovered_paths": [
+    "/about-connor-gray",
+    "/boat-shows",
+    "/brands",
+    "/fleet/blue-pearl",
+    "/fleet/cobalt-343",
+    "/fleet/dub-sea",
+    "/fleet/jeanneau-nc-695",
+    "/fleet/jimmie",
+    "/fleet/miss-maggie-ii",
+    "/fleet/moby-dick",
+    "/fleet/nc-695-weekender",
+    "/fleet/neverland",
+    "/fleet/ocean-alexander-548",
+    "/fleet/playa-linda",
+    "/fleet/poulsbo",
+    "/fleet/sau-ping",
+    "/fleet/seawulff",
+    "/fleet/un-reel-2",
+    "/fleet/yamaha-252se",
+    "/insights",
+    "/insights/boat-brands-to-watch-pacific-northwest",
+    "/insights/boot-dusseldorf-2027-guide",
+    "/insights/cannes-2026-catamaran-announcements",
+    "/insights/flibs-2026-preview",
+    "/insights/international-boat-shows-owner-guide",
+    "/insights/monaco-yacht-show-2026-owner-questions",
+    "/insights/palm-beach-2027-planning",
+    "/insights/sell-my-boat-seattle",
+    "/yachts",
+    "/yachts/pershing-6x",
+    "/yachts/sirena-48"
+  ],
+  "before": [
+    {
+      "url": "https://grayyachts.com/about-connor-gray",
+      "status": 404,
+      "final_url": "https://grayyachts.com/about-connor-gray",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/boat-shows",
+      "status": 404,
+      "final_url": "https://grayyachts.com/boat-shows",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/brands",
+      "status": 404,
+      "final_url": "https://grayyachts.com/brands",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/blue-pearl",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/blue-pearl",
+      "canonical": [
+        "https://grayyachts.com/fleet/blue-pearl"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/cobalt-343",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/cobalt-343",
+      "canonical": [
+        "https://grayyachts.com/fleet/cobalt-343"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/dub-sea",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/dub-sea",
+      "canonical": [
+        "https://grayyachts.com/fleet/dub-sea"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/jeanneau-nc-695",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/jeanneau-nc-695",
+      "canonical": [
+        "https://grayyachts.com/fleet/jeanneau-nc-695"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/jimmie",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/jimmie",
+      "canonical": [
+        "https://grayyachts.com/fleet/jimmie"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/miss-maggie-ii",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/miss-maggie-ii",
+      "canonical": [
+        "https://grayyachts.com/fleet/miss-maggie-ii"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/moby-dick",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/moby-dick",
+      "canonical": [
+        "https://grayyachts.com/fleet/moby-dick"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/nc-695-weekender",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/nc-695-weekender",
+      "canonical": [
+        "https://grayyachts.com/fleet/nc-695-weekender"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/neverland",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/neverland",
+      "canonical": [
+        "https://grayyachts.com/fleet/neverland"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/ocean-alexander-548",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/ocean-alexander-548",
+      "canonical": [
+        "https://grayyachts.com/fleet/ocean-alexander-548"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/playa-linda",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/playa-linda",
+      "canonical": [
+        "https://grayyachts.com/fleet/playa-linda"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/poulsbo",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/poulsbo",
+      "canonical": [
+        "https://grayyachts.com/fleet/poulsbo"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/sau-ping",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/sau-ping",
+      "canonical": [
+        "https://grayyachts.com/fleet/sau-ping"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/seawulff",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/seawulff",
+      "canonical": [
+        "https://grayyachts.com/fleet/seawulff"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/un-reel-2",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/un-reel-2",
+      "canonical": [
+        "https://grayyachts.com/fleet/un-reel-2"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/yamaha-252se",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/yamaha-252se",
+      "canonical": [
+        "https://grayyachts.com/fleet/yamaha-252se"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/boot-dusseldorf-2027-guide",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/boot-dusseldorf-2027-guide",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/cannes-2026-catamaran-announcements",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/cannes-2026-catamaran-announcements",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/flibs-2026-preview",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/flibs-2026-preview",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/international-boat-shows-owner-guide",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/international-boat-shows-owner-guide",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/palm-beach-2027-planning",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/palm-beach-2027-planning",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/sell-my-boat-seattle",
+      "status": 404,
+      "final_url": "https://grayyachts.com/insights/sell-my-boat-seattle",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts",
+      "status": 404,
+      "final_url": "https://grayyachts.com/yachts",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts/pershing-6x",
+      "status": 404,
+      "final_url": "https://grayyachts.com/yachts/pershing-6x",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts/sirena-48",
+      "status": 404,
+      "final_url": "https://grayyachts.com/yachts/sirena-48",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/sell",
+      "status": 200,
+      "final_url": "https://grayyachts.com/sell",
+      "canonical": [
+        "https://grayyachts.com/sell"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet",
+      "canonical": [
+        "https://grayyachts.com/fleet"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/catalog",
+      "status": 200,
+      "final_url": "https://grayyachts.com/catalog",
+      "canonical": [
+        "https://grayyachts.com/catalog"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/compare",
+      "status": 200,
+      "final_url": "https://grayyachts.com/compare",
+      "canonical": [
+        "https://grayyachts.com/compare"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/newsletter",
+      "status": 200,
+      "final_url": "https://grayyachts.com/newsletter",
+      "canonical": [
+        "https://grayyachts.com/newsletter"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/marine-tech",
+      "status": 200,
+      "final_url": "https://grayyachts.com/marine-tech",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/marine-tech/support",
+      "status": 200,
+      "final_url": "https://grayyachts.com/marine-tech/support",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/sitemap.xml",
+      "status": 200,
+      "final_url": "https://grayyachts.com/sitemap.xml",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": [
+        "https://grayyachts.com",
+        "https://grayyachts.com/sell",
+        "https://grayyachts.com/fleet",
+        "https://grayyachts.com/catalog",
+        "https://grayyachts.com/compare",
+        "https://grayyachts.com/marine-tech",
+        "https://grayyachts.com/marine-tech/support",
+        "https://grayyachts.com/newsletter",
+        "https://grayyachts.com/fleet/poulsbo",
+        "https://grayyachts.com/fleet/playa-linda",
+        "https://grayyachts.com/fleet/seawulff",
+        "https://grayyachts.com/fleet/dub-sea",
+        "https://grayyachts.com/fleet/yamaha-252se",
+        "https://grayyachts.com/fleet/moby-dick",
+        "https://grayyachts.com/fleet/neverland",
+        "https://grayyachts.com/fleet/un-reel-2",
+        "https://grayyachts.com/fleet/jeanneau-nc-695",
+        "https://grayyachts.com/fleet/miss-maggie-ii",
+        "https://grayyachts.com/fleet/jimmie",
+        "https://grayyachts.com/fleet/sau-ping",
+        "https://grayyachts.com/fleet/nc-695-weekender",
+        "https://grayyachts.com/fleet/cobalt-343",
+        "https://grayyachts.com/fleet/ocean-alexander-548",
+        "https://grayyachts.com/fleet/blue-pearl"
+      ]
+    },
+    {
+      "url": "https://grayyachts.com/newsletter/sitemap.xml",
+      "status": 200,
+      "final_url": "https://grayyachts.com/newsletter/sitemap.xml",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": [
+        "https://grayyachts.com/newsletter",
+        "https://grayyachts.com/newsletter/2026-09-30-grand-pavois-la-rochelle-2026-smaller-boats-and-first-time-buyers",
+        "https://grayyachts.com/newsletter/2026-09-28-how-should-you-describe-a-yacht-refit-when-selling",
+        "https://grayyachts.com/newsletter/2026-09-24-can-you-keep-using-your-yacht-while-it-is-for-sale",
+        "https://grayyachts.com/newsletter/2026-09-22-what-should-you-check-on-a-second-yacht-viewing",
+        "https://grayyachts.com/newsletter/2026-09-18-should-you-arrange-moorage-before-buying-a-yacht",
+        "https://grayyachts.com/newsletter/2026-09-14-what-records-should-you-request-after-a-yacht-viewing",
+        "https://grayyachts.com/newsletter/2026-09-12-what-should-you-do-when-yacht-viewings-don-t-lead-to-offers",
+        "https://grayyachts.com/newsletter/2026-09-10-how-do-you-decide-which-yachts-are-worth-viewing",
+        "https://grayyachts.com/newsletter/2026-09-08-what-should-you-prepare-before-a-yacht-broker-evaluates-your-boat"
+      ]
+    },
+    {
+      "url": "http://www.grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://www.grayyachts.com/",
+        "HTTP/2 301",
+        "location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://www.grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 301",
+        "location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "http://grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "http://www.grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+      "status": 404,
+      "final_url": "https://grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+      "canonical": [],
+      "robots": [
+        "noindex"
+      ],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://www.grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+        "HTTP/2 301",
+        "location: https://grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+        "HTTP/2 404"
+      ],
+      "sitemap_urls": null
+    }
+  ],
+  "after": [
+    {
+      "url": "https://grayyachts.com/about-connor-gray",
+      "status": 200,
+      "final_url": "https://grayyachts.com/about-connor-gray",
+      "canonical": [
+        "https://grayyachts.com/about-connor-gray"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/boat-shows",
+      "status": 200,
+      "final_url": "https://grayyachts.com/boat-shows",
+      "canonical": [
+        "https://grayyachts.com/boat-shows"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/brands",
+      "status": 200,
+      "final_url": "https://grayyachts.com/brands",
+      "canonical": [
+        "https://grayyachts.com/brands"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/blue-pearl",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/blue-pearl",
+      "canonical": [
+        "https://grayyachts.com/fleet/blue-pearl"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/cobalt-343",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/cobalt-343",
+      "canonical": [
+        "https://grayyachts.com/fleet/cobalt-343"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/dub-sea",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/dub-sea",
+      "canonical": [
+        "https://grayyachts.com/fleet/dub-sea"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/jeanneau-nc-695",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/jeanneau-nc-695",
+      "canonical": [
+        "https://grayyachts.com/fleet/jeanneau-nc-695"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/jimmie",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/jimmie",
+      "canonical": [
+        "https://grayyachts.com/fleet/jimmie"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/miss-maggie-ii",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/miss-maggie-ii",
+      "canonical": [
+        "https://grayyachts.com/fleet/miss-maggie-ii"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/moby-dick",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/moby-dick",
+      "canonical": [
+        "https://grayyachts.com/fleet/moby-dick"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/nc-695-weekender",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/nc-695-weekender",
+      "canonical": [
+        "https://grayyachts.com/fleet/nc-695-weekender"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/neverland",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/neverland",
+      "canonical": [
+        "https://grayyachts.com/fleet/neverland"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/ocean-alexander-548",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/ocean-alexander-548",
+      "canonical": [
+        "https://grayyachts.com/fleet/ocean-alexander-548"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/playa-linda",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/playa-linda",
+      "canonical": [
+        "https://grayyachts.com/fleet/playa-linda"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/poulsbo",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/poulsbo",
+      "canonical": [
+        "https://grayyachts.com/fleet/poulsbo"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/sau-ping",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/sau-ping",
+      "canonical": [
+        "https://grayyachts.com/fleet/sau-ping"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/seawulff",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/seawulff",
+      "canonical": [
+        "https://grayyachts.com/fleet/seawulff"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/un-reel-2",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/un-reel-2",
+      "canonical": [
+        "https://grayyachts.com/fleet/un-reel-2"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet/yamaha-252se",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet/yamaha-252se",
+      "canonical": [
+        "https://grayyachts.com/fleet/yamaha-252se"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights",
+      "canonical": [
+        "https://grayyachts.com/insights"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest",
+      "canonical": [
+        "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/boot-dusseldorf-2027-guide",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/boot-dusseldorf-2027-guide",
+      "canonical": [
+        "https://grayyachts.com/insights/boot-dusseldorf-2027-guide"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/cannes-2026-catamaran-announcements",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/cannes-2026-catamaran-announcements",
+      "canonical": [
+        "https://grayyachts.com/insights/cannes-2026-catamaran-announcements"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/flibs-2026-preview",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/flibs-2026-preview",
+      "canonical": [
+        "https://grayyachts.com/insights/flibs-2026-preview"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/international-boat-shows-owner-guide",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/international-boat-shows-owner-guide",
+      "canonical": [
+        "https://grayyachts.com/insights/international-boat-shows-owner-guide"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions",
+      "canonical": [
+        "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/palm-beach-2027-planning",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/palm-beach-2027-planning",
+      "canonical": [
+        "https://grayyachts.com/insights/palm-beach-2027-planning"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/insights/sell-my-boat-seattle",
+      "status": 200,
+      "final_url": "https://grayyachts.com/insights/sell-my-boat-seattle",
+      "canonical": [
+        "https://grayyachts.com/insights/sell-my-boat-seattle"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts",
+      "status": 200,
+      "final_url": "https://grayyachts.com/yachts",
+      "canonical": [
+        "https://grayyachts.com/yachts"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts/pershing-6x",
+      "status": 200,
+      "final_url": "https://grayyachts.com/yachts/pershing-6x",
+      "canonical": [
+        "https://grayyachts.com/yachts/pershing-6x"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/yachts/sirena-48",
+      "status": 200,
+      "final_url": "https://grayyachts.com/yachts/sirena-48",
+      "canonical": [
+        "https://grayyachts.com/yachts/sirena-48"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/sell",
+      "status": 200,
+      "final_url": "https://grayyachts.com/sell",
+      "canonical": [
+        "https://grayyachts.com/sell"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/fleet",
+      "status": 200,
+      "final_url": "https://grayyachts.com/fleet",
+      "canonical": [
+        "https://grayyachts.com/fleet"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/catalog",
+      "status": 200,
+      "final_url": "https://grayyachts.com/catalog",
+      "canonical": [
+        "https://grayyachts.com/catalog"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/compare",
+      "status": 200,
+      "final_url": "https://grayyachts.com/compare",
+      "canonical": [
+        "https://grayyachts.com/compare"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/newsletter",
+      "status": 200,
+      "final_url": "https://grayyachts.com/newsletter",
+      "canonical": [
+        "https://grayyachts.com/newsletter"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/marine-tech",
+      "status": 200,
+      "final_url": "https://grayyachts.com/marine-tech",
+      "canonical": [
+        "https://grayyachts.com/marine-tech"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/marine-tech/support",
+      "status": 200,
+      "final_url": "https://grayyachts.com/marine-tech/support",
+      "canonical": [
+        "https://grayyachts.com/marine-tech/support"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://grayyachts.com/sitemap.xml",
+      "status": 200,
+      "final_url": "https://grayyachts.com/sitemap.xml",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": [
+        "https://grayyachts.com",
+        "https://grayyachts.com/sell",
+        "https://grayyachts.com/fleet",
+        "https://grayyachts.com/catalog",
+        "https://grayyachts.com/compare",
+        "https://grayyachts.com/marine-tech",
+        "https://grayyachts.com/marine-tech/support",
+        "https://grayyachts.com/newsletter",
+        "https://grayyachts.com/about-connor-gray",
+        "https://grayyachts.com/boat-shows",
+        "https://grayyachts.com/brands",
+        "https://grayyachts.com/insights",
+        "https://grayyachts.com/yachts",
+        "https://grayyachts.com/fleet/poulsbo",
+        "https://grayyachts.com/fleet/playa-linda",
+        "https://grayyachts.com/fleet/seawulff",
+        "https://grayyachts.com/fleet/dub-sea",
+        "https://grayyachts.com/fleet/yamaha-252se",
+        "https://grayyachts.com/fleet/moby-dick",
+        "https://grayyachts.com/fleet/neverland",
+        "https://grayyachts.com/fleet/un-reel-2",
+        "https://grayyachts.com/fleet/jeanneau-nc-695",
+        "https://grayyachts.com/fleet/miss-maggie-ii",
+        "https://grayyachts.com/fleet/jimmie",
+        "https://grayyachts.com/fleet/sau-ping",
+        "https://grayyachts.com/fleet/nc-695-weekender",
+        "https://grayyachts.com/fleet/cobalt-343",
+        "https://grayyachts.com/fleet/ocean-alexander-548",
+        "https://grayyachts.com/fleet/blue-pearl",
+        "https://grayyachts.com/insights/sell-my-boat-seattle",
+        "https://grayyachts.com/insights/monaco-yacht-show-2026-owner-questions",
+        "https://grayyachts.com/insights/flibs-2026-preview",
+        "https://grayyachts.com/insights/palm-beach-2027-planning",
+        "https://grayyachts.com/insights/cannes-2026-catamaran-announcements",
+        "https://grayyachts.com/insights/boot-dusseldorf-2027-guide",
+        "https://grayyachts.com/insights/boat-brands-to-watch-pacific-northwest",
+        "https://grayyachts.com/insights/international-boat-shows-owner-guide",
+        "https://grayyachts.com/yachts/pershing-6x",
+        "https://grayyachts.com/yachts/sirena-48"
+      ]
+    },
+    {
+      "url": "https://grayyachts.com/newsletter/sitemap.xml",
+      "status": 200,
+      "final_url": "https://grayyachts.com/newsletter/sitemap.xml",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": [
+        "https://grayyachts.com/newsletter",
+        "https://grayyachts.com/newsletter/2026-09-30-grand-pavois-la-rochelle-2026-smaller-boats-and-first-time-buyers",
+        "https://grayyachts.com/newsletter/2026-09-28-how-should-you-describe-a-yacht-refit-when-selling",
+        "https://grayyachts.com/newsletter/2026-09-24-can-you-keep-using-your-yacht-while-it-is-for-sale",
+        "https://grayyachts.com/newsletter/2026-09-22-what-should-you-check-on-a-second-yacht-viewing",
+        "https://grayyachts.com/newsletter/2026-09-18-should-you-arrange-moorage-before-buying-a-yacht",
+        "https://grayyachts.com/newsletter/2026-09-14-what-records-should-you-request-after-a-yacht-viewing",
+        "https://grayyachts.com/newsletter/2026-09-12-what-should-you-do-when-yacht-viewings-don-t-lead-to-offers",
+        "https://grayyachts.com/newsletter/2026-09-10-how-do-you-decide-which-yachts-are-worth-viewing",
+        "https://grayyachts.com/newsletter/2026-09-08-what-should-you-prepare-before-a-yacht-broker-evaluates-your-boat"
+      ]
+    },
+    {
+      "url": "http://www.grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://www.grayyachts.com/",
+        "HTTP/2 301",
+        "location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "https://www.grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/2 301",
+        "location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "http://grayyachts.com/",
+      "status": 200,
+      "final_url": "https://grayyachts.com/",
+      "canonical": [
+        "https://grayyachts.com"
+      ],
+      "robots": [],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://grayyachts.com/",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    },
+    {
+      "url": "http://www.grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+      "status": 200,
+      "final_url": "https://grayyachts.com/icon.png?favicon.0b3bf435.ico=",
+      "canonical": [],
+      "robots": [],
+      "response_chain": [
+        "HTTP/1.1 301 Moved Permanently",
+        "Location: https://www.grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+        "HTTP/2 301",
+        "location: https://grayyachts.com/favicon.ico?favicon.0b3bf435.ico",
+        "HTTP/2 308",
+        "location: /icon.png?favicon.0b3bf435.ico=",
+        "HTTP/2 200"
+      ],
+      "sitemap_urls": null
+    }
+  ]
+}

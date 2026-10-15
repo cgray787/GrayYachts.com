@@ -13,9 +13,11 @@
  * worktree or machine the deploy is run from.
  *
  * Run automatically via the `predeploy` npm script.
- * Bypass (only when intentionally removing a listing): DEPLOY_ALLOW_REMOVALS=1
+ * Bypass (only when intentionally removing public pages): DEPLOY_ALLOW_REMOVALS=1
  */
 import { vessels } from "../src/lib/fleet";
+import sitemap from "../src/app/sitemap";
+import { removedPublicPaths, sitemapUrls } from "../src/lib/public-route-guard";
 
 const SITE = process.env.PREFLIGHT_SITE ?? "https://grayyachts.com";
 const ALLOW_REMOVALS = process.env.DEPLOY_ALLOW_REMOVALS === "1";
@@ -34,6 +36,18 @@ async function status(url: string): Promise<number> {
 
 async function main() {
   console.log(`\nPreflight — comparing working tree against ${SITE}\n`);
+
+  // The October 15 audit found 15 missing editorial and yacht pages that the
+  // listing checks missed. Preserve the public sitemap and fail if it cannot be read.
+  const liveSitemap = await fetch(`${SITE}/sitemap.xml`, { signal: AbortSignal.timeout(20000) });
+  if (!liveSitemap.ok) throw new Error(`Cannot verify live sitemap: HTTP ${liveSitemap.status}`);
+  const livePublicUrls = sitemapUrls(await liveSitemap.text());
+  const removedPublic = removedPublicPaths(livePublicUrls, sitemap().map(page => page.url));
+  if (removedPublic.length && !ALLOW_REMOVALS) {
+    throw new Error(`Refusing to remove public pages from the sitemap: ${removedPublic.join(', ')}`);
+  }
+  if (removedPublic.length) bad(`Explicitly allowing removal of: ${removedPublic.join(', ')}`);
+  else ok(`preserves all ${livePublicUrls.length} live public sitemap URLs`);
 
   const slugs = vessels.filter((v) => v.slug).map((v) => v.slug as string);
   console.log(`This build publishes ${slugs.length} vessel(s).`);

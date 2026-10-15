@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/marine-tech/support' },
   title: "Support — JBY-Marine Tech | Gray Yachts",
   description:
     "Support and help for the JBY-Marine Tech mobile app. Common questions and contact information.",
