@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { vessels } from '@/lib/fleet';
 import { publishedArticles } from '@/lib/editorial';
 import { campaignYachts } from '@/lib/campaign-yachts';
+import { landingPages, landingPath } from '@/lib/landing-pages';
 
 const SITE = 'https://grayyachts.com';
 
@@ -17,5 +18,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...vessels.filter(v => v.slug).map(v => ({ url: `${SITE}/fleet/${v.slug}` })),
     ...publishedArticles().map(article => ({ url: `${SITE}/insights/${article.slug}`, lastModified: article.updatedAt })),
     ...campaignYachts.map(yacht => ({ url: `${SITE}/yachts/${yacht.slug}` })),
+    ...landingPages.map(page => ({ url: `${SITE}${landingPath(page)}` })),
   ];
 }
