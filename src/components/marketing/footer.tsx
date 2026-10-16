@@ -20,6 +20,7 @@ const connect = [
   { label: "Seattle yacht brokerage", href: "/locations/seattle" },
   { label: "Tacoma and South Sound", href: "/locations/tacoma" },
   { label: "Anacortes and North Sound", href: "/locations/anacortes" },
+  { label: "Boats for sale in Washington", href: "/locations/washington" },
   { label: "Meet Connor Gray", href: "/about-connor-gray" },
   { label: "425-671-8474", href: "tel:4256718474" },
   { label: "@grayyachts_", href: "https://instagram.com/grayyachts_" },
