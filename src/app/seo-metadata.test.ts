@@ -34,4 +34,17 @@ describe('public page metadata', () => {
   it('keeps the login page out of search results', () => {
     expect(auth.robots).toMatchObject({index: false});
   });
+  it('keeps public and listing share previews on their own page instead of the homepage', async () => {
+    const all = [...pages];
+    for (const v of vessels.filter(v => v.slug)) {
+      const path = `/fleet/${v.slug}`;
+      all.push([path, await listing({params: Promise.resolve({slug: v.slug!})}), path]);
+    }
+    for (const [, metadata, path] of all) {
+      expect(metadata.openGraph?.url).toBe(new URL(path, 'https://grayyachts.com').href);
+      expect(metadata.openGraph?.title).toBe(metadata.title);
+      expect(metadata.twitter?.title).toBe(metadata.title);
+      expect(metadata.twitter?.description).toBe(metadata.description);
+    }
+  });
 });

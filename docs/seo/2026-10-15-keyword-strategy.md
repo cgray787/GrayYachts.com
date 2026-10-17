@@ -2,7 +2,7 @@
 
 ## Data
 - 267 candidate keywords from Google autocomplete (seller, broker, buyer and location phrases) → Google Keyword Planner (account 828-849-8843, plan "Plan from Oct 15, 2026", United States, Oct 2025 to Sep 2026).
-- 258 accepted; **160 with measurable volume**, saved in `keyword-volumes-2026-10-15.tsv` (ranges; the account has no ad spend, so Google shows bands, not exact numbers). Keywords without data had too few searches to report, not zero.
+- 258 accepted; **160 with measurable volume**, saved in `keyword-volumes-2026-10-15.tsv`. Google displayed national volume ranges, not exact numbers. These are not Seattle search volumes. Keywords without data had too few searches to report, not zero. The account does have ad spend; do not infer spend status from the volume bands.
 - Baseline (Search Console, 90 days to 2026-10-10): 2 clicks, brand look-alike queries only, homepage the only indexed page.
 
 ## What the volumes say
@@ -12,7 +12,7 @@
 | 1K–10K | boat brokerage, boat valuation guide, boats for sale seattle (wa), marine survey, ocean alexander for sale, trawler for sale, boat show seattle wa, boat bill of sale example | brokerage, valuation, /locations/seattle, buyer page, listing, /boat-shows |
 | 100–1K | yacht/boat broker seattle, sell my boat, what is my boat worth, boat appraisal, boat consignment, boats for sale anacortes / bellingham / tacoma, vehicle vessel bill of sale washington, how to transfer a boat title, sea ray / back cove / axopar for sale | service and location pages, listings, future WA seller guide |
 
-**Biggest opportunity:** "boat valuation" and "yacht broker" are high volume with Low competition, and both match the offer on /sell.
+**Candidate opportunities:** "boat valuation" and "yacht broker" have national search demand and fit the business. Keyword Planner's competition column measures advertiser competition, not organic ranking difficulty. Local commercial variants need their own performance evidence before spending more. Send valuation requests to /sell and brokerage research to /services/yacht-brokerage.
 
 ## Page map (one page per intent, no duplicates)
 | Page | Primary | Secondary (sample) |

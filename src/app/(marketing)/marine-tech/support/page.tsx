@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
+import { searchMetadata } from '@/lib/search-metadata';
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  alternates: { canonical: '/marine-tech/support' },
-  title: "Support — JBY-Marine Tech | Gray Yachts",
-  description:
-    "Support and help for the JBY-Marine Tech mobile app. Common questions and contact information.",
-};
+export const metadata = searchMetadata(
+  'Support — JBY-Marine Tech | Gray Yachts',
+  'Support and help for the JBY-Marine Tech mobile app. Common questions and contact information.',
+  '/marine-tech/support',
+);
 
 export default function MarineTechSupportPage() {
   return (

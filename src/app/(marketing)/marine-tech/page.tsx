@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
+import { searchMetadata } from '@/lib/search-metadata';
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  alternates: { canonical: '/marine-tech' },
-  title: "JBY-Marine Tech — Service & PDI Reports for Marine Mechanics",
-  description:
-    "Field-service app for marine mechanics and boat owners. Track customer boats, schedule jobs, file checklist-based service reports and pre-delivery inspections with photos.",
-};
+export const metadata = searchMetadata(
+  'JBY-Marine Tech — Service & PDI Reports for Marine Mechanics',
+  'Field-service app for marine mechanics and boat owners. Track customer boats, schedule jobs, file checklist-based service reports and pre-delivery inspections with photos.',
+  '/marine-tech',
+);
 
 export default function MarineTechLandingPage() {
   return (

@@ -9,6 +9,7 @@ import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { PaymentCalculator } from "@/components/marketing/payment-calculator";
 import { vessels } from "@/lib/fleet";
 import { getBrochure } from "@/lib/brochures";
+import { breadcrumbSchema, searchMetadata, SITE_URL } from '@/lib/search-metadata';
 
 export function generateStaticParams() {
   return vessels.filter((v) => v.slug).map((v) => ({ slug: v.slug as string }));
@@ -34,17 +35,7 @@ export async function generateMetadata({
     brochure?.narrative[0]?.slice(0, 175) ??
     `${vessel.year} ${vessel.make}, ${vessel.length}, lying ${vessel.location}. Offered at ${vessel.price} by Gray Yachts.`;
 
-  return {
-    title,
-    description,
-    alternates: { canonical: `/fleet/${slug}` },
-    openGraph: {
-      title,
-      description,
-      images: [{ url: vessel.image }],
-      type: "website",
-    },
-  };
+  return searchMetadata(title, description, `/fleet/${slug}`, vessel.image);
 }
 
 /* ------------------------------------------------------------------ */
@@ -98,9 +89,10 @@ export default async function ListingPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
+    url: `${SITE_URL}/fleet/${slug}`,
     name: `${vessel.year} ${vessel.make} — ${vessel.name}`,
     description: brochure?.narrative[0] ?? `${vessel.year} ${vessel.make} for sale.`,
-    image: vessel.gallery.map((g) => g.src),
+    image: vessel.gallery.map((g) => new URL(g.src, SITE_URL).href),
     brand: { "@type": "Brand", name: vessel.make },
     category: "Yachts for sale",
     productionDate: String(vessel.year),
@@ -108,6 +100,7 @@ export default async function ListingPage({
       ? {
           offers: {
             "@type": "Offer",
+            url: `${SITE_URL}/fleet/${slug}`,
             price: priceNumber,
             priceCurrency: "USD",
             availability: "https://schema.org/InStock",
@@ -129,7 +122,11 @@ export default async function ListingPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          __html: JSON.stringify([jsonLd, breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'The Fleet', path: '/fleet' },
+            { name: vessel.name, path: `/fleet/${slug}` },
+          ])]).replace(/</g, "\\u003c"),
         }}
       />
 

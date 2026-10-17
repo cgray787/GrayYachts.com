@@ -1,10 +1,10 @@
 /* eslint-disable @next/next/no-img-element -- Existing optimized static assets are served directly by Cloudflare. */
 import Link from 'next/link';
 import {ArrowUpRight, ArrowRight} from 'lucide-react';
-import type {Metadata} from 'next';
+import {searchMetadata} from '@/lib/search-metadata';
 import {publishedIssues} from '@/lib/newsletter/db';
 export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'The Gray Yachts newsletter | Buying & selling in the PNW',description:'Practical guidance for buying and selling yachts in the Pacific Northwest. Read the Gray Yachts newsletter, from choosing your next boat to preparing yours for sale.',alternates:{canonical:'https://grayyachts.com/newsletter'}};
+export const metadata = searchMetadata('The Gray Yachts newsletter | Buying & selling in the PNW', 'Practical guidance for buying and selling yachts in the Pacific Northwest. Read the Gray Yachts newsletter, from choosing your next boat to preparing yours for sale.', '/newsletter');
 export default async function NewsletterPage() {
  const issues=await publishedIssues();
  const featured=issues[0];
