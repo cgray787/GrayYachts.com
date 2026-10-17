@@ -4,6 +4,7 @@ import YachtFilm from "./yacht-film";
 import YachtInquiryForm from "./yacht-inquiry-form";
 import { ArrowRight, Phone } from "lucide-react";
 import { campaignYachts, discoveryEmail, type CampaignYacht } from "@/lib/campaign-yachts";
+import { responsive } from "@/lib/responsive-image";
 
 const shell = "mx-auto max-w-6xl px-6 lg:px-12";
 const serif = "font-[family-name:var(--font-cormorant)]";
@@ -15,7 +16,7 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
  const pershing = yacht.slug === "pershing-6x";
  return <article className="bg-bg-primary text-text-primary">
   <section className="relative isolate overflow-hidden">
-   <img src={yacht.photos[0].src} alt={yacht.photos[0].alt} fetchPriority="high" width={1600} height={1067} className="absolute inset-0 -z-20 h-full w-full object-cover"/>
+   <img {...responsive(yacht.photos[0].src, "100vw")} alt={yacht.photos[0].alt} fetchPriority="high" width={1600} height={1067} className="absolute inset-0 -z-20 h-full w-full object-cover"/>
    <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#060a12]/80 via-[#060a12]/35 to-transparent"/>
    <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#060a12] via-transparent to-[#060a12]/40"/>
    <div className={shell + " flex min-h-[680px] flex-col justify-end pb-14 pt-36 md:min-h-[760px] md:pb-20"}>
@@ -40,7 +41,7 @@ export default function CampaignYachtPage({ yacht }: { yacht: CampaignYacht }) {
     <a href={yacht.source} target="_blank" rel="noopener noreferrer" className="text-xs text-gold underline underline-offset-4">View full specifications</a>
    </div>
    <div className="grid gap-5 md:grid-cols-2">
-    {yacht.photos.slice(1).map((p,i)=><figure key={p.src} className={i===0 ? "md:col-span-2" : ""}><img src={p.src} alt={p.alt} loading="lazy" width={1600} height={1067} className="h-auto w-full"/><figcaption className="mt-3 text-[11px] text-text-secondary">{p.alt.replace(" sistership", "")} · Sistership shown</figcaption></figure>)}
+    {yacht.photos.slice(1).map((p,i)=><figure key={p.src} className={i===0 ? "md:col-span-2" : ""}><img {...responsive(p.src, "(min-width: 768px) 66vw, 100vw")} alt={p.alt} loading="lazy" width={1600} height={1067} className="h-auto w-full"/><figcaption className="mt-3 text-[11px] text-text-secondary">{p.alt.replace(" sistership", "")} · Sistership shown</figcaption></figure>)}
    </div>
    <p className="mt-8 max-w-2xl text-sm leading-7 text-text-secondary">{pershing ? "The listing includes twin MAN V12 engines, a full-beam master suite and a hydraulic swim platform. Ask Connor for the current specification, delivery options and pricing." : "The listing includes three guest cabins, two guest heads and a flybridge with outdoor seating. Ask Connor about the current configuration, delivery options and pricing."}</p>
    <p className="mt-3 text-[11px] leading-5 text-text-secondary">Details checked October 6, 2026. Photos show a sistership. Equipment, specifications and availability require confirmation.</p>

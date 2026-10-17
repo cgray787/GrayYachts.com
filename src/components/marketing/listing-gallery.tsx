@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { GalleryPhoto } from "@/lib/fleet";
+import { responsive } from "@/lib/responsive-image";
 
 /**
  * Hero + thumbnail strip. Thumbnails swap the hero in place (no lightbox),
@@ -31,7 +32,7 @@ export function ListingGallery({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={active.src}
-          src={active.src}
+          {...responsive(active.src, "100vw")}
           alt={`${alt} — ${active.caption}`}
           className="h-full w-full object-cover"
         />
@@ -88,7 +89,7 @@ export function ListingGallery({
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.src} alt={p.caption} loading="lazy" className="h-full w-full object-cover" />
+              <img {...responsive(p.src, "160px")} alt={p.caption} loading="lazy" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

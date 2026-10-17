@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/marine-tech' },
   title: "JBY-Marine Tech — Service & PDI Reports for Marine Mechanics",
   description:
-    "Field-service app for marine mechanics and boat owners. Track customer boats, schedule jobs, file checklist-based service reports and pre-delivery inspections with photos.",
+    "Field service app for marine mechanics and boat owners: track customer boats, schedule jobs, and file service reports and inspections with photos.",
 };
 
 export default function MarineTechLandingPage() {

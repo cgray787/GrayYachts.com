@@ -10,6 +10,8 @@ import { PaymentCalculator } from "@/components/marketing/payment-calculator";
 import { vessels } from "@/lib/fleet";
 import { getBrochure } from "@/lib/brochures";
 import { listingJsonLd } from "@/lib/listing-schema";
+import { clip, withBrand } from "@/lib/editorial";
+import { responsive } from "@/lib/responsive-image";
 
 export function generateStaticParams() {
   return vessels.filter((v) => v.slug).map((v) => ({ slug: v.slug as string }));
@@ -30,10 +32,12 @@ export async function generateMetadata({
   if (!found) return { title: "Listing not found — Gray Yachts", robots: { index: false } };
   const { vessel, brochure } = found;
 
-  const title = `${vessel.year} ${vessel.make} — ${vessel.name} for sale | ${vessel.price} | Gray Yachts`;
-  const description =
-    brochure?.narrative[0]?.slice(0, 175) ??
-    `${vessel.year} ${vessel.make}, ${vessel.length}, lying ${vessel.location}. Offered at ${vessel.price} by Gray Yachts.`;
+  // Year, make and price, plus the brand when it fits; the vessel name is in the H1 and description.
+  const title = withBrand(`${vessel.year} ${vessel.make} for Sale | ${vessel.price}`);
+  const description = clip(
+    brochure?.narrative[0] ??
+      `${vessel.year} ${vessel.make}, ${vessel.length}, lying ${vessel.location}. Offered at ${vessel.price} by Gray Yachts.`,
+  );
 
   return {
     title,
@@ -227,7 +231,7 @@ export default async function ListingPage({
                       {featureShots[n] && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={featureShots[n].src}
+                          {...responsive(featureShots[n].src, "(min-width: 640px) 33vw, 100vw")}
                           alt={featureShots[n].caption}
                           loading="lazy"
                           className="h-32 w-full object-cover"
@@ -391,7 +395,7 @@ export default async function ListingPage({
                   <div className="aspect-[4/3] overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={o.image}
+                      {...responsive(o.image, "(min-width: 768px) 33vw, 100vw")}
                       alt={o.name}
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

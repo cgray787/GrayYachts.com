@@ -31,7 +31,7 @@ const CONNOR = { href: '/about-connor-gray', label: 'Meet Connor Gray' };
 export const landingPages: LandingPage[] = [
   {
     kind: 'service', slug: 'yacht-brokerage',
-    title: 'Sell Your Yacht with a Pacific Northwest Yacht Broker | Gray Yachts',
+    title: 'Sell Your Yacht with a Pacific Northwest Broker | Gray Yachts',
     description: 'Selling a boat or yacht in Seattle and the Pacific Northwest? How brokerage works with Gray Yachts and Jeff Brown Yachts, from pricing and marketing to closing.',
     eyebrow: 'Yacht brokerage', heroTitle: 'Sell your yacht with a broker who knows these waters.',
     intro: 'Pricing, marketing, showings and closing for Pacific Northwest owners.',
@@ -66,7 +66,7 @@ export const landingPages: LandingPage[] = [
   {
     kind: 'service', slug: 'boat-valuation',
     title: 'Boat Valuation Guide: What Is My Boat Worth? | Gray Yachts',
-    description: 'How a boat valuation works for Pacific Northwest owners, how it differs from an appraisal or marine survey, and how to get a no obligation valuation from Gray Yachts.',
+    description: 'How a boat valuation works for Pacific Northwest owners, how it differs from an appraisal or marine survey, and how to get a no obligation valuation.',
     eyebrow: 'Boat valuation', heroTitle: 'What is your boat worth in today\'s market?',
     intro: 'A real market view of your boat, reviewed by a working broker.',
     primaryKeyword: 'boat valuation',
@@ -200,7 +200,7 @@ export const landingPages: LandingPage[] = [
   {
     kind: 'location', slug: 'tacoma',
     title: 'Tacoma and South Sound Yacht Broker | Gray Yachts',
-    description: 'Buying or selling a boat in Tacoma, Des Moines or the South Sound? Gray Yachts and Jeff Brown Yachts, with current South Sound listings and a no obligation valuation.',
+    description: 'Buying or selling a boat in Tacoma, Gig Harbor or the South Sound? Gray Yachts and Jeff Brown Yachts, with current listings and a no obligation valuation.',
     eyebrow: 'Tacoma and South Sound', heroTitle: 'Brokerage for Tacoma and South Sound boats.',
     intro: 'Tacoma, Des Moines and the southern reaches of Puget Sound.',
     primaryKeyword: 'boats for sale tacoma',

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { FleetGallery } from "@/components/marketing/fleet-gallery";
 import { Testimonials } from "@/components/marketing/testimonials";
 import { heroSlides } from "@/lib/fleet";
+import { responsive } from "@/lib/responsive-image";
 
 /* ------------------------------------------------------------------ */
 /*  Animation helpers                                                  */
@@ -67,7 +68,7 @@ export default function HomePage() {
             already warm in the CDN. Swap the photo and both pages change —
             that coupling is the point. Decorative only, hence alt="". */}
         <img
-          src="/sell/img/hero.jpg"
+          {...responsive("/sell/img/hero.jpg", "100vw")}
           alt=""
           aria-hidden="true"
           fetchPriority="high"
@@ -75,43 +76,33 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,10,18,0.72)_0%,rgba(6,10,18,0.80)_45%,rgba(6,10,18,0.97)_100%)]" />
 
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="relative z-10 flex flex-col items-center px-6 text-center"
-        >
-          <motion.h1
-            variants={fadeUp}
-            custom={0}
-            className="font-[family-name:var(--font-cormorant)] text-5xl font-light tracking-[0.3em] text-text-primary sm:text-7xl md:text-8xl"
+        {/* CSS fade (globals.css .hero-rise), not framer-motion: the motion version
+            rendered the hero at opacity 0 until hydration, so the H1 (the LCP
+            element) painted at 7.4 s on mobile Lighthouse (2026-10-17). */}
+        <div className="relative z-10 flex flex-col items-center px-6 text-center">
+          <h1
+            className="hero-rise [animation-delay:0ms] font-[family-name:var(--font-cormorant)] text-5xl font-light tracking-[0.3em] text-text-primary sm:text-7xl md:text-8xl"
           >
             GRAY YACHTS
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={fadeUp}
-            custom={1}
-            className="mt-6 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
+          <p
+            className="hero-rise [animation-delay:150ms] mt-6 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
           >
             PACIFIC NORTHWEST&apos;S PREMIER YACHT EXPERIENCE
-          </motion.p>
+          </p>
 
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="mt-8 max-w-2xl font-[family-name:var(--font-cormorant)] text-2xl font-light leading-snug text-text-primary sm:text-3xl md:text-4xl"
+          <p
+            className="hero-rise [animation-delay:300ms] mt-8 max-w-2xl font-[family-name:var(--font-cormorant)] text-2xl font-light leading-snug text-text-primary sm:text-3xl md:text-4xl"
           >
             Explore the fleet, or find out what yours is worth.
-          </motion.p>
+          </p>
 
           {/* Two paths, one per audience: buyers go to the fleet, owners go to
               the valuation questionnaire at /sell. Equal weight — we do not
               know which one a given visitor is. */}
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            className="mt-10 flex w-full max-w-md flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-4"
+          <div
+            className="hero-rise [animation-delay:450ms] mt-10 flex w-full max-w-md flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-4"
           >
             <Link
               href="/fleet"
@@ -127,16 +118,14 @@ export default function HomePage() {
               <LineChart size={14} />
               GET AN EVALUATION
             </a>
-          </motion.div>
+          </div>
 
-          <motion.p
-            variants={fadeUp}
-            custom={4}
-            className="mt-6 text-xs text-text-secondary"
+          <p
+            className="hero-rise [animation-delay:600ms] mt-6 text-xs text-text-secondary"
           >
             Free market valuation &middot; about 60 seconds &middot; no obligation
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
         <motion.div
           initial={{ opacity: 0 }}

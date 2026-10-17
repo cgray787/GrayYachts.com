@@ -2,6 +2,7 @@
 import {ArrowRight} from 'lucide-react';
 import EditorialTabs from './editorial-tabs';
 import type {ReactNode} from 'react';
+import { responsive } from '@/lib/responsive-image';
 
 export type EditorialHeroProps = {
   eyebrow: string;
@@ -16,7 +17,7 @@ export type EditorialHeroProps = {
 
 export default function EditorialHero({eyebrow,title,intro,image='/sell/img/hero.jpg',imageAlt='Yacht on the water',action,target='#editorial-content',credit}:EditorialHeroProps) {
   return <><section className="relative overflow-hidden bg-[#091722]" data-editorial-hero>
-    <img src={image} alt={imageAlt} className="absolute inset-0 h-full w-full object-cover opacity-50" fetchPriority="high"/>
+    <img {...responsive(image, "100vw")} alt={imageAlt} className="absolute inset-0 h-full w-full object-cover opacity-50" fetchPriority="high"/>
     <div className="absolute inset-0 bg-gradient-to-t from-[#060a12] via-[#060a12]/30 to-[#060a12]/40"/>
     <div className="relative mx-auto w-full max-w-7xl px-6 pt-32 pb-20 md:px-12">
       <div className="flex items-center gap-4 text-xs uppercase tracking-[0.25em] text-[#d8bd8c]"><span className="h-px w-12 bg-[#d8bd8c]"/>{eyebrow}</div>
