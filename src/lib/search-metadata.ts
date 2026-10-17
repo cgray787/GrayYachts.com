@@ -38,6 +38,9 @@ export const businessSchema = {
       logo: `${SITE_URL}/sell/img/logo-gy.png`,
       sameAs: ['https://www.instagram.com/grayyachts_/'],
       areaServed: ['Seattle', 'Pacific Northwest'],
+      // Same contact details the site footer and homepage contact section publish.
+      telephone: '+1-425-671-8474',
+      email: 'connor@grayyachts.com',
     },
     {
       '@type': 'WebSite', '@id': `${SITE_URL}/#website`,

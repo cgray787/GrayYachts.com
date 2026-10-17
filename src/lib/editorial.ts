@@ -24,10 +24,24 @@ export function isPublished(a: Article): boolean {
 }
 export const publishedArticles = () => articles.filter(isPublished);
 export const visibleArticles = () => articles.filter(a => isPublished(a) || editorialPreview);
-export function pageMetadata(title: string, description: string, path: string): Metadata {
+// Adds the brand only when the title still fits Google's ~65 character display.
+export const withBrand = (title: string) => (title.length + 14 <= 65 ? `${title} | Gray Yachts` : title);
+// Trims a description to `max` characters at a sentence, else word, boundary.
+export function clip(text: string, max = 158): string {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const sentence = cut.lastIndexOf('. ');
+  if (sentence > max * 0.6) return cut.slice(0, sentence + 1);
+  return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:—-]\s*$/, '') + '…';
+}
+// Shared default share image: the homepage and /sell hero, 1600x1062.
+export const DEFAULT_OG_IMAGE = '/sell/img/hero.jpg';
+export function pageMetadata(title: string, description: string, path: string, image: string = DEFAULT_OG_IMAGE): Metadata {
+  const images = [{url: `${SITE}${image}`}];
   return { title, description, alternates: {canonical: `${SITE}${path}`},
-    openGraph: {title, description, url: `${SITE}${path}`, siteName: 'Gray Yachts', type: 'website'},
-    twitter: {card: 'summary', title, description} };
+    openGraph: {title, description, url: `${SITE}${path}`, siteName: 'Gray Yachts', type: 'website', images},
+    twitter: {card: 'summary_large_image', title, description, images} };
 }
 export function articleSchema(a: Article) {
   return { '@context': 'https://schema.org', '@type': 'Article', headline: a.title,

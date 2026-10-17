@@ -2,13 +2,13 @@ import PostThumbnail from '@/components/marketing/post-thumbnail';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { articlePhoto, visibleArticles, isPublished, pageMetadata, articleSchema, jsonLd, howThisWasMade, relatedLinks } from '@/lib/editorial';
+import { withBrand, articlePhoto, visibleArticles, isPublished, pageMetadata, articleSchema, jsonLd, howThisWasMade, relatedLinks } from '@/lib/editorial';
 import { EditorialShell, SellerContact } from '@/components/marketing/editorial';
 type Props = {params: Promise<{slug:string}>};
 export async function generateMetadata({params}:Props):Promise<Metadata> {
  const {slug}=await params; const a=visibleArticles().find(a=>a.slug===slug);
  if(!a) return {title:'Article not found',robots:{index:false}};
- return {...pageMetadata(`${a.title} | Gray Yachts`,a.description,`/insights/${a.slug}`),robots:{index:isPublished(a),follow:true},openGraph:{images:[`https://grayyachts.com${articlePhoto(a.slug).url}`],type:'article',title:a.title,description:a.description,url:`https://grayyachts.com/insights/${a.slug}`}};
+ return {...pageMetadata(withBrand(a.title),a.description,`/insights/${a.slug}`),robots:{index:isPublished(a),follow:true},openGraph:{images:[`https://grayyachts.com${articlePhoto(a.slug).url}`],type:'article',title:a.title,description:a.description,url:`https://grayyachts.com/insights/${a.slug}`}};
 }
 export default async function ArticlePage({params}:Props) {
  const {slug}=await params; const a=visibleArticles().find(a=>a.slug===slug); if(!a)notFound();

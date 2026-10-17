@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import type { GallerySlide } from "@/lib/fleet";
+import { responsive } from "@/lib/responsive-image";
 
 type FleetGalleryProps = {
   slides: GallerySlide[];
@@ -131,7 +132,7 @@ export function FleetGallery({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={slide.src}
+              {...responsive(slide.src, "(min-width: 1024px) 40vw, (min-width: 640px) 55vw, 82vw")}
               alt={`${slide.vessel.name} — ${slide.caption}`}
               loading="lazy"
               className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"

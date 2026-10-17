@@ -3,6 +3,7 @@ import { EditorialShell, SellerContact } from '@/components/marketing/editorial'
 import { jsonLd, SITE } from '@/lib/editorial';
 import { vessels } from '@/lib/fleet';
 import { landingPath, type LandingPage } from '@/lib/landing-pages';
+import { responsive } from '@/lib/responsive-image';
 
 // /sell is static HTML in public/, not a Next.js route: a <Link> prefetch of it 404s.
 const STATIC_PAGES = new Set(['/sell']);
@@ -43,7 +44,7 @@ export function LandingPageView({ page }: { page: LandingPage }) {
               <li key={v.slug} className="overflow-hidden rounded-xl border border-border bg-bg-card">
                 <Link href={`/fleet/${v.slug}`} className="block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={v.image} alt={`${v.year} ${v.make} for sale in ${v.location}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                  <img {...responsive(v.image, "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw")} alt={`${v.year} ${v.make} for sale in ${v.location}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                   <div className="p-4"><p className="font-medium">{v.year} {v.make}</p><p className="text-sm text-text-secondary">{v.name} · {v.location} · {v.price}</p></div>
                 </Link>
               </li>

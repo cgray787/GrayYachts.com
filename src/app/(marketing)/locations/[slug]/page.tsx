@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { pageMetadata } from '@/lib/editorial';
 import { findLanding, landingPages, landingPath } from '@/lib/landing-pages';
-import { LandingPageView } from '@/components/marketing/landing-page';
+import { LandingPageView, listingsFor } from '@/components/marketing/landing-page';
 
 type Props = { params: Promise<{ slug: string }> };
 // No `dynamicParams = false`: OpenNext on Cloudflare has no incremental cache configured
@@ -13,7 +13,7 @@ export function generateStaticParams() {
 }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = findLanding('location', (await params).slug);
-  return page ? pageMetadata(page.title, page.description, landingPath(page)) : { title: 'Not found', robots: { index: false } };
+  return page ? pageMetadata(page.title, page.description, landingPath(page), listingsFor(page)[0]?.image) : { title: 'Not found', robots: { index: false } };
 }
 export default async function Page({ params }: Props) {
   const page = findLanding('location', (await params).slug);

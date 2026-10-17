@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, Search, SlidersHorizontal, ArrowUpDown, X } from "lucide-react";
 
 import type { Vessel } from "@/lib/fleet";
+import { responsive } from "@/lib/responsive-image";
 
 /* ------------------------------------------------------------------ */
 /*  Parsing helpers — fleet.ts stores display strings, not numbers.    */
@@ -159,7 +160,7 @@ function VesselCard({ vessel, index }: { vessel: Vessel; index: number }) {
       <div className="relative aspect-[4/3] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={vessel.image}
+          {...responsive(vessel.image, "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw")}
           alt={vessel.name}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-110"

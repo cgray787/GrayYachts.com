@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     siteName: "Gray Yachts",
     locale: "en_US",
     type: "website",
+    images: [{ url: "/sell/img/hero.jpg", width: 1600, height: 1062 }],
   },
   twitter: {
     card: "summary_large_image",
