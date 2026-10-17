@@ -292,8 +292,8 @@ export const vessels: Vessel[] = [
   },
   {
     // JBY central listing (owner Charlie Brown), signed Jun 30 2026.
-    // Price is $400,000 per the JBY agreement — the older Hampton Yacht
-    // Group listing sheet in the folder says $409,995; JBY's is current.
+    // Price reduced to $380,000 on Oct 17 2026 (Connor). It was $400,000 per the
+    // JBY agreement; the older Hampton Yacht Group sheet said $409,995.
     // Equipment detail comes from the seller's own walkthrough write-up.
     name: "M/Y Sau Ping",
     slug: "sau-ping",
@@ -301,7 +301,7 @@ export const vessels: Vessel[] = [
     make: "Sea Ray Sundancer 350",
     length: "35'0\"",
     location: "Des Moines, WA",
-    price: "$400,000",
+    price: "$380,000",
     image: "/listings/sau-ping/hero.jpg",
     href: "/listings/sau-ping.pdf",
     gallery: [
@@ -361,7 +361,8 @@ export const vessels: Vessel[] = [
     make: "Cobalt 343",
     length: "35'4\"",
     location: "Madrona Marina, WA",
-    price: "$89,000",
+    // Reduced from $89,000 to $84,000 on Oct 17 2026 (Connor).
+    price: "$84,000",
     image: "/listings/cobalt-343/hero.jpg",
     href: "/listings/cobalt-343.pdf",
     gallery: [
