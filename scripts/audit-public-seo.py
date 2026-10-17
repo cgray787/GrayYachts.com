@@ -82,6 +82,11 @@ def fetch(url):
                                  '--retry-max-time', '25',
                                  '-D', str(headers), '-o', str(body), '-w', '%{http_code} %{url_effective}', url],
                                 capture_output=True, text=True, timeout=50)
+        if result.returncode == 16:
+            # A local HTTP/2 framing failure has no origin HTTP status. Retry
+            # once over HTTP/1.1 rather than reporting it as a website outage.
+            result = subprocess.run([result.args[0], '--http1.1', *result.args[1:]],
+                                    capture_output=True, text=True, timeout=50)
         if result.returncode:
             status_lines = [line for line in headers.read_text(errors='replace').splitlines() if line.startswith('HTTP/')] if headers.exists() else []
             raise RuntimeError(f'curl exit {result.returncode}; {result.stdout}; {status_lines}; {result.stderr.strip()}')
