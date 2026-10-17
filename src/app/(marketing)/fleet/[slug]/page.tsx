@@ -9,6 +9,7 @@ import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { PaymentCalculator } from "@/components/marketing/payment-calculator";
 import { vessels } from "@/lib/fleet";
 import { getBrochure } from "@/lib/brochures";
+import { listingJsonLd } from "@/lib/listing-schema";
 
 export function generateStaticParams() {
   return vessels.filter((v) => v.slug).map((v) => ({ slug: v.slug as string }));
@@ -93,34 +94,12 @@ export default async function ListingPage({
   const features = brochure?.highlights.slice(0, 3) ?? [];
   const featureShots = vessel.gallery.slice(1, 4);
 
-  // Product schema — the same structured-data play NGY uses on every listing.
   const priceNumber = vessel.price.replace(/,/g, "").match(/\$\s*(\d+)/)?.[1];
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: `${vessel.year} ${vessel.make} — ${vessel.name}`,
-    description: brochure?.narrative[0] ?? `${vessel.year} ${vessel.make} for sale.`,
-    image: vessel.gallery.map((g) => g.src),
-    brand: { "@type": "Brand", name: vessel.make },
-    category: "Yachts for sale",
-    productionDate: String(vessel.year),
-    ...(priceNumber
-      ? {
-          offers: {
-            "@type": "Offer",
-            price: priceNumber,
-            priceCurrency: "USD",
-            availability: "https://schema.org/InStock",
-            seller: { "@type": "Organization", name: "Gray Yachts" },
-          },
-        }
-      : {}),
-    additionalProperty: (brochure?.specStrip ?? []).map((s) => ({
-      "@type": "PropertyValue",
-      name: s.label,
-      value: s.value,
-    })),
-  };
+  // Product schema: see src/lib/listing-schema.ts.
+  const jsonLd = listingJsonLd(
+    { ...vessel, slug },
+    brochure?.narrative[0] ?? `${vessel.year} ${vessel.make} for sale.`,
+  );
 
   return (
     <>
