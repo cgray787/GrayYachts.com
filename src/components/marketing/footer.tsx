@@ -24,7 +24,7 @@ const connect = [
   { label: "Meet Connor Gray", href: "/about-connor-gray" },
   { label: "425-671-8474", href: "tel:4256718474" },
   { label: "@grayyachts_", href: "https://instagram.com/grayyachts_" },
-  { label: "Schedule Consultation", href: "#contact" },
+  { label: "Schedule Consultation", href: "/#contact" },
 ];
 
 export default function Footer() {

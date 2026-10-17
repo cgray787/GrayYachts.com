@@ -89,7 +89,7 @@ export default function HomePage() {
           <p
             className="hero-rise [animation-delay:150ms] mt-6 text-[11px] font-medium tracking-[0.35em] text-gold sm:text-xs"
           >
-            PACIFIC NORTHWEST&apos;S PREMIER YACHT EXPERIENCE
+            SEATTLE YACHT BROKERAGE · PACIFIC NORTHWEST
           </p>
 
           <p

@@ -27,7 +27,7 @@ const bad = (s: string) => console.log(`  [31m✗[0m ${s}`);
 
 async function status(url: string): Promise<number> {
   try {
-    const res = await fetch(url, { method: "HEAD", redirect: "manual" });
+    const res = await fetch(url, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(20000) });
     return res.status;
   } catch {
     return 0;
@@ -71,7 +71,7 @@ async function main() {
   //    be live) and probe each against the live site.
   const discovered = new Set<string>(slugs);
 
-  const fleetHtml = await fetch(`${SITE}/fleet`)
+  const fleetHtml = await fetch(`${SITE}/fleet`, { signal: AbortSignal.timeout(20000) })
     .then((r) => (r.ok ? r.text() : ""))
     .catch(() => "");
   for (const m of fleetHtml.matchAll(/\/fleet\/([a-z0-9][a-z0-9-]*)/g)) {

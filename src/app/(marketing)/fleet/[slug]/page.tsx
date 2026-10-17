@@ -12,6 +12,7 @@ import { getBrochure } from "@/lib/brochures";
 import { listingJsonLd } from "@/lib/listing-schema";
 import { clip, withBrand } from "@/lib/editorial";
 import { responsive } from "@/lib/responsive-image";
+import { breadcrumbSchema, searchMetadata } from '@/lib/search-metadata';
 
 export function generateStaticParams() {
   return vessels.filter((v) => v.slug).map((v) => ({ slug: v.slug as string }));
@@ -39,17 +40,7 @@ export async function generateMetadata({
       `${vessel.year} ${vessel.make}, ${vessel.length}, lying ${vessel.location}. Offered at ${vessel.price} by Gray Yachts.`,
   );
 
-  return {
-    title,
-    description,
-    alternates: { canonical: `/fleet/${slug}` },
-    openGraph: {
-      title,
-      description,
-      images: [{ url: vessel.image }],
-      type: "website",
-    },
-  };
+  return searchMetadata(title, description, `/fleet/${slug}`, vessel.image);
 }
 
 /* ------------------------------------------------------------------ */
@@ -112,7 +103,11 @@ export default async function ListingPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          __html: JSON.stringify([jsonLd, breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'The Fleet', path: '/fleet' },
+            { name: vessel.name, path: `/fleet/${slug}` },
+          ])]).replace(/</g, "\\u003c"),
         }}
       />
 
