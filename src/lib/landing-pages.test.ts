@@ -50,6 +50,14 @@ describe('service and location landing pages', () => {
       expect(footer, landingPath(p)).toContain(`"${landingPath(p)}"`);
     }
   });
+  it('record every keyword the keyword map assigns to them', () => {
+    const [, ...rows] = readFileSync('docs/seo/keyword-map-2026-10-15.tsv', 'utf8').trim().split('\n').map(l => l.split('\t'));
+    const pageFor = (target: string) => landingPages.find(p => target === landingPath(p));
+    for (const [keyword, , , , , target] of rows) {
+      const page = pageFor(target);
+      if (page) expect(page.keywords, `${keyword} -> ${target}`).toContain(keyword);
+    }
+  });
   it('do not disable dynamicParams (404s on OpenNext without an incremental cache)', () => {
     for (const k of ['services', 'locations']) {
       const src = readFileSync(`src/app/(marketing)/${k}/[slug]/page.tsx`, 'utf8');
