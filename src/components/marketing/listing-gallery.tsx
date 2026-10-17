@@ -32,7 +32,9 @@ export function ListingGallery({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={active.src}
-          {...responsive(active.src, "100vw")}
+          {...responsive(active.src, "(min-width: 1024px) 60vw, 100vw")}
+          // The first photo is the listing page's LCP element.
+          fetchPriority={i === 0 ? "high" : "auto"}
           alt={`${alt} — ${active.caption}`}
           className="h-full w-full object-cover"
         />

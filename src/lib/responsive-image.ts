@@ -11,6 +11,8 @@ export function responsive(src: string, sizes: string): { src: string; srcSet?: 
   const entry = MANIFEST[src.split('?')[0]];
   if (!entry) return { src };
   const base = src.split('?')[0].replace(/\.(jpe?g|png)$/i, '');
-  const srcSet = [...entry.v.map(w => `${base}.w${w}.webp ${w}w`), `${src} ${entry.w}w`].join(', ');
+  const webp = entry.v.map(w => `${base}.w${w}.webp ${w}w`);
+  // A same width WebP replaces the original rather than competing with it.
+  const srcSet = (entry.v.includes(entry.w) ? webp : [...webp, `${src} ${entry.w}w`]).join(', ');
   return { src, srcSet, sizes };
 }

@@ -4,7 +4,7 @@
 Lighthouse (2026-10-17, mobile) put the homepage and listing pages at 8.5 to 9.9 MB,
 mostly full size 1350 to 1800 px JPEGs shown in phone sized slots. Cloudflare image
 resizing is not enabled on the zone, so the variants are pre-built and committed:
-  public/listings/jimmie/g2.jpg -> public/listings/jimmie/g2.w640.webp, g2.w1280.webp
+  public/listings/jimmie/g2.jpg -> public/listings/jimmie/g2.w640.webp, g2.w960.webp, g2.w1280.webp
 src/lib/image-variants.json maps "/listings/jimmie/g2.jpg" -> {"w": 1350, "v": [640]}
 (w = original width, v = variant widths).
 
@@ -17,7 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / 'public'
 MANIFEST = ROOT / 'src/lib/image-variants.json'
-WIDTHS = (640, 1280)
+# 960 covers ~412 px phones at 2x; without it 1280 to 1408 px originals had only a 640
+# variant and phones fell back to the full JPEG (Lighthouse, 2026-10-17).
+WIDTHS = (640, 960, 1280)
 MIN_BYTES = 60_000
 
 def width(p: Path) -> int:
@@ -33,7 +35,7 @@ for p in sorted(PUBLIC.rglob('*')):
     w = width(p)
     made = []
     for target in WIDTHS:
-        if w <= target * 1.1:
+        if w <= target:
             continue
         out = p.with_name(f'{p.stem}.w{target}.webp')
         if not out.exists() or out.stat().st_mtime < p.stat().st_mtime:
@@ -41,6 +43,13 @@ for p in sorted(PUBLIC.rglob('*')):
             if r.returncode != 0:
                 print('cwebp failed:', p, file=sys.stderr); continue
         made.append(target)
+    # Heavy images too narrow to downsize still get a same width WebP (e.g. a 640 px,
+    # 298 KB JPEG used as the Seattle page hero). The site then drops the original from srcset.
+    if not made and p.stat().st_size > 150_000:
+        out = p.with_name(f'{p.stem}.w{w}.webp')
+        if not out.exists() or out.stat().st_mtime < p.stat().st_mtime:
+            subprocess.run(['cwebp', '-quiet', '-q', '72', str(p), '-o', str(out)], check=True)
+        made.append(w)
     if made:
         manifest['/' + str(p.relative_to(PUBLIC))] = {'w': w, 'v': made}
 
