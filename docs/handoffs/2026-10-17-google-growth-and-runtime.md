@@ -5,9 +5,9 @@ Production branch: `restore/prod-plus-leads`.
 
 ## Deployed changes
 
-- Deployment `17d1ebf9-27f1-4af9-a66c-d7d27b0b1620`, through the required `npm run deploy` workflow.
+- Final deployment `e35914e4-90d5-46ff-95e3-87dcdb13a454`, through the required `npm run deploy` workflow. This supersedes the initially audited deployment `17d1ebf9-27f1-4af9-a66c-d7d27b0b1620` and includes the newer homepage listing links.
 - Public pages have individual canonical, Open Graph, and Twitter metadata. Homepage organization/site schema and listing breadcrumb schema added. Consultation links resolve to the homepage contact section.
-- Existing service/location pages, the Washington State page, and the 359-keyword map were preserved by merging production through `2c82910`. Earlier implementation commit: `9e4c0c1`; merge commit: `bccf73d`.
+- Existing service/location pages, the Washington State page, and the 359-keyword map were preserved by merging production through `2c82910`. A final merge through `533f35e` preserves the homepage listing links added by another contributor. Implementation commits: `9e4c0c1` and `c2101f0`; production merge commits: `bccf73d` and `8148ff7`.
 - Valuation conversion fires only after a successful form API response, once per loaded form. Validation failures, rejected submissions, missing analytics, and analytics exceptions are covered. No personal data is sent in this event.
 
 ## Runtime fix
@@ -24,6 +24,7 @@ Deployment preflight now bounds two network probes to 20 seconds. Existing broch
 - Production build and deployment preflight passed, preserving 47 main sitemap URLs and 16 fleet listings.
 - Full live audit at 18:43 UTC checked 56 pages: 54 returned successfully without detected SEO issues; two had local HTTP/2 transport failures, with no origin HTTP status.
 - Focused audit at 18:45 UTC successfully checked `/fleet/dub-sea`, `/insights/palm-beach-2027-planning`, and `/sell`. Combined evidence covers 56 HTTP 200 pages with zero issues detected by this audit. Reports retain both runs and explicitly describe the recheck.
+- After the final homepage merge and deployment, `/`, `/fleet/poulsbo`, and `/sell` all returned HTTP 200 with zero audit issues. Homepage HTML contains all 16 listing links. This focused verification is saved as `grayyachts-seo-final-deployment-20261017.json`.
 - `/fleet/poulsbo` rendered successfully in Chrome after deployment. No additional error events were returned during the brief post-deployment error-tail observation; the tail was stopped afterward.
 - These checks verify site accessibility and technical SEO fields, not Google indexing or ranking. No synthetic lead was submitted.
 
