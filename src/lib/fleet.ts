@@ -52,7 +52,7 @@ export const vessels: Vessel[] = [
     make: "Custom Norsco Aluminum Patrol",
     length: "38'",
     location: "Fall City, WA",
-    price: "$300,000",
+    price: "$249,000",
     image: "/listings/poulsbo/hero.jpg",
     href: "/listings/poulsbo.pdf",
     gallery: [
@@ -73,7 +73,7 @@ export const vessels: Vessel[] = [
     make: "Hunter Passage",
     length: "42'",
     location: "Seattle, WA",
-    price: "$110,000",
+    price: "$99,000",
     image: "/listings/playa-linda/hero.jpg",
     href: "/listings/playa-linda.pdf",
     gallery: [
@@ -127,7 +127,7 @@ export const vessels: Vessel[] = [
     make: "Yamaha 252SE",
     length: "25'",
     location: "Renton, WA",
-    price: "$100,000",
+    price: "$79,999",
     href: "/listings/yamaha-252se.pdf",
     image: "/listings/yamaha-252se/hero.jpg",
     gallery: [
@@ -241,7 +241,7 @@ export const vessels: Vessel[] = [
     make: "Back Cove 30",
     length: "30'5\"",
     location: "Edmonds, WA",
-    price: "$325,000",
+    price: "$299,000",
     image: "/listings/miss-maggie-ii/hero.jpg",
     href: "/listings/miss-maggie-ii.pdf",
     gallery: [
@@ -301,7 +301,7 @@ export const vessels: Vessel[] = [
     make: "Sea Ray Sundancer 350",
     length: "35'0\"",
     location: "Des Moines, WA",
-    price: "$400,000",
+    price: "$379,999",
     image: "/listings/sau-ping/hero.jpg",
     href: "/listings/sau-ping.pdf",
     gallery: [
@@ -361,7 +361,7 @@ export const vessels: Vessel[] = [
     make: "Cobalt 343",
     length: "35'4\"",
     location: "Madrona Marina, WA",
-    price: "$89,000",
+    price: "$85,000",
     image: "/listings/cobalt-343/hero.jpg",
     href: "/listings/cobalt-343.pdf",
     gallery: [
@@ -390,7 +390,7 @@ export const vessels: Vessel[] = [
     make: "Ocean Alexander 548",
     length: "54'",
     location: "Anacortes, WA",
-    price: "$575,000",
+    price: "$500,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
     gallery: [
@@ -427,7 +427,7 @@ export const vessels: Vessel[] = [
     make: "Trojan 10.8 Meter International",
     length: "35'5\"",
     location: "Anacortes, WA",
-    price: "$150,000",
+    price: "$139,999",
     image: "/listings/blue-pearl/hero.jpg",
     href: "/listings/blue-pearl.pdf",
     gallery: [
@@ -447,6 +447,34 @@ export const vessels: Vessel[] = [
     ],
     badge: "NEW LISTING",
     videoUrl: "/listings/blue-pearl/walkthrough.mp4",
+  },
+  {
+    // JBY open listing — owner John Colvin, Connor listing broker. Facts from
+    // the YachtWorld listing (read 2026-10-17, $299,999) and the 2016 Marine
+    // Consultants survey P301216H in the owner folder (hull EOW30014I405,
+    // Official No. WN4166D, LOD 30', beam 10'6", draft 33", 10,000 lb dry).
+    // Engines are the 2023 Volvo D4-300 repower — the survey predates them.
+    name: "M/V Journey",
+    slug: "seasport-voyager-3000",
+    year: 2005,
+    make: "SeaSport Voyager 3000",
+    length: "31'",
+    location: "Anacortes, WA",
+    price: "$299,999",
+    image: "/listings/seasport-voyager-3000/hero.jpg",
+    href: "/listings/seasport-voyager-3000.pdf",
+    gallery: [
+      { src: "/listings/seasport-voyager-3000/hero.jpg", caption: "Dockside Profile" },
+      { src: "/listings/seasport-voyager-3000/g1.jpg", caption: "Bow Quarter" },
+      { src: "/listings/seasport-voyager-3000/g2.jpg", caption: "Stern Quarter" },
+      { src: "/listings/seasport-voyager-3000/g3.jpg", caption: "Cockpit & Transom" },
+      { src: "/listings/seasport-voyager-3000/i1.jpg", caption: "Dinette & Galley", interior: true },
+      { src: "/listings/seasport-voyager-3000/i2.jpg", caption: "Helm", interior: true },
+      { src: "/listings/seasport-voyager-3000/i3.jpg", caption: "Forward V-Berth", interior: true },
+      { src: "/listings/seasport-voyager-3000/i4.jpg", caption: "Twin 2023 Volvo D4-300s", interior: true },
+      { src: "/listings/seasport-voyager-3000/i5.jpg", caption: "Garmin Display", interior: true },
+    ],
+    badge: "NEW LISTING",
   },
 ];
 
