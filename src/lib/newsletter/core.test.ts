@@ -182,6 +182,9 @@ describe('per-edition licensed and generated media',()=>{
   const a=await importMedia(env,ok,fetcher);
   expect(a.url).toBe(`/newsletter-media/${a.id}`);expect(s.files.size).toBe(1);
   await expect(importMedia(env,{...ok,downloadUrl:'https://example.com/x.jpg'},fetcher)).rejects.toThrow('Wikimedia Commons, Pexels or Unsplash');
+  // Commons serves resized files from thumb.wikimedia.org (seen live 2026-10-18).
+  await expect(importMedia(env,{...ok,downloadUrl:'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Show.jpg/1920px-Show.jpg'},(async()=>new Response(new Uint8Array(41_000).fill(9),{headers:{'content-type':'image/jpeg'}})) as unknown as typeof fetch)).resolves.toMatchObject({alreadyUsed:false});
+  await expect(importMedia(env,{...ok,downloadUrl:'https://thumb.wikimedia.org.example.com/x.jpg'},fetcher)).rejects.toThrow('Wikimedia Commons');
   await expect(importMedia(env,{...ok,license:'CC BY-NC 4.0',licenseUrl:'https://creativecommons.org/licenses/by-nc/4.0/'},fetcher)).rejects.toThrow('License');
   await expect(importMedia(env,{...ok,credit:''},fetcher)).rejects.toThrow('credit');
   const media=await mediaById(env,[a.id]);

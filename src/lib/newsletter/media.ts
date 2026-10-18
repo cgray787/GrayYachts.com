@@ -20,7 +20,7 @@ export type MediaEnv = NewsletterEnv & { YACHT_PHOTOS?: MediaBucket };
 // Libraries whose licenses allow commercial reuse. The image bytes must come from the library's
 // own file host, and the page that states the license must be on the library itself.
 const LIBRARIES = [
-  { name: 'Wikimedia Commons', page: /^https:\/\/commons\.wikimedia\.org\//, file: /^https:\/\/upload\.wikimedia\.org\// },
+  { name: 'Wikimedia Commons', page: /^https:\/\/commons\.wikimedia\.org\//, file: /^https:\/\/(upload|thumb)\.wikimedia\.org\// },
   { name: 'Pexels', page: /^https:\/\/www\.pexels\.com\//, file: /^https:\/\/images\.pexels\.com\// },
   { name: 'Unsplash', page: /^https:\/\/unsplash\.com\//, file: /^https:\/\/images\.unsplash\.com\// },
 ];
