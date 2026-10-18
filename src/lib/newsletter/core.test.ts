@@ -142,3 +142,22 @@ describe('newsletter image policy',()=>{
   expect((await decide(env,'a',current,'approve','')).status).toBe(200);db.close();
  });
 });
+
+describe('newsletter stall alert',()=>{
+ afterEach(()=>{vi.unstubAllGlobals();});
+ it('emails the editor once when no draft has arrived for 72 hours, then stays quiet',async()=>{
+  const {db,env}=database();
+  const kv=new Map<string,string>();
+  Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'editor@example.com',NEWSLETTER_FROM:'test@example.com',
+   RATE_LIMIT:{get:async(k:string)=>kv.get(k)??null,put:async(k:string,v:string)=>{kv.set(k,v);}}});
+  db.prepare("INSERT INTO newsletter_issues(id,slot,created_at) VALUES('a','2026-09-30','2026-09-30T16:12:18.290Z')").run();
+  const sent:string[]=[];vi.stubGlobal('fetch',vi.fn(async(_url:string,init:RequestInit)=>{sent.push(String(init.body));return Response.json({id:'alert'});}));
+  try {
+   expect(await runNewsletter(env,new Date('2026-10-02T16:00:00Z'))).toMatchObject({state:'awaiting-hermes',stall:{state:'ok'}});
+   expect(await runNewsletter(env,new Date('2026-10-17T16:00:00Z'))).toMatchObject({stall:{state:'stalled-alert-sent'}});
+   expect(await runNewsletter(env,new Date('2026-10-17T17:00:00Z'))).toMatchObject({stall:{state:'stalled-already-alerted'}});
+   expect(sent).toHaveLength(1);
+   expect(JSON.parse(sent[0])).toMatchObject({to:['editor@example.com'],subject:'Gray Yachts newsletter: no new draft for 16 days'});
+  } finally {db.close();}
+ });
+});

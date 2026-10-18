@@ -1,14 +1,16 @@
 /* eslint-disable @next/next/no-img-element -- Existing optimized static assets are served directly by Cloudflare. */
 import Link from 'next/link';
 import {ArrowUpRight, ArrowRight} from 'lucide-react';
-import {searchMetadata} from '@/lib/search-metadata';
+import {searchMetadata, SITE_URL} from '@/lib/search-metadata';
 import {publishedIssues} from '@/lib/newsletter/db';
 export const dynamic='force-dynamic';
 export const metadata = searchMetadata('The Gray Yachts newsletter | Buying & selling in the PNW', 'Practical guidance for buying and selling yachts in the Pacific Northwest. Read the Gray Yachts newsletter, from choosing your next boat to preparing yours for sale.', '/newsletter');
 export default async function NewsletterPage() {
  const issues=await publishedIssues();
  const featured=issues[0];
+ const list={'@context':'https://schema.org','@type':'CollectionPage',name:'The Gray Yachts newsletter',url:`${SITE_URL}/newsletter`,publisher:{'@id':`${SITE_URL}/#organization`},mainEntity:{'@type':'ItemList',itemListElement:issues.map((issue,index)=>({'@type':'ListItem',position:index+1,url:`${SITE_URL}/newsletter/${issue.slug}`,name:issue.title}))}};
  return <main>
+  <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(list).replace(/</g,'\\u003c')}}/>
   <section className="relative min-h-[660px] overflow-hidden flex items-end bg-[#091722]">
    {/* Existing original brokerage photography, used as an atmospheric cover. */}
    
