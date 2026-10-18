@@ -283,7 +283,7 @@ export const landingPages: LandingPage[] = [
       { question: 'Do I need a bill of sale to sell a boat in Washington?', answer: 'It is good practice, and DOL publishes a Vehicle/Vessel Bill of Sale form for it. Remember that the bill of sale does not transfer the title by itself; the signed title and the buyer\'s title application do.' },
       { question: 'How long does the seller have to report the sale?', answer: 'Five days, according to DOL\'s boat page. Reporting is free and protects the seller from liability for the boat after the sale.' },
     ],
-    related: [SELL, FLEET, { href: '/locations/seattle', label: 'Seattle yacht brokerage' }, { href: '/services/buyer-representation', label: 'Buying with a broker' }],
+    related: [SELL, FLEET, { href: '/insights/how-to-transfer-a-boat-title-in-washington', label: 'How to transfer a boat title in Washington as the seller' }, { href: '/locations/seattle', label: 'Seattle yacht brokerage' }, { href: '/services/buyer-representation', label: 'Buying with a broker' }],
   },
 ];
 
