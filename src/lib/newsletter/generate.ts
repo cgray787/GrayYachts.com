@@ -1,5 +1,5 @@
 import {isNewsletterDate} from './show-calendar';
-import {validateImages,type NewsletterImage} from './images';
+import {resolveImages,type NewsletterImage} from './images';
 import { HUMANIZER } from './humanizer';
 import { scheduleSlot, reviewToken, validateArticle, escapeHtml, SITE, type Article, type Issue, type NewsletterEnv } from './core';
 
@@ -126,7 +126,7 @@ export async function acceptHermesDraft(env: NewsletterEnv, payload: {slot:strin
  if(!isNewsletterDate(payload.slot,env.NEWSLETTER_START_DATE) || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
  if(payload.humanizerVersion!=='3.0.0' || payload.factCheck?.pass!==true)throw new Error('Humanizer editing and factual review are required');
  const original=validateArticle(payload.original);const article=validateArticle(payload.article);
- const images=validateImages(payload.images,article.sections.length);
+ const images=await resolveImages(env,payload.images,article.sections.length);
  if(!Array.isArray(payload.sources) || payload.sources.length<1 || payload.sources.length>12 || payload.sources.some(s=>typeof s.title!=='string'||s.title.length>200||typeof s.url!=='string'||!/^https:\/\//.test(s.url)||s.url.length>1000))throw new Error('Source references are required');
  const audience=Math.floor(days/2)%2===0?'seller':'buyer';
  const slug=`${payload.slot}-${article.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,90)}`;

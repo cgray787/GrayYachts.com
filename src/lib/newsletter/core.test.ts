@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
 import catalog from './image-catalog.json';
 import {attachImages,availableImages,validateImages} from './images';
+import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
 
 function database() {
@@ -12,6 +13,7 @@ function database() {
  db.exec(readFileSync('migrations/newsletter/0001_newsletter.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0002_images.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0003_section_images.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0004_media.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -62,7 +64,7 @@ describe('scheduled draft and review delivery',()=>{
   const {db,env}=database();Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com',NEWSLETTER_FROM:'test@example.com'});
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
   try {
-   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
+   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
    await expect(acceptHermesDraft(env,{...payload,factCheck:{pass:false}})).rejects.toThrow('factual review');
    expect(await acceptHermesDraft(env,payload)).toMatchObject({state:'draft-stored'});
    expect(await acceptHermesDraft(env,{...payload,article:{...article(),title:'This must not replace the saved draft'}})).toMatchObject({state:'draft-already-stored'});
@@ -114,7 +116,7 @@ describe('private newsletter approval',()=>{
 });
 
 describe('newsletter image policy',()=>{
- const photos=(start=0)=>catalog.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography'}));
+ const photos=(start=0)=>catalog.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
  it('requires unique catalog photos and complete new-edition section coverage',()=>{
   expect(()=>validateImages(photos().slice(0,1))).toThrow();
   expect(()=>validateImages(photos(),4)).toThrow('one photo per section');
@@ -133,7 +135,11 @@ describe('newsletter image policy',()=>{
   expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='b'").get()).toMatchObject({images:'[]'});
   expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(3);
   await attachImages(env,'b',photos(3));
-  await expect(attachImages(env,'b',photos(6))).rejects.toThrow();db.close();
+  // A pending draft may swap its photos before review; the old ones are released.
+  await attachImages(env,'b',photos(6));
+  expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(true);
+  db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id='b'");
+  await expect(attachImages(env,'b',photos(9))).rejects.toThrow();db.close();
  });
  it('invalidates the older approval link when photos are added',async()=>{
   const {db,env}=database();db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at,email_sent_at) VALUES('a','2026-09-08','pending','2026-09-08','2026-09-08')");
@@ -162,5 +168,36 @@ describe('newsletter stall alert',()=>{
    expect(sent).toHaveLength(1);
    expect(JSON.parse(sent[0])).toMatchObject({to:['editor@example.com'],subject:'Gray Yachts newsletter: no new draft for 16 days'});
   } finally {db.close();}
+ });
+});
+
+describe('per-edition licensed and generated media',()=>{
+ const photos=()=>catalog.slice(0,3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
+ const jpeg=()=>new Response(new Uint8Array(40_000).fill(7),{headers:{'content-type':'image/jpeg'}});
+ const store=()=>{const files=new Map<string,ArrayBuffer>();return {files,bucket:{get:async(k:string)=>files.has(k)?{arrayBuffer:async()=>files.get(k)!}:null,put:async(k:string,v:ArrayBuffer)=>{files.set(k,v);}}};};
+ const ok={downloadUrl:'https://upload.wikimedia.org/wikipedia/commons/a/ab/Show.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:Show.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',credit:'Jane Photographer',title:'Boats at Port Vell during the show'};
+ it('imports only approved libraries and licenses, keyed by content',async()=>{
+  const {db,env}=database();const s=store();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const fetcher=(async()=>jpeg()) as unknown as typeof fetch;
+  const a=await importMedia(env,ok,fetcher);
+  expect(a.url).toBe(`/newsletter-media/${a.id}`);expect(s.files.size).toBe(1);
+  await expect(importMedia(env,{...ok,downloadUrl:'https://example.com/x.jpg'},fetcher)).rejects.toThrow('Wikimedia Commons, Pexels or Unsplash');
+  await expect(importMedia(env,{...ok,license:'CC BY-NC 4.0',licenseUrl:'https://creativecommons.org/licenses/by-nc/4.0/'},fetcher)).rejects.toThrow('License');
+  await expect(importMedia(env,{...ok,credit:''},fetcher)).rejects.toThrow('credit');
+  const media=await mediaById(env,[a.id]);
+  const imgs=validateImages([{id:a.id,alt:'Boats moored at Port Vell',caption:'Boats at the Barcelona show',relevance:'The article is about this show and this marina'},{...photos()[0]}],undefined,media);
+  expect(imgs[0]).toMatchObject({kind:'licensed',license:'CC BY-SA 4.0',credit:'Jane Photographer / Wikimedia Commons'});
+  db.close();
+ });
+ it('labels generated illustrations and requires a relevance note',async()=>{
+  const {db,env}=database();const s=store();
+  Object.assign(env,{YACHT_PHOTOS:s.bucket,AI:{run:async()=>({image:btoa('x'.repeat(30000))})}});
+  const g=await generateMedia(env,{prompt:'A broker and buyer reviewing a boat enquiry form at a marina office desk'});
+  const media=await mediaById(env,[g.id]);
+  const [img]=validateImages([{id:g.id,alt:'Illustration of an enquiry form on a desk',caption:'An enquiry is not an offer',relevance:'Shows the enquiry-to-offer step the section explains'},photos()[0]],undefined,media);
+  expect(img.caption).toBe('An enquiry is not an offer (AI-generated illustration)');
+  expect(img.credit).toBe('AI-generated illustration');
+  expect(()=>validateImages([{id:g.id,alt:'Illustration of an enquiry form',caption:'An enquiry is not an offer'},photos()[0]],undefined,media)).toThrow('relevance');
+  db.close();
  });
 });
