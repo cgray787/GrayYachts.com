@@ -3,6 +3,7 @@ import { EditorialShell, SellerContact } from '@/components/marketing/editorial'
 import { jsonLd, SITE } from '@/lib/editorial';
 import { vessels } from '@/lib/fleet';
 import { landingPath, type LandingPage } from '@/lib/landing-pages';
+import { faqSchema } from '@/lib/search-metadata';
 import { responsive } from '@/lib/responsive-image';
 
 // /sell is static HTML in public/, not a Next.js route: a <Link> prefetch of it 404s.
@@ -26,7 +27,7 @@ export function LandingPageView({ page }: { page: LandingPage }) {
   return (
     <EditorialShell eyebrow={page.eyebrow} title={page.heroTitle} intro={page.intro}
       hero={{ title: page.heroTitle, image: heroImage, imageAlt: listings[0] ? `${listings[0].year} ${listings[0].make}` : 'Yacht on the water', action: 'Read more' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd([schema, faqSchema(page.faq)].filter(Boolean)) }} />
       <div className="max-w-3xl">
         {page.sections.map(s => (
           <section key={s.heading} className="mb-12">
