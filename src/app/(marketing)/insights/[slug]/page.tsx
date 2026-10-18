@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { withBrand, articlePhoto, visibleArticles, isPublished, pageMetadata, articleSchema, jsonLd, howThisWasMade, relatedLinks } from '@/lib/editorial';
 import { EditorialShell, SellerContact } from '@/components/marketing/editorial';
+import { breadcrumbSchema, faqSchema } from '@/lib/search-metadata';
 type Props = {params: Promise<{slug:string}>};
 export async function generateMetadata({params}:Props):Promise<Metadata> {
  const {slug}=await params; const a=visibleArticles().find(a=>a.slug===slug);
@@ -13,7 +14,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata> {
 export default async function ArticlePage({params}:Props) {
  const {slug}=await params; const a=visibleArticles().find(a=>a.slug===slug); if(!a)notFound();
  return <EditorialShell eyebrow={a.category} title={a.title} intro={a.description}>
-  {isPublished(a) ? <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd(articleSchema(a))}}/> : <p className="mb-6 text-amber-300">Draft for editorial review. Not published.</p>}
+  {isPublished(a) ? <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd([articleSchema(a),breadcrumbSchema([{name:'Home',path:'/'},{name:'Insights',path:'/insights'},{name:a.title,path:`/insights/${a.slug}`}]),faqSchema(a.faq)].filter(Boolean))}}/> : <p className="mb-6 text-amber-300">Draft for editorial review. Not published.</p>}
   <div className="max-w-3xl"><PostThumbnail photo={articlePhoto(a.slug)} priority/>
   <p className="mb-10 text-sm text-text-secondary">{a.author} · Updated <time dateTime={a.updatedAt}>{a.updatedAt}</time>{a.reviewedBy && ` · Reviewed by ${a.reviewedBy}`}</p>
   {a.disclosures?.map(d=><p key={d} className="-mt-6 mb-10 text-sm text-text-secondary">Disclosure: {d}</p>)}

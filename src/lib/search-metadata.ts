@@ -49,3 +49,13 @@ export const businessSchema = {
     },
   ],
 };
+
+// Q&A that is visible on the page, as FAQPage structured data. Google limits FAQ rich results,
+// but answer engines (AI Overviews, Bing Copilot, ChatGPT and Perplexity search) read the pairs.
+export function faqSchema(items: { question: string; answer: string }[]) {
+  if (!items.length) return null;
+  return {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: items.map(i => ({ '@type': 'Question', name: i.question, acceptedAnswer: { '@type': 'Answer', text: i.answer } })),
+  };
+}
