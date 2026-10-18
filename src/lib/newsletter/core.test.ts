@@ -7,6 +7,8 @@ import catalog from './image-catalog.json';
 import {attachImages,availableImages,validateImages} from './images';
 import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
+import {checkImages,ImageMismatchError,RELEVANCE_MODEL} from './relevance';
+import {imageSize} from './resize';
 
 function database() {
  const db=new DatabaseSync(':memory:');
@@ -216,5 +218,76 @@ describe('per-edition licensed and generated media',()=>{
   expect(img.credit).toBe('AI-generated illustration');
   expect(()=>validateImages([{id:g.id,alt:'Illustration of an enquiry form',caption:'An enquiry is not an offer'},photos()[0]],undefined,media)).toThrow('relevance');
   db.close();
+ });
+});
+
+describe('server-side image relevance check',()=>{
+ const paragraph='Before a viewing, write down how you plan to use the boat and what you need to ask the broker. Bring those questions with you. Service records can help you decide which details need a closer look with a qualified professional. Take notes so you can compare the boats after you leave.';
+ const article=()=>({title:'Preparing for your next yacht viewing',excerpt:'Practical questions to bring to a yacht viewing, with space to compare your priorities and decide what to ask the broker next.',introduction:paragraph,sections:Array.from({length:4},(_,i)=>({heading:`Planning your viewing: step ${i+1}`,paragraphs:[paragraph,paragraph]})),questions:[{question:'What should I bring to a viewing?',answer:paragraph},{question:'How should I compare my notes?',answer:paragraph}]});
+ const photos=()=>catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'}));
+ // Smallest header imageSize reads: SOI, then a SOF0 segment for 1280x960.
+ const jpeg=()=>new Uint8Array([0xff,0xd8,0xff,0xc0,0,17,8,0x03,0xc0,0x05,0x00,3,...new Array(40).fill(0)]).buffer;
+ function setup() {
+  const d=database();const fetched:string[]=[];
+  Object.assign(d.env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',ASSETS:{fetch:async(r:Request)=>{fetched.push(r.url);return new Response(jpeg(),{headers:{'content-type':'image/jpeg'}});}}});
+  return {...d,fetched,payload:{slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:photos(),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]}};
+ }
+ afterEach(()=>{vi.useRealTimers();});
+ it('rejects a draft with a clearly mismatched photo, naming the image and section',async()=>{
+  const {db,env,payload}=setup();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
+  const sections:string[]=[];
+  const judge=vi.fn(async(_i:unknown,section:string)=>{sections.push(section);return section.startsWith('Planning your viewing: step 2')?{fits:false,reason:'The photo shows a cat, not a yacht viewing.'}:{fits:true,reason:'Shows a yacht.'};});
+  const error=await acceptHermesDraft(env,payload,judge).catch(e=>e);
+  expect(error).toBeInstanceOf(ImageMismatchError);expect(error.status).toBe(409);
+  expect(error.message).toContain('images[2] (section "Planning your viewing: step 2"): The photo shows a cat');
+  // Lead -> title and introduction; one per section in order; last -> the questions.
+  expect(sections[0]).toMatch(/^Preparing for your next yacht viewing\n/);
+  expect(sections.slice(1,5).map(s=>s.split('\n')[0])).toEqual([1,2,3,4].map(i=>`Planning your viewing: step ${i}`));
+  expect(sections[5]).toMatch(/^Questions worth asking\nWhat should I bring/);
+  expect(db.prepare('SELECT COUNT(*) n FROM newsletter_issues WHERE content IS NOT NULL').get()?.n).toBe(0);
+  expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(0);db.close();
+ });
+ it('accepts matching photos and records the check and pixel size on each image',async()=>{
+  const {db,env,payload,fetched}=setup();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
+  expect(await acceptHermesDraft(env,payload,async()=>({fits:true,reason:'Shows a yacht at a viewing.'}))).toMatchObject({state:'draft-stored'});
+  const images=JSON.parse((db.prepare('SELECT images FROM newsletter_issues').get() as {images:string}).images);
+  expect(images).toHaveLength(6);
+  expect(images[0]).toMatchObject({check:'passed',checkReason:'Shows a yacht at a viewing.',width:1280,height:960});
+  expect(fetched[0]).toBe(`https://grayyachts.com${catalog[0].url}`);db.close();
+ });
+ it('fails open when the model errors, recording the skipped check',async()=>{
+  const {db,env,payload}=setup();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
+  const error=vi.spyOn(console,'error').mockImplementation(()=>{});
+  expect(await acceptHermesDraft(env,payload,async()=>{throw new Error('3040: Capacity temporarily exceeded');})).toMatchObject({state:'draft-stored'});
+  const images=JSON.parse((db.prepare('SELECT images FROM newsletter_issues').get() as {images:string}).images);
+  expect(images.every((i:{check:string;checkReason:string})=>i.check==='skipped'&&i.checkReason.includes('Capacity'))).toBe(true);
+  expect(error).toHaveBeenCalled();error.mockRestore();db.close();
+ });
+ it('checks replaced photos too, and leaves the edition unchanged on a mismatch',async()=>{
+  const {db,env}=setup();
+  db.prepare("INSERT INTO newsletter_issues(id,slot,status,created_at,content) VALUES('a','2026-09-08','pending','2026-09-08',?)").run(JSON.stringify(article()));
+  await expect(attachImages(env,'a',photos(),async(_i,s)=>({fits:!s.startsWith('Questions'),reason:'Unrelated to the questions.'}))).rejects.toThrow('images[5] (questions)');
+  expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='a'").get()).toMatchObject({images:'[]'});
+  await attachImages(env,'a',photos(),async()=>({fits:true,reason:'Fits.'}));
+  expect(JSON.parse((db.prepare("SELECT images FROM newsletter_issues WHERE id='a'").get() as {images:string}).images)[5].check).toBe('passed');db.close();
+ });
+ it('reads the Workers AI verdict, and treats an unreadable one as a failed check',async()=>{
+  const {env}=setup();const error=vi.spyOn(console,'error').mockImplementation(()=>{});
+  const images=validateImages(photos(),4);const calls:{model:string;input:{messages:{content:unknown}[]}}[]=[];
+  Object.assign(env,{AI:{run:async(model:string,input:{messages:{content:unknown}[]})=>{calls.push({model,input});return {choices:[{message:{content:'```json\n{"fits":false,"reason":"A cat, not a boat."}\n```'}}]};}}});
+  await expect(checkImages(env,images,article())).rejects.toThrow('A cat, not a boat.');
+  expect(calls[0].model).toBe(RELEVANCE_MODEL);
+  expect(JSON.stringify(calls[0].input.messages[1].content)).toContain('data:image/jpeg;base64,');
+  Object.assign(env,{AI:{run:async()=>({response:'I think it fits'})}});
+  expect((await checkImages(env,images,article())).map(i=>i.check)).toEqual(Array(6).fill('skipped'));
+  error.mockRestore();
+ });
+ it('reads pixel sizes from JPEG, PNG and WebP headers',()=>{
+  expect(imageSize(jpeg())).toEqual({width:1280,height:960});
+  const png=new Uint8Array(32);png.set([0x89,0x50,0x4e,0x47]);new DataView(png.buffer).setUint32(16,1024);new DataView(png.buffer).setUint32(20,768);
+  expect(imageSize(png.buffer)).toEqual({width:1024,height:768});
+  const webp=new Uint8Array(32);webp.set([...'RIFF'].map(c=>c.charCodeAt(0)));webp.set([...'WEBPVP8X'].map(c=>c.charCodeAt(0)),8);webp.set([0x7f,0x02,0,0xff,0x01,0],24);
+  expect(imageSize(webp.buffer)).toEqual({width:640,height:512});
+  expect(imageSize(new Uint8Array(40).buffer)).toBeNull();
  });
 });

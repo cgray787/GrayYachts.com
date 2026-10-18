@@ -6,6 +6,7 @@
 // Every imported or generated image is stored in R2, keyed by the SHA-256 of its bytes, so the
 // existing reuse ledger (newsletter_image_uses) still blocks repeats across editions.
 import type { NewsletterEnv } from './core';
+import type { ImagesBinding } from './resize';
 
 export type Media = {
   id: string; url: string; kind: 'licensed' | 'generated'; source: string; credit: string;
@@ -15,7 +16,7 @@ export type MediaBucket = {
   get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer>; httpMetadata?: { contentType?: string } } | null>;
   put(key: string, value: ArrayBuffer, options: { httpMetadata: { contentType: string } }): Promise<unknown>;
 };
-export type MediaEnv = NewsletterEnv & { YACHT_PHOTOS?: MediaBucket };
+export type MediaEnv = NewsletterEnv & { YACHT_PHOTOS?: MediaBucket; ASSETS?: { fetch(request: Request): Promise<Response> }; IMAGES?: ImagesBinding };
 
 // Libraries whose licenses allow commercial reuse. The image bytes must come from the library's
 // own file host, and the page that states the license must be on the library itself.

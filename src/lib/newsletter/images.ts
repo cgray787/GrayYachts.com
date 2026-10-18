@@ -1,8 +1,9 @@
 import catalog from './image-catalog.json';
 import type {NewsletterEnv} from './core';
-import {mediaById,type Media} from './media';
-export type NewsletterImage={id:string;url:string;alt:string;caption:string;credit:string;source:string;license?:string;licenseUrl?:string;kind?:'catalog'|'licensed'|'generated';relevance?:string};
-export const IMAGE_RULE='Every image must fit what its section is about. Prefer a freely licensed photo of the actual subject (the show, place, brand or model) imported with POST /api/newsletter/media/import from Wikimedia Commons, Pexels or Unsplash. Use a catalog photo only when it genuinely matches the section. When no real photo fits, generate an illustration with POST /api/newsletter/media/generate; it is captioned as an AI-generated illustration. Use sections.length + 2 unique images (lead, one per section in order, then questions), each with a relevance note. Never reuse an image across editions.';
+import {mediaById,type Media,type MediaEnv} from './media';
+import {checkImages,type Judge} from './relevance';
+export type NewsletterImage={id:string;url:string;alt:string;caption:string;credit:string;source:string;license?:string;licenseUrl?:string;kind?:'catalog'|'licensed'|'generated';relevance?:string;width?:number;height?:number;check?:'passed'|'rejected'|'skipped';checkReason?:string};
+export const IMAGE_RULE='Every image must fit what its section is about. Prefer a freely licensed photo of the actual subject (the show, place, brand or model) imported with POST /api/newsletter/media/import from Wikimedia Commons, Pexels or Unsplash. Use a catalog photo only when it genuinely matches the section. When no real photo fits, generate an illustration with POST /api/newsletter/media/generate; it is captioned as an AI-generated illustration. Use sections.length + 2 unique images (lead, one per section in order, then questions), each with a relevance note. Never reuse an image across editions. The server shows each image with its section to a vision model and rejects a clear mismatch (HTTP 409 naming images[i]); replace that image and resubmit.';
 export async function availableImages(env:NewsletterEnv) {
  const used=(await env.NEWSLETTER_DB.prepare('SELECT image_id FROM newsletter_image_uses').all<{image_id:string}>()).results;
  const ids=new Set(used.map(i=>i.image_id));
@@ -32,11 +33,11 @@ export async function resolveImages(env:NewsletterEnv,value:unknown,sectionCount
 // Replaces an edition's photos. A pending draft gets a new review email (its review link is
 // invalidated). A published edition is corrected in place: publication emails no subscriber
 // list, so the web page is the only copy. Migrations 0004-0005 move the reuse reservations.
-export async function attachImages(env:NewsletterEnv,id:string,value:unknown) {
+export async function attachImages(env:MediaEnv,id:string,value:unknown,judge?:Judge) {
  const issue=await env.NEWSLETTER_DB.prepare("SELECT content,status FROM newsletter_issues WHERE id=? AND status IN ('pending','published')").bind(id).first<{content:string|null;status:string}>();
  if(!issue)throw new Error('Only pending or published editions can have their photos replaced');
- const sections=issue.content?(JSON.parse(issue.content).sections?.length as number|undefined):undefined;
- const images=await resolveImages(env,value,sections);
+ const article=issue.content?JSON.parse(issue.content):null;
+ const images=await checkImages(env,await resolveImages(env,value,article?.sections?.length as number|undefined),article,judge);
  const result=issue.status==='pending'
   ?await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET images=?,hero=?,review_revision=review_revision+1,email_sent_at=NULL,email_id=NULL,attempts=0,error=NULL WHERE id=? AND status='pending'").bind(JSON.stringify(images),images[0].url,id).run()
   :await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET images=?,hero=? WHERE id=? AND status='published'").bind(JSON.stringify(images),images[0].url,id).run();

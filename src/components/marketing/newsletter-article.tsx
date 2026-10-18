@@ -1,8 +1,17 @@
 /* eslint-disable @next/next/no-img-element -- Licensed editorial photos retain source credits. */
 import type {NewsletterImage} from '@/lib/newsletter/images';
 import type {Article} from '@/lib/newsletter/core';
+import {WIDTHS} from '@/lib/newsletter/resize';
+import {responsive} from '@/lib/responsive-image';
+// The article column is 720px wide (max-w-3xl less padding). R2 media is resized on request by
+// /newsletter-media/<id>?w=; catalog photos use their pre-built WebP variants.
+const SIZES='(min-width: 768px) 720px, calc(100vw - 48px)';
+export function photoSources(url:string) {
+ if(!url.startsWith('/newsletter-media/'))return responsive(url,SIZES);
+ return {src:`${url}?w=1280`,srcSet:WIDTHS.map(w=>`${url}?w=${w} ${w}w`).join(', '),sizes:SIZES};
+}
 function Photo({photo,lead=false}:{photo:NewsletterImage;lead?:boolean}) {
- return <figure data-newsletter-image={photo.id} className={lead?'mb-12':'my-8'}><div className="overflow-hidden rounded-sm bg-[#e9e4da]"><img src={photo.url} alt={photo.alt} loading={lead?'eager':'lazy'} className="h-auto max-h-[680px] w-full object-contain"/></div><figcaption className="mt-3 border-l-2 border-[#c9a96e] pl-4 text-xs leading-relaxed text-slate-500">{photo.caption}<span className="mt-1 block text-[11px]">{photo.credit} <a href={photo.source} className="underline underline-offset-2">Source</a>{photo.licenseUrl && <> · <a href={photo.licenseUrl} className="underline underline-offset-2">{photo.license}</a></>}</span></figcaption></figure>;
+ return <figure data-newsletter-image={photo.id} className={lead?'mb-12':'my-8'}><div className="overflow-hidden rounded-sm bg-[#e9e4da]"><img {...photoSources(photo.url)} alt={photo.alt} width={photo.width} height={photo.height} loading={lead?'eager':'lazy'} fetchPriority={lead?'high':undefined} decoding="async" className="h-auto max-h-[680px] w-full object-contain"/></div><figcaption className="mt-3 border-l-2 border-[#c9a96e] pl-4 text-xs leading-relaxed text-slate-500">{photo.caption}<span className="mt-1 block text-[11px]">{photo.credit} <a href={photo.source} className="underline underline-offset-2">Source</a>{photo.licenseUrl && <> · <a href={photo.licenseUrl} className="underline underline-offset-2">{photo.license}</a></>}</span></figcaption></figure>;
 }
 export default function NewsletterArticle({article,images=[]}:{article:Article;images?:NewsletterImage[]}) {
  const illustrated=images.length===article.sections.length+2;

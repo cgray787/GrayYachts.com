@@ -1,5 +1,7 @@
 import {isNewsletterDate} from './show-calendar';
 import {resolveImages,type NewsletterImage} from './images';
+import {checkImages,type Judge} from './relevance';
+import type {MediaEnv} from './media';
 import { HUMANIZER } from './humanizer';
 import { scheduleSlot, reviewToken, validateArticle, escapeHtml, SITE, type Article, type Issue, type NewsletterEnv } from './core';
 
@@ -62,8 +64,11 @@ async function draft(env: NewsletterEnv, slot: string) {
  await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET status='pending',title=?,slug=?,audience=?,excerpt=?,content=?,original_content=?,sources=?,hero=?,error=NULL WHERE slot=? AND status='generating'")
   .bind(edited.title,slug,audience,edited.excerpt,JSON.stringify(edited),JSON.stringify(original),JSON.stringify([{title:'Gray Yachts brokerage services and contact',url:SITE},{title:audience==='seller'?'Request a yacht evaluation':'Explore Gray Yachts listings',url:`${SITE}/${audience==='seller'?'sell':'fleet'}`}]),'/sell/img/hero.jpg',slot).run();
 }
+// Email clients get a 960px JPEG of R2 media (Outlook for Windows does not show WebP; the email
+// column is 616px). Catalog photos are already JPEGs.
+const emailSrc=(url:string)=>url.startsWith('/newsletter-media/')?`${url}?w=960&f=jpeg`:url;
 function articleEmail(a: Article, images:NewsletterImage[]) {
- const photo=(i:number)=>images[i]?`<figure style="margin:32px 0"><img src="${SITE}${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="margin-top:10px;font:13px/1.6 Arial,sans-serif;color:#66707b">${escapeHtml(images[i].caption)}<br><span style="font-size:11px">${escapeHtml(images[i].credit)} <a href="${escapeHtml(images[i].source)}">Source</a>${images[i].licenseUrl?` · <a href="${escapeHtml(images[i].licenseUrl!)}">${escapeHtml(images[i].license||"License")}</a>`:""}</span></figcaption></figure>`:'';
+ const photo=(i:number)=>images[i]?`<figure style="margin:32px 0"><img src="${SITE}${escapeHtml(emailSrc(images[i].url))}" alt="${escapeHtml(images[i].alt)}" width="616" style="display:block;width:100%;height:auto"/><figcaption style="margin-top:10px;font:13px/1.6 Arial,sans-serif;color:#66707b">${escapeHtml(images[i].caption)}<br><span style="font-size:11px">${escapeHtml(images[i].credit)} <a href="${escapeHtml(images[i].source)}">Source</a>${images[i].licenseUrl?` · <a href="${escapeHtml(images[i].licenseUrl!)}">${escapeHtml(images[i].license||"License")}</a>`:""}</span></figcaption></figure>`:'';
  const illustrated=images.length===a.sections.length+2;
  return photo(0)+`<p style="font:21px/1.7 Georgia,serif">${escapeHtml(a.introduction)}</p>`+a.sections.map((section,index)=>`<div style="margin-top:44px;padding-top:24px;border-top:1px solid #d8c8a8"><p style="font:11px Arial,sans-serif;letter-spacing:3px;color:#917344">${String(index+1).padStart(2,'0')} · THE BRIEFING</p><h2 style="font:normal 30px/1.15 Georgia,serif">${escapeHtml(section.heading)}</h2>${illustrated?photo(index+1):''}${section.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}${!illustrated&&index===1?photo(1):''}${!illustrated&&index===a.sections.length-1?photo(2):''}</div>`).join('')+`<div style="margin-top:40px;border-top:1px solid #d8c8a8;padding-top:24px"><h2 style="font:30px Georgia,serif">Questions worth asking</h2>${illustrated?photo(images.length-1):''}${a.questions.map(q=>`<h3 style="font:18px Georgia,serif">${escapeHtml(q.question)}</h3><p>${escapeHtml(q.answer)}</p>`).join('')}</div>`;
 }
@@ -121,13 +126,16 @@ export async function deliverHermesReview(env: NewsletterEnv, now=new Date()) {
  catch(error){await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET error=? WHERE id=?').bind(error instanceof Error?error.message:'Email failed',issue.id).run();throw error;}
  finally {await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET lock_until=NULL WHERE id=?').bind(issue.id).run();}
 }
-export async function acceptHermesDraft(env: NewsletterEnv, payload: {slot:string;original:unknown;article:unknown;humanizerVersion:string;factCheck:{pass:boolean};images?:unknown;sources:{title:string;url:string}[]}) {
+export async function acceptHermesDraft(env: MediaEnv, payload: {slot:string;original:unknown;article:unknown;humanizerVersion:string;factCheck:{pass:boolean};images?:unknown;sources:{title:string;url:string}[]}, judge?:Judge) {
  const days=(Date.parse(payload.slot)-Date.parse(env.NEWSLETTER_START_DATE))/86400000;
  if(!isNewsletterDate(payload.slot,env.NEWSLETTER_START_DATE) || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
  if(payload.humanizerVersion!=='3.0.0' || payload.factCheck?.pass!==true)throw new Error('Humanizer editing and factual review are required');
  const original=validateArticle(payload.original);const article=validateArticle(payload.article);
- const images=await resolveImages(env,payload.images,article.sections.length);
+ const resolved=await resolveImages(env,payload.images,article.sections.length);
  if(!Array.isArray(payload.sources) || payload.sources.length<1 || payload.sources.length>12 || payload.sources.some(s=>typeof s.title!=='string'||s.title.length>200||typeof s.url!=='string'||!/^https:\/\//.test(s.url)||s.url.length>1000))throw new Error('Source references are required');
+ const existing=await env.NEWSLETTER_DB.prepare('SELECT content,status FROM newsletter_issues WHERE slot=?').bind(payload.slot).first<{content:string|null;status:string}>();
+ if(existing&&(existing.content||['published','rejected'].includes(existing.status)))return {state:'draft-already-stored'};
+ const images=await checkImages(env,resolved,article,judge);
  const audience=Math.floor(days/2)%2===0?'seller':'buyer';
  const slug=`${payload.slot}-${article.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,90)}`;
  await env.NEWSLETTER_DB.prepare('INSERT OR IGNORE INTO newsletter_issues(id,slot,created_at) VALUES(?,?,?)').bind(crypto.randomUUID(),payload.slot,new Date().toISOString()).run();
