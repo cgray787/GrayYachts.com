@@ -14,6 +14,7 @@ function database() {
  db.exec(readFileSync('migrations/newsletter/0002_images.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0003_section_images.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0004_media.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0005_published_image_corrections.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -140,6 +141,19 @@ describe('newsletter image policy',()=>{
   expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(true);
   db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id='b'");
   await expect(attachImages(env,'b',photos(9))).rejects.toThrow();db.close();
+ });
+ it('corrects a published edition in place without reopening review',async()=>{
+  const {db,env}=database();
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at,email_sent_at,review_revision) VALUES('p','2026-10-18','pending','2026-10-18','2026-10-18',0)");
+  await attachImages(env,'p',photos());
+  db.exec("UPDATE newsletter_issues SET status='published',published_at='2026-10-18' WHERE id='p'");
+  expect(await attachImages(env,'p',photos(3))).toMatchObject({state:'published-images-corrected',count:3});
+  expect(db.prepare("SELECT status,hero,review_revision,email_sent_at FROM newsletter_issues WHERE id='p'").get()).toMatchObject({status:'published',hero:catalog[3].url,review_revision:1,email_sent_at:null});
+  // The replaced photos are released for future editions.
+  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(true);
+  db.exec("UPDATE newsletter_issues SET status='failed' WHERE id='p'");
+  await expect(attachImages(env,'p',photos(6))).rejects.toThrow('pending or published');
+  db.close();
  });
  it('invalidates the older approval link when photos are added',async()=>{
   const {db,env}=database();db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at,email_sent_at) VALUES('a','2026-09-08','pending','2026-09-08','2026-09-08')");

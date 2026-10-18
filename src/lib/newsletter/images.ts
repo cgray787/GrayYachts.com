@@ -29,15 +29,17 @@ export async function resolveImages(env:NewsletterEnv,value:unknown,sectionCount
  const ids=Array.isArray(value)?value.map(v=>String(v?.id??'')).filter(id=>!catalog.some(p=>p.id===id)):[];
  return validateImages(value,sectionCount,await mediaById(env,ids));
 }
-// Replaces the photos of a pending draft that has not been approved or rejected. Migration 0004
-// releases the old reservations; the review link is invalidated and a new review email is sent.
+// Replaces an edition's photos. A pending draft gets a new review email (its review link is
+// invalidated). A published edition is corrected in place: publication emails no subscriber
+// list, so the web page is the only copy. Migrations 0004-0005 move the reuse reservations.
 export async function attachImages(env:NewsletterEnv,id:string,value:unknown) {
- const draft=await env.NEWSLETTER_DB.prepare("SELECT content FROM newsletter_issues WHERE id=? AND status='pending'").bind(id).first<{content:string|null}>();
- if(!draft)throw new Error('This draft has been reviewed or does not exist');
- const sections=draft.content?(JSON.parse(draft.content).sections?.length as number|undefined):undefined;
+ const issue=await env.NEWSLETTER_DB.prepare("SELECT content,status FROM newsletter_issues WHERE id=? AND status IN ('pending','published')").bind(id).first<{content:string|null;status:string}>();
+ if(!issue)throw new Error('Only pending or published editions can have their photos replaced');
+ const sections=issue.content?(JSON.parse(issue.content).sections?.length as number|undefined):undefined;
  const images=await resolveImages(env,value,sections);
- const result=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET images=?,hero=?,review_revision=review_revision+1,email_sent_at=NULL,email_id=NULL,attempts=0,error=NULL WHERE id=? AND status='pending'")
- .bind(JSON.stringify(images),images[0].url,id).run();
- if(!result.meta.changes)throw new Error('This draft has been reviewed or does not exist');
- return {state:'images-replaced',count:images.length};
+ const result=issue.status==='pending'
+  ?await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET images=?,hero=?,review_revision=review_revision+1,email_sent_at=NULL,email_id=NULL,attempts=0,error=NULL WHERE id=? AND status='pending'").bind(JSON.stringify(images),images[0].url,id).run()
+  :await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET images=?,hero=? WHERE id=? AND status='published'").bind(JSON.stringify(images),images[0].url,id).run();
+ if(!result.meta.changes)throw new Error('The edition changed status; try again');
+ return {state:issue.status==='pending'?'images-replaced':'published-images-corrected',count:images.length};
 }

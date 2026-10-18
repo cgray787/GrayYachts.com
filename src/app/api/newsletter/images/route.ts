@@ -12,6 +12,7 @@ export async function POST(request:Request) {
  try {
   const {id,images}=await request.json();
   const result=await attachImages(env,id,images);
+  if(result.state==='published-images-corrected')return Response.json(result);
   try{return Response.json({...result,email:await deliverHermesReview(env)});}
   catch{return Response.json({...result,email:{state:'delivery-pending'}},{status:202});}
  } catch(error) {return Response.json({error:error instanceof Error?error.message:'Images unavailable'},{status:409});}
