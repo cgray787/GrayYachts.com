@@ -14,6 +14,8 @@ export type NewsletterEnv = {
  NEWSLETTER_REVIEW_TO: string;
  NEWSLETTER_FROM: string;
  NEWSLETTER_START_DATE: string;
+ // Worker KV (binding RATE_LIMIT in wrangler.jsonc); used to send the stall alert at most every 3 days.
+ RATE_LIMIT?: { get(key: string): Promise<string | null>; put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> };
 };
 export type Article = {
  title: string; excerpt: string; introduction: string;

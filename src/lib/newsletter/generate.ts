@@ -82,9 +82,37 @@ async function sendReview(env: NewsletterEnv, issue: Issue) {
  const data=await response.json() as {id:string};
  await env.NEWSLETTER_DB.prepare('UPDATE newsletter_issues SET email_sent_at=?,email_id=?,error=NULL WHERE id=?').bind(new Date().toISOString(),data.id,issue.id).run();
 }
+// Hermes failed silently from 2026-10-02 to 2026-10-17 (expired ChatGPT login on the VPS):
+// its failures only reached a VPS log. The Worker now emails the editor when no draft has
+// arrived for 72 hours, whatever the cause upstream, at most once every 72 hours.
+const STALL_HOURS = 72;
+const STALL_KEY = 'newsletter:stall-alert';
+export async function stallAlert(env: NewsletterEnv, now = new Date()) {
+ const latest = await env.NEWSLETTER_DB.prepare('SELECT MAX(created_at) AS at FROM newsletter_issues').first<{ at: string | null }>();
+ const since = latest?.at ? Date.parse(latest.at) : Date.parse(env.NEWSLETTER_START_DATE);
+ const hours = Math.floor((now.getTime() - since) / 3600000);
+ if (hours < STALL_HOURS) return { state: 'ok', hours };
+ if (!env.RATE_LIMIT || !env.RESEND_API_KEY || !env.NEWSLETTER_REVIEW_TO) return { state: 'stalled-unalerted', hours };
+ if (await env.RATE_LIMIT.get(STALL_KEY)) return { state: 'stalled-already-alerted', hours };
+ const days = Math.floor(hours / 24);
+ const last = latest?.at ? latest.at.slice(0, 10) : 'never';
+ const response = await fetch('https://api.resend.com/emails', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json', 'Idempotency-Key': `newsletter-stall-${now.toISOString().slice(0, 10)}` },
+  body: JSON.stringify({
+   from: env.NEWSLETTER_FROM, to: [env.NEWSLETTER_REVIEW_TO],
+   subject: `Gray Yachts newsletter: no new draft for ${days} days`,
+   text: `No newsletter draft has reached GrayYachts.com for ${days} days (last draft: ${last}). Drafts are written by the Hermes job on the VPS (45.132.242.109, job 4c4b201a5833). Check its log there: ~/.hermes/workspaces/grayyachts-newsletter/<date>.agent.log, and \`hermes auth status openai-codex\` (an expired ChatGPT sign-in caused the October 2026 outage). This alert repeats every 3 days until drafts resume.`,
+  }),
+  signal: AbortSignal.timeout(30000),
+ });
+ if (!response.ok) return { state: 'stalled-alert-failed', hours, status: response.status };
+ await env.RATE_LIMIT.put(STALL_KEY, now.toISOString(), { expirationTtl: STALL_HOURS * 3600 });
+ return { state: 'stalled-alert-sent', hours };
+}
 export async function deliverHermesReview(env: NewsletterEnv, now=new Date()) {
  const issue=await env.NEWSLETTER_DB.prepare("SELECT * FROM newsletter_issues WHERE status='pending' AND email_sent_at IS NULL AND attempts<5 ORDER BY created_at LIMIT 1").first<Issue>();
- if(!issue)return {state:'awaiting-hermes'};
+ if(!issue)return {state:'awaiting-hermes',stall:await stallAlert(env,now)};
  const lock=await env.NEWSLETTER_DB.prepare("UPDATE newsletter_issues SET lock_until=?,attempts=attempts+1 WHERE id=? AND email_sent_at IS NULL AND (lock_until IS NULL OR lock_until<?)").bind(new Date(now.getTime()+15*60000).toISOString(),issue.id,now.toISOString()).run();
  if(!lock.meta.changes)return {state:'already-handled-or-locked'};
  try {await sendReview(env,issue);return {state:'review-sent',id:issue.id};}
