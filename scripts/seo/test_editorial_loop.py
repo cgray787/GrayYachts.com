@@ -117,6 +117,24 @@ class PromptUpgradeTests(unittest.TestCase):
  def result(self,**extra):
   r={'updates':[],'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'Keep answers first.'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
   r.update(extra);return r
+ def research(self,day,broken):
+  ids=[t['id'] for t in loop.choose_topics(day)]
+  bad='Unverified. Public page retrieval failed because no web extraction provider is configured.'
+  return [{'topicId':t,'changeType':'unchanged','sourceUrl':'https://example.com/','sourcePublishedAt':None,'summary':bad if i<broken else 'No material change.'} for i,t in enumerate(ids)]
+ def test_run_with_web_tools_down_fails_and_alerts(self):
+  # 2026-10-19 on the VPS: every topic came back unverified because Hermes had no web backend.
+  day=dt.date(2026,10,13);loop.today=lambda:day
+  ups=self.research(day,broken=99)
+  self.fake_cli(self.result(updates=ups))
+  with self.assertRaises(SystemExit):loop.run(self.args)
+  self.assertIn('Research tools unavailable',loop.read(self.state/'state.json')['lastError'])
+ def test_one_unreachable_source_is_not_a_failure(self):
+  day=dt.date(2026,10,13);loop.today=lambda:day
+  ups=self.research(day,broken=1)
+  self.assertGreater(len(ups),2)
+  self.fake_cli(self.result(updates=ups))
+  loop.run(self.args)
+  self.assertEqual(loop.read(self.state/'state.json')['lastSuccess'],'2026-10-13')
  def test_new_draft_is_marked_ai_assisted_with_related_paths(self):
   loop.today=lambda:dt.date(2026,10,12)  # a Monday, so drafting is allowed
   draft=copy.deepcopy(self.article)

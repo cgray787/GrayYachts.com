@@ -94,6 +94,7 @@ def write(path, value):
     tmp.replace(path)
 
 def today(): return dt.datetime.now(ZONE).date()
+TOOL_FAILURE=re.compile(r'(?:providers?|backends?) (?:is |are )?not configured|no [a-z ]{0,30}?(?:providers?|backends?) (?:is |are )?configured|(?:retrieval|fetch|extraction)\b[^.]{0,80}?\bfailed|search (?:fallback )?(?:is |was )?(?:also )?unavailable|web (?:tools?|access) (?:is |are |was |were )?unavailable',re.I)
 def timestamp(): return dt.datetime.now(ZONE).isoformat()
 def valid_url(value):
     u = urlparse(value)
@@ -286,6 +287,10 @@ def run(args):
             for update in result['updates']:
                 if update['topicId'] not in known_ids or not valid_url(update['sourceUrl']):raise ValueError('Unknown topic or invalid research source')
                 if update.get('sourcePublishedAt') and dt.date.fromisoformat(update['sourcePublishedAt'][:10])>day:raise ValueError('Future source date')
+            # A run whose web tools were down still "completes" with every topic marked unverified;
+            # that silently happened on the VPS on 2026-10-19 (no Hermes search/extract backend). Fail it so it alerts.
+            broken=[u['topicId'] for u in result['updates'] if TOOL_FAILURE.search(u.get('summary',''))]
+            if result['updates'] and len(broken)*2>=len(result['updates']):raise RuntimeError(f"Research tools unavailable for {len(broken)}/{len(result['updates'])} topics: {result['updates'][0]['summary'][:200]}")
             a=result.get('draft')
             if a and not may_draft:raise ValueError('Unscheduled draft returned')
             if a:
