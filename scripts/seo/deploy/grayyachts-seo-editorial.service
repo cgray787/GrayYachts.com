@@ -1,0 +1,23 @@
+[Unit]
+Description=Gray Yachts SEO editorial research and draft agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/grayyachts-seo
+EnvironmentFile=-/opt/grayyachts-automation/private/config/graycapital/n8n/valuation-providers.env
+EnvironmentFile=-/opt/grayyachts-automation/private/seo.env
+ExecStart=/usr/bin/python3 /opt/grayyachts-seo/scripts/seo/editorial_loop.py run
+TimeoutStartSec=1200
+Nice=10
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/opt/grayyachts-seo
+ReadWritePaths=/opt/grayyachts-automation/private/seo-editorial /root/.hermes
+RestrictSUIDSGID=true
+LockPersonality=true

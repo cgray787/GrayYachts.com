@@ -120,7 +120,7 @@ class PromptUpgradeTests(unittest.TestCase):
  def test_new_draft_is_marked_ai_assisted_with_related_paths(self):
   loop.today=lambda:dt.date(2026,10,12)  # a Monday, so drafting is allowed
   draft=copy.deepcopy(self.article)
-  for k in ['status','author','createdAt','updatedAt','publishedAt','reviewedBy','revision','relatedPaths']:draft.pop(k,None)
+  for k in ['status','author','createdAt','updatedAt','publishedAt','reviewedBy','revision','relatedPaths','aiAssisted']:draft.pop(k,None)
   draft['slug']='a-brand-new-test-slug'
   self.fake_cli(self.result(draft=draft))
   loop.run(self.args)
@@ -184,4 +184,50 @@ class KeywordTargetTests(unittest.TestCase):
  def test_prompt_uses_keyword_targets_without_inventing_volume(self):
   p=(loop.ROOT/'scripts/seo/research-prompt.md').read_text()
   self.assertIn('keywordTargets',p)
+class ProviderTests(unittest.TestCase):
+ def setUp(self):
+  import os
+  self.saved=(loop.subprocess.run,os.environ.get('GRAYYACHTS_SEO_PROVIDER'))
+  os.environ['GRAYYACHTS_SEO_PROVIDER']='hermes'
+ def tearDown(self):
+  import os
+  loop.subprocess.run=self.saved[0]
+  if self.saved[1] is None:os.environ.pop('GRAYYACHTS_SEO_PROVIDER',None)
+  else:os.environ['GRAYYACHTS_SEO_PROVIDER']=self.saved[1]
+ def test_hermes_provider_uses_web_tools_and_validates_json(self):
+  import types
+  seen={}
+  def fake(command,**kwargs):
+   seen['command']=command
+   return types.SimpleNamespace(returncode=0,stdout='session_id: test\n{"ok":true}\n',stderr='')
+  loop.subprocess.run=fake
+  result=loop.invoke_agent('research',{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False})
+  self.assertEqual(result,{'ok':True});self.assertIn('hermes',seen['command'][0]);self.assertIn('web',seen['command']);self.assertIn('--safe-mode',seen['command']);self.assertEqual(seen['command'][seen['command'].index('--provider')+1],'codex')
+ def test_hermes_provider_rejects_schema_invalid_output(self):
+  import types
+  loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=0,stdout='session_id: test\n{"wrong":true}\n',stderr='')
+  with self.assertRaises(ValueError):loop.invoke_agent('research',{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False})
+ def test_hermes_parser_keeps_the_valid_outer_object_not_the_last_nested_object(self):
+  import types
+  output='session_id: test\n'+json.dumps({'updates':[],'critique':{'lesson':'x'}},indent=2)+'\n'
+  loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=0,stdout=output,stderr='')
+  schema={'type':'object','properties':{'updates':{'type':'array'},'critique':{'type':'object','properties':{'lesson':{'type':'string'}},'required':['lesson'],'additionalProperties':False}},'required':['updates','critique'],'additionalProperties':False}
+  self.assertEqual(loop.invoke_agent('research',schema)['updates'],[])
+ def test_vps_alert_uses_environment_key_without_macos_keychain(self):
+  import os,types
+  previous=os.environ.get('RESEND_API_KEY');saved=loop.urllib.request.urlopen;seen={}
+  os.environ['RESEND_API_KEY']='test-key'
+  class Response:
+   def __enter__(self):return self
+   def __exit__(self,*args):pass
+   def read(self):return b'{}'
+  def urlopen(request,timeout):seen['authorization']=request.headers['Authorization'];return Response()
+  loop.urllib.request.urlopen=urlopen
+  loop.subprocess.run=lambda *a,**k:(_ for _ in ()).throw(AssertionError('keychain should not run'))
+  try:loop.alert('subject','body')
+  finally:
+   loop.urllib.request.urlopen=saved
+   if previous is None:os.environ.pop('RESEND_API_KEY',None)
+   else:os.environ['RESEND_API_KEY']=previous
+  self.assertEqual(seen['authorization'],'Bearer test-key')
 if __name__=='__main__':unittest.main()

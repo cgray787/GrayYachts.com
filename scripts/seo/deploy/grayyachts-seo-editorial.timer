@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Gray Yachts SEO editorial agent daily
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 America/Los_Angeles
+Persistent=true
+RandomizedDelaySec=5m
+Unit=grayyachts-seo-editorial.service
+
+[Install]
+WantedBy=timers.target

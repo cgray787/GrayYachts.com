@@ -17,6 +17,7 @@ import tempfile
 from urllib.parse import urlparse
 import urllib.request
 from zoneinfo import ZoneInfo
+import jsonschema
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTENT = ROOT / 'content/seo'
@@ -29,9 +30,10 @@ ALERT_TO = 'connorgray@jeffbrownyachts.com'
 ALERT_FROM = 'Gray Yachts SEO Agent <onboarding@resend.dev>'
 
 def alert(subject, body):
-    # Same Resend key and recipient as the /sell watchdog (scripts/sell-watchdog.sh).
-    key=subprocess.run(['security','find-generic-password','-a','grayyachts-watchdog','-s','resend-api-key','-w'],capture_output=True,text=True).stdout.strip()
-    if not key:raise RuntimeError('no Resend key in keychain')
+    # VPS uses a protected environment file; macOS retains the existing Keychain fallback.
+    key=os.environ.get('RESEND_API_KEY','').strip()
+    if not key and sys.platform=='darwin':key=subprocess.run(['security','find-generic-password','-a','grayyachts-watchdog','-s','resend-api-key','-w'],capture_output=True,text=True).stdout.strip()
+    if not key:raise RuntimeError('no Resend key configured')
     req=urllib.request.Request('https://api.resend.com/emails',method='POST',data=json.dumps({'from':ALERT_FROM,'to':[ALERT_TO],'subject':subject,'text':body}).encode(),headers={'Authorization':f'Bearer {key}','Content-Type':'application/json','User-Agent':'grayyachts-seo-editorial/1'})
     with urllib.request.urlopen(req,timeout=25) as resp:resp.read()
 
@@ -50,6 +52,37 @@ def cli_failure(proc):
     elif out:parts.append('stdout: '+out[-400:])
     if (proc.stderr or '').strip():parts.append('stderr: '+proc.stderr.strip()[-400:])
     return ' | '.join(parts)
+
+def invoke_agent(prompt, schema):
+    provider=os.environ.get('GRAYYACHTS_SEO_PROVIDER','claude').strip().lower()
+    with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
+        if provider=='hermes':
+            hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
+            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--safe-mode','--provider','codex','--max-turns','12','--source','tool','-t','web','-q',hermes_prompt]
+            proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
+            if proc.returncode:raise RuntimeError(cli_failure(proc))
+            output=(proc.stdout or '').strip();result=None
+            for index,char in enumerate(output):
+                if char!='{':continue
+                try:
+                    candidate,_=json.JSONDecoder().raw_decode(output[index:])
+                    if isinstance(candidate,dict):
+                        result=candidate
+                        break
+                except ValueError:continue
+            if result is None:raise ValueError('Hermes did not return a JSON object')
+        elif provider=='claude':
+            command=[shutil.which('claude') or str(Path.home()/'.local/bin/claude'),'-p','--output-format','json','--json-schema',json.dumps(schema),'--max-budget-usd',str(read(CONTENT/'program.json')['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
+            proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
+            if proc.returncode:raise RuntimeError(cli_failure(proc))
+            payload=json.loads(proc.stdout)
+            if payload.get('is_error'):raise RuntimeError(payload.get('result','CLI reported failure'))
+            result=payload.get('structured_output')
+            if not isinstance(result,dict):raise ValueError('CLI did not return validated structured output')
+        else:raise ValueError(f'Unknown SEO provider: {provider}')
+    try:jsonschema.validate(result,schema)
+    except jsonschema.ValidationError as exc:raise ValueError('Agent output failed JSON Schema validation: '+exc.message) from exc
+    return result
 
 def read(path, default=None):
     return json.loads(path.read_text()) if path.exists() else default
@@ -244,18 +277,11 @@ def run(args):
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
         context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in prior if r.get('draft')], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
-        command=[shutil.which('claude') or str(Path.home()/'.local/bin/claude'),'-p','--output-format','json','--json-schema',json.dumps(article_schema()),'--max-budget-usd',str(program['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
         if args.dry_run:
             print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':['WebSearch','WebFetch'],'publishing':False,'stateDirectory':str(STATE)},indent=2));return
         try:
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
-            with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
-                proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
-            if proc.returncode:raise RuntimeError(cli_failure(proc))
-            payload=json.loads(proc.stdout)
-            if payload.get('is_error'):raise RuntimeError(payload.get('result','CLI reported failure'))
-            result=payload.get('structured_output')
-            if not isinstance(result,dict):raise RuntimeError('CLI did not return validated structured output')
+            result=invoke_agent(prompt,article_schema())
             known_ids={s['id'] for s in context['topics']}
             for update in result['updates']:
                 if update['topicId'] not in known_ids or not valid_url(update['sourceUrl']):raise ValueError('Unknown topic or invalid research source')
