@@ -10,13 +10,14 @@ DEST="$HOME/Library/Application Support/GrayYachts/seo-editorial/runs"
 SEEN="$HOME/Library/Application Support/GrayYachts/seo-editorial/.pulled-drafts"
 mkdir -p "$DEST"; touch "$SEEN"
 /usr/bin/rsync -a -e "/usr/bin/ssh -o BatchMode=yes -o ConnectTimeout=20" "$HOST:$SRC" "$DEST/"
-# Notify once per run that produced a draft.
+# Notify once per day that produced a draft.
 for f in "$DEST"/*.json; do
   day=$(basename "$f" .json)
   grep -qx "$day" "$SEEN" && continue
   title=$(/usr/bin/python3 -c 'import json,sys;d=json.load(open(sys.argv[1])).get("draft");print(d["title"] if d else "")' "$f" 2>/dev/null || true)
-  echo "$day" >> "$SEEN"
+  # Mark a day seen only once it has a draft: a research-only day can be rerun later with one.
   [ -n "$title" ] || continue
+  echo "$day" >> "$SEEN"
   /usr/bin/osascript -e "display notification \"$(printf %s "$title" | tr -d '"\\')\" with title \"Gray Yachts SEO draft ready ($day)\" subtitle \"Review: runs/$day.md\"" || true
 done
 echo "$(date '+%F %T') pulled $(ls "$DEST" | wc -l | tr -d ' ') files"

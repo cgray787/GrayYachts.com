@@ -275,10 +275,12 @@ def run(args):
         prior=[]
         for p in sorted((STATE/'runs').glob('*.json'))[-10:]:
             prior.append(read(p,{}))
+        # Every earlier draft, not just the last 10 runs: a draft can go live long before articles.json is synced.
+        drafted=[r for r in (read(p,{}) for p in sorted((STATE/'runs').glob('*.json'))) if r.get('draft') and r.get('date')!=key]
         week_start=day-dt.timedelta(days=day.weekday())
         count=sum(bool(r.get('draft')) and r.get('date','')>=week_start.isoformat() for r in prior)
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
-        context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in prior if r.get('draft')], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
+        context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in drafted], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         if args.dry_run:
             print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':['WebSearch','WebFetch'],'publishing':False,'stateDirectory':str(STATE)},indent=2));return
@@ -317,6 +319,7 @@ def run(args):
             (STATE/'runs'/f'{key}.md').write_text(render_review(result))
             # Lessons improve subsequent draft critique; they are not accepted SEO experiment outcomes.
             if not result['qualityGate']['issues']:
+                lessons=[l for l in lessons if l.get('date')!=key]  # a same-day rerun replaces, not adds
                 lessons.append({'date':key,'kind':'editorial_observation','lesson':result['critique']['lesson'],'notRankingEvidence':True})
                 write(STATE/'lessons.json',lessons[-30:])
             state.update(lastSuccess=key,failures=0,blocked=False,lastError=None)
