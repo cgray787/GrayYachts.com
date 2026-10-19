@@ -26,6 +26,35 @@ def request(path, payload=None):
     except urllib.error.HTTPError as error:
         raise RuntimeError(f'Newsletter HTTP {error.code}: {error.read(2000).decode()}') from None
 
+# Failure alert (added 2026-10-19): Codex OAuth expired and every run failed from 2026-10-02 to 10-18
+# while the cron delivered output only to a local file. One email per edition slot.
+ALERT_TO = 'connorgray@jeffbrownyachts.com'
+RESEND_ENV = Path('/opt/grayyachts-automation/private/seo.env')
+
+def alert(slot, reason):
+    marker = WORK / (slot + '.alerted')
+    if marker.exists():
+        return
+    key = os.environ.get('RESEND_API_KEY', '').strip()
+    if not key and RESEND_ENV.exists():
+        key = next((l.split('=', 1)[1].strip().strip('"\'') for l in RESEND_ENV.read_text().splitlines() if l.startswith('RESEND_API_KEY=')), '')
+    log = WORK / (slot + '.agent.log')
+    hint = ''
+    if log.exists():
+        hits = [l for l in log.read_text(errors='ignore').splitlines() if any(w in l.lower() for w in ('error', 'failed', 'expired', 'invalid', '401'))]
+        hint = hits[-1][:400] if hits else ''
+    body = f'The Gray Yachts newsletter edition for {slot} failed.\n\nReason: {reason}\nLast agent log error: {hint or "none found"}\n\nIf this is a Codex login problem, re-run the Hermes login on the VPS. Log: {log}'
+    try:
+        if not key:
+            raise RuntimeError('no RESEND_API_KEY')
+        req = urllib.request.Request('https://api.resend.com/emails', data=json.dumps({'from': 'Gray Yachts Newsletter <onboarding@resend.dev>', 'to': [ALERT_TO], 'subject': f'Gray Yachts newsletter failed ({slot})', 'text': body}).encode(), headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Hermes-Newsletter/1.0'})
+        with urllib.request.urlopen(req, timeout=25) as response:
+            response.read()
+        marker.write_text(dt.datetime.now().isoformat())
+        print('Alert emailed to ' + ALERT_TO)
+    except Exception as error:
+        print('Alert not sent: ' + str(error)[:200])
+
 def context():
     now = dt.datetime.now(ZoneInfo('America/Los_Angeles'))
     day = (now.date() - START).days
@@ -59,6 +88,7 @@ def run():
         attempts = int(attempt_path.read_text()) if attempt_path.exists() else 0
         if attempts >= 3:
             print('Newsletter generation needs attention: three attempts for ' + ctx['slot'])
+            alert(ctx['slot'], 'three attempts used')
             return
         attempt_path.write_text(str(attempts + 1))
         prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
@@ -71,6 +101,7 @@ def run():
         issue = next((i for i in status['issues'] if i['slot'] == ctx['slot']), None)
         print(json.dumps({'slot': ctx['slot'], 'agent_exit': process.returncode, 'issue': issue, 'delivery': status.get('delivery')}))
         if not issue or not issue.get('title'):
+            alert(ctx['slot'], f'Hermes did not store a draft (agent exit {process.returncode}, attempt {attempts + 1} of 3)')
             raise RuntimeError('Hermes did not store a draft; inspect the private agent log')
 
 if __name__ == '__main__':
