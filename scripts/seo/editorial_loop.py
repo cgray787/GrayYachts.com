@@ -58,7 +58,9 @@ def invoke_agent(prompt, schema):
     with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
         if provider=='hermes':
             hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
-            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--safe-mode','--provider','codex','--max-turns','12','--source','tool','-t','web','-q',hermes_prompt]
+            # --ignore-rules, not --safe-mode: safe mode also drops ~/.hermes/config.yaml, which holds the web
+            # search/extract backend, so every research fetch failed (2026-10-19). Tools stay limited by -t web.
+            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--ignore-rules','--provider','codex','--max-turns','12','--source','tool','-t','web','-q',hermes_prompt]
             proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
             output=(proc.stdout or '').strip();result=None

@@ -220,7 +220,7 @@ class ProviderTests(unittest.TestCase):
    return types.SimpleNamespace(returncode=0,stdout='session_id: test\n{"ok":true}\n',stderr='')
   loop.subprocess.run=fake
   result=loop.invoke_agent('research',{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False})
-  self.assertEqual(result,{'ok':True});self.assertIn('hermes',seen['command'][0]);self.assertIn('web',seen['command']);self.assertIn('--safe-mode',seen['command']);self.assertEqual(seen['command'][seen['command'].index('--provider')+1],'codex')
+  self.assertEqual(result,{'ok':True});self.assertIn('hermes',seen['command'][0]);self.assertIn('web',seen['command']);self.assertIn('--ignore-rules',seen['command']);self.assertNotIn('--safe-mode',seen['command']);self.assertEqual(seen['command'][seen['command'].index('--provider')+1],'codex')
  def test_hermes_provider_rejects_schema_invalid_output(self):
   import types
   loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=0,stdout='session_id: test\n{"wrong":true}\n',stderr='')
