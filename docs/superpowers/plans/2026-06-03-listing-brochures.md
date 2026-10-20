@@ -666,7 +666,7 @@ description: Use when Connor lists a new boat on grayyachts.com, or says "list a
 
 # Gray Yachts Listing Brochure
 
-Repo: `/Users/connorgray/Desktop/Claude OS/grayyachts.com`. Every boat listed MUST have a
+Repo: `/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com`. Every boat listed MUST have a
 `/listings/<slug>.pdf` brochure matching `public/listings/seawulff.pdf`.
 
 ## Steps
