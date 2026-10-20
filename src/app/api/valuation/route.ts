@@ -1,4 +1,5 @@
 import {listingUrl} from "@/lib/valuation-details";
+import {contactConsent} from "@/lib/lead-consent";
 import { NextResponse } from "next/server";
 import {
   attachPhotos,
@@ -47,6 +48,9 @@ const ATTRIBUTION = [
   "utm_term",
   "utm_id",
   "fbclid",
+  "gclid",
+  "gbraid",
+  "wbraid",
   "ad_id",
   "adset_id",
   "campaign_id",
@@ -154,6 +158,7 @@ export async function POST(req: Request) {
       for (const [k] of ORDER) if (k !== "existing_listing_url" && body[k]) answerMap[k] = String(body[k]);
       const attributionMap: Record<string, string> = {};
       for (const k of ATTRIBUTION) if (body[k]) attributionMap[k] = String(body[k]);
+      Object.assign(attributionMap, contactConsent(body));
       leadId = await insertLead({ name, email, phone, answers: answerMap, attribution: attributionMap });
       if (leadId) {
         const stored: StoredPhoto[] = [];

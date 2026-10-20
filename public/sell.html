@@ -648,11 +648,15 @@ source: Client
           <div class="shotBusy" id="shotBusy" hidden>Preparing photos&#8230;</div>
           <div class="err" role="alert" id="e-photos"></div>
         </div>
+        <label class="trust" style="display:flex;gap:10px;align-items:flex-start;text-align:left;margin:16px 0">
+          <input id="sms-opt-in" type="checkbox" style="width:18px;height:18px;flex:none;margin-top:3px">
+          <span>Text me about my valuation and next steps with Gray Yachts. Optional. Message frequency varies; message and data rates may apply. Reply STOP to opt out or HELP for help. Consent is not required to use this service.</span>
+        </label>
         <input class="hp" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button class="btn" id="submit" type="submit">Send My Valuation <span aria-hidden="true">→</span></button>
         <div class="err" role="alert" id="e-form" style="text-align:center;margin-top:12px">Something went wrong. Please try again.</div>
       </form>
-      <p class="trust">By submitting you agree that Gray Yachts may contact you by phone, text and email about your valuation. Message and data rates may apply; reply STOP to opt out. No obligation. <b>Your info stays with Gray Yachts.</b></p>
+      <p class="trust">Gray Yachts will contact you by email or phone about your valuation. Text messages are optional above. No obligation. See our <a href="/privacy">privacy policy</a>. <b>Your info stays with Gray Yachts.</b></p>
       <button class="back on" id="back2"><span aria-hidden="true">←</span> Back</button>
     </section>
 
@@ -750,6 +754,7 @@ function readAttr(){
     utm_source:q('utm_source'), utm_medium:q('utm_medium'), utm_campaign:q('utm_campaign'),
     utm_content:q('utm_content'), utm_term:q('utm_term'), utm_id:q('utm_id'),
     fbclid:q('fbclid'), ad_id:q('ad_id'), adset_id:q('adset_id'), campaign_id:q('campaign_id'),
+    gclid:q('gclid'), gbraid:q('gbraid'), wbraid:q('wbraid'),
     placement:q('placement'),
     fbp:cookie('_fbp'), fbc:cookie('_fbc'),
     landing_page:location.href.split('#')[0], referrer:document.referrer||''
@@ -1156,6 +1161,7 @@ $('form').addEventListener('submit', async e=>{
   const payload={
     _subject:`New Gray Yachts valuation lead — ${name} (${answers.year_make_model||answers.brand||'vessel'})`,
     name, email, phone, ...answers, ...attribution, submitted_at:new Date().toISOString(),
+    sms_opt_in:$('sms-opt-in').checked, sms_consent_version:'valuation-inquiry-sms-2026-10-18',
     photos: shots.map(sh => ({ filename: sh.filename, content: sh.b64 }))
   };
   try{
