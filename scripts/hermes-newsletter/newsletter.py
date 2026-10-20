@@ -55,6 +55,11 @@ def alert(slot, reason):
     except Exception as error:
         print('Alert not sent: ' + str(error)[:200])
 
+# Past editions are context for topic choice only; image reuse is enforced by the server. Full image
+# records (relevance-check fields, credits) pushed the prompt past Linux's 128 KB argument limit on 2026-10-19.
+def recent(issue):
+    return {k: issue.get(k) for k in ('slot', 'slug', 'title', 'status', 'review_feedback')} | {'image_ids': [i.get('id') for i in json.loads(issue['images']) if isinstance(i, dict)] if isinstance(issue.get('images'), str) else [i.get('id') for i in issue.get('images') or [] if isinstance(i, dict)]}
+
 def context():
     now = dt.datetime.now(ZoneInfo('America/Los_Angeles'))
     day = (now.date() - START).days
@@ -72,7 +77,19 @@ def context():
         'For an ownership or condition article, consider a professional boatyard view with hull, machinery or navigation detail.',
         'For a cruising article, consider a coastal scene or lighthouse with sailing, working-harbor or life-aboard imagery.',
     ]
-    return {'asOf': now.isoformat(), 'show_windows': windows, 'topic_rotation': TOPICS[(day // 2) % len(TOPICS)], 'calendar_recheck_required': True, 'calendar_refresh_targets': [shows[(day * 3 + i) % len(shows)] for i in range(min(3,len(shows)))], 'image_direction': directions[(day // 2) % len(directions)], 'due': bool(slot and not existing and not skipped), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': status['issues'], 'image_library': request('/api/newsletter/images')}
+    return {'asOf': now.isoformat(), 'show_windows': windows, 'topic_rotation': TOPICS[(day // 2) % len(TOPICS)], 'calendar_recheck_required': True, 'calendar_refresh_targets': [shows[(day * 3 + i) % len(shows)] for i in range(min(3,len(shows)))], 'image_direction': directions[(day // 2) % len(directions)], 'due': bool(slot and not existing and not skipped), 'slot': slot, 'audience': 'seller' if day // 2 % 2 == 0 else 'buyer', 'recent_editions': [recent(i) for i in status['issues']], 'image_library': request('/api/newsletter/images')}
+
+ARG_LIMIT = 120_000  # Linux caps one argument at 131072 bytes (MAX_ARG_STRLEN)
+
+def agent(ctx):
+    prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
+    if len(prompt.encode()) > ARG_LIMIT:
+        # Too long for one argument: hand Hermes the file instead of crashing before it starts.
+        path = WORK / (ctx['slot'] + '.prompt.md')
+        path.write_text(prompt)
+        prompt = f'Your complete instructions and task context for this run are in {path}. Read the entire file before doing anything else, then follow it exactly.'
+    with (WORK / (ctx['slot'] + '.agent.log')).open('a') as log:
+        return subprocess.run(['hermes', '--model', 'gpt-6-astra', '--provider', 'openai-codex', '--in', str(WORK), '--usage-file', str(WORK / (ctx['slot'] + '.usage.json')), '-z', prompt], cwd=WORK, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
 
 def run():
     WORK.mkdir(parents=True, exist_ok=True)
@@ -91,9 +108,11 @@ def run():
             alert(ctx['slot'], 'three attempts used')
             return
         attempt_path.write_text(str(attempts + 1))
-        prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
-        with (WORK / (ctx['slot'] + '.agent.log')).open('a') as log:
-            process = subprocess.run(['hermes', '--model', 'gpt-6-astra', '--provider', 'openai-codex', '--in', str(WORK), '--usage-file', str(WORK / (ctx['slot'] + '.usage.json')), '-z', prompt], cwd=WORK, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
+        try:
+            process = agent(ctx)
+        except Exception as error:
+            alert(ctx['slot'], f'{type(error).__name__}: {str(error)[:300]} (attempt {attempts + 1} of 3)')
+            raise
         if (WORK / (ctx['slot'] + '.skip.json')).exists():
             print(json.dumps({'slot':ctx['slot'],'state':'no-new-verified-news','agent_exit':process.returncode}))
             return
