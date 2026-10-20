@@ -8,7 +8,8 @@
     <string>/bin/bash</string>
     <string>/Users/connorgray/Library/Scripts/grayyachts-seo-pull.sh</string>
   </array>
-  <key>StartInterval</key><integer>3600</integer>
+  <!-- Calendar schedule, not StartInterval: launchd runs a missed calendar slot as soon as the Mac wakes. -->
+  <key>StartCalendarInterval</key><dict><key>Minute</key><integer>20</integer></dict>
   <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key><string>/Users/connorgray/Library/Application Support/GrayYachts/seo-editorial/pull.log</string>
   <key>StandardErrorPath</key><string>/Users/connorgray/Library/Application Support/GrayYachts/seo-editorial/pull-error.log</string>

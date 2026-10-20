@@ -2,7 +2,7 @@
 # Pull the SEO agent's daily reports and drafts from the VPS into the Mac folder Connor reads.
 # Since 2026-10-18 the agent runs on the VPS, where runs/ is root-only and nothing notifies on success.
 # Installed copy: ~/Library/Scripts/grayyachts-seo-pull.sh (outside ~/Desktop: launchd + macOS TCC).
-# Launchd: ~/Library/LaunchAgents/com.grayyachts.seo-runs-pull.plist (hourly + at login).
+# Launchd: ~/Library/LaunchAgents/com.grayyachts.seo-runs-pull.plist (hourly at :20, catches up on wake, and at login).
 set -euo pipefail
 HOST=root@45.132.242.109
 SRC=/opt/grayyachts-automation/private/seo-editorial/runs/
