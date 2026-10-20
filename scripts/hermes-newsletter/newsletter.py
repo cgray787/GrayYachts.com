@@ -123,6 +123,20 @@ def run():
             alert(ctx['slot'], f'Hermes did not store a draft (agent exit {process.returncode}, attempt {attempts + 1} of 3)')
             raise RuntimeError('Hermes did not store a draft; inspect the private agent log')
 
+def preflight():
+    """End-to-end check after any change: build the real prompt from live data and check Hermes's login."""
+    ctx = context()
+    prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
+    auth = subprocess.run(['hermes', 'auth', 'status', 'openai-codex'], capture_output=True, text=True, timeout=60)
+    result = {'slot': ctx['slot'], 'due': ctx['due'], 'prompt_bytes': len(prompt.encode()), 'inline': len(prompt.encode()) <= ARG_LIMIT,
+              'images_available': len(ctx['image_library'].get('available', [])), 'hermes_auth': (auth.stdout or auth.stderr).strip()[:120]}
+    problems = [p for p, bad in (('prompt over the inline limit (file fallback will be used)', not result['inline']),
+                                 ('fewer than 9 unused images', result['images_available'] < 9),
+                                 ('Hermes Codex login not active', 'logged in' not in result['hermes_auth'])) if bad]
+    result['problems'] = problems
+    print(json.dumps(result, indent=2))
+    return result
+
 if __name__ == '__main__':
     os.umask(0o077)
     action = sys.argv[1] if len(sys.argv) > 1 else 'run'
@@ -137,7 +151,9 @@ if __name__ == '__main__':
         print(json.dumps(request('/api/newsletter/media/generate', {'prompt': sys.argv[2]})))
     elif action == 'replace-images':
         print(json.dumps(request('/api/newsletter/images', {'id': sys.argv[2], 'images': json.loads(Path(sys.argv[3]).read_text())})))
+    elif action == 'preflight':
+        sys.exit(1 if preflight()['problems'] else 0)
     elif action == 'run':
         run()
     else:
-        raise SystemExit('Usage: newsletter.py [run|context|submit payload.json|import-media media.json|generate-media "prompt"|replace-images issue-id images.json]')
+        raise SystemExit('Usage: newsletter.py [run|context|preflight|submit payload.json|import-media media.json|generate-media "prompt"|replace-images issue-id images.json]')

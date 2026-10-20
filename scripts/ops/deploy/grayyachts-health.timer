@@ -1,0 +1,9 @@
+[Unit]
+Description=Gray Yachts automation health email, daily after the SEO run
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 America/Los_Angeles
+Persistent=true
+
+[Install]
+WantedBy=timers.target
