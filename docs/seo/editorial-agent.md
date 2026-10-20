@@ -6,14 +6,14 @@ The daily SEO research/drafting agent is **not on the production branch**. Its c
 
 | What | Where |
 |---|---|
-| Code | `/opt/grayyachts-seo` on the VPS (45.132.242.109): `scripts/seo/editorial_loop.py`, `research-prompt.md`, `PROMPT-SOURCES.md`, `test_editorial_loop.py`, `content/seo/*.json` |
+| Code | `/opt/grayyachts-seo` on the VPS: `scripts/seo/editorial_loop.py`, `research-prompt.md`, `PROMPT-SOURCES.md`, `test_editorial_loop.py`, `content/seo/*.json` |
 | Schedule | systemd `grayyachts-seo-editorial.timer`, `OnCalendar=*-*-* 07:15:00 America/Los_Angeles`, `RandomizedDelaySec=5m`, `Persistent=true` (unit files: `scripts/seo/deploy/` on the branch) |
-| Service | `ExecStart=/usr/bin/python3 /opt/grayyachts-seo/scripts/seo/editorial_loop.py run`; `EnvironmentFile=-/opt/grayyachts-automation/private/config/graycapital/n8n/valuation-providers.env` and `-/opt/grayyachts-automation/private/seo.env` |
+| Service | `ExecStart=/usr/bin/python3 /opt/grayyachts-seo/scripts/seo/editorial_loop.py run`; two private `EnvironmentFile`s under the VPS automation config directory (not in git) |
 | State / runs | `/opt/grayyachts-automation/private/seo-editorial` (`state.json`, `lessons.json`, `report.json`, `runs/<date>.json` + `.md`) |
 | Mac copy | launchd `com.grayyachts.seo-runs-pull` → `~/Library/Scripts/grayyachts-seo-pull.sh` (branch: `scripts/seo/deploy/mac-pull-runs.sh`, `com.grayyachts.seo-runs-pull.plist`), hourly at :20 and on wake/login; rsyncs `runs/` to `~/Library/Application Support/GrayYachts/seo-editorial/runs` and posts a macOS notification once per day that produced a draft |
 | Health | Daily 08:00 PT email from `scripts/ops/vps-health.py` (prod branch) checks today's run, pause state and web-tool failures — see `docs/newsletter-operations.md` |
 
-Publishing is manual: `program.json` has `automaticPublishing: false`, cadence research daily / 3 drafts a week, `dailyBudgetUsd: 3`.
+Publishing is manual: `program.json` has `automaticPublishing: false`, cadence research daily / 3 drafts a week, with a per-run spend cap.
 
 ## Relationship to production
 
@@ -45,16 +45,16 @@ Verified 2026-10-20: `git show origin/seo/international-editorial-20260924:conte
 
 VPS `~/.hermes/config.yaml` (modified 2026-10-19 14:54 UTC): `web.backend`, `web.search_backend` and `web.extract_backend` are all `firecrawl` (`hermes config get web.backend` etc., verified 2026-10-20). Firecrawl needs `FIRECRAWL_API_KEY` in the process environment:
 
-- The SEO service gets it from `EnvironmentFile=/opt/grayyachts-automation/private/config/graycapital/n8n/valuation-providers.env` (`grep -c ^FIRECRAWL_API_KEY=` → 1).
-- `/root/.hermes/.env` does **not** contain it (count 0).
+- The SEO service gets it from one of its private `EnvironmentFile`s (key present: `grep -c` → 1).
+- Hermes's own env file does **not** contain it (count 0).
 
 **Open item:** the newsletter cron job (`hermes cron` → `grayyachts-newsletter.py`) and the Hermes Slack gateway do not load that EnvironmentFile, so they have no working web search/extract even though the config names Firecrawl. The newsletter brief requires primary-source research. Fix by giving those processes the key (not by copying it into the repo), then confirm a run's research notes cite fetched pages.
 
 ## How to change it safely
 
 1. Work on `seo/international-editorial-20260924` (or a branch off it); run `python3 -m pytest scripts/seo/test_editorial_loop.py`. Push the branch.
-2. Copy only the changed files: `scp <file> root@45.132.242.109:/opt/grayyachts-seo/<same path>`.
-3. Verify by hash: `shasum -a 256 <file>` locally vs `ssh root@45.132.242.109 sha256sum /opt/grayyachts-seo/<path>`.
+2. Copy only the changed files: `scp <file> <vps>:/opt/grayyachts-seo/<same path>`.
+3. Verify by hash: `shasum -a 256 <file>` locally vs `ssh <vps> sha256sum /opt/grayyachts-seo/<path>`.
 4. Unit file changes: copy to `/etc/systemd/system/`, `systemctl daemon-reload`, `systemctl list-timers | grep seo`.
 5. After a published article changes on prod, sync prod's `content/seo/articles.json` to the branch and to `/opt/grayyachts-seo/content/seo/articles.json`, and check the three hashes match.
 6. Check the next morning's run (`runs/<date>.md`, `state.json` `lastSuccess`/`failures`/`blocked`) or the 08:00 health email, not just the service exit status.
