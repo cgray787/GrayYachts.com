@@ -11,9 +11,17 @@
 # Install: ops/com.grayyachts.sell-watchdog.plist (launchd, every 10 minutes;
 #          see the install steps in that file)
 # Logs:    ~/Library/Logs/grayyachts-sell-watchdog.log
+# Test:    scripts/test-sell-watchdog.sh (healthy / outage / recovery, dry run)
+#
+# Overrides (for testing only; launchd sets none, so defaults apply):
+#   WATCHDOG_URL                   page to check (default: production /sell)
+#   WATCHDOG_STATE_DIR             state dir (keep tests out of the real job's state)
+#   WATCHDOG_DRY_RUN=1             never reset/build/deploy; log what would run
+#   WATCHDOG_ALERT_SUBJECT_PREFIX  prepended to every email subject, e.g. "[TEST] "
+#   WATCHDOG_REPAIR_WAIT           seconds to wait before re-checking (default 15)
 set -uo pipefail
 
-URL="https://grayyachts.com/sell"
+URL="${WATCHDOG_URL:-https://grayyachts.com/sell}"
 LEAD_ENDPOINT="https://grayyachts.com/api/valuation"
 # Dedicated throwaway checkout used ONLY for repairs: the repair step runs
 # `git reset --hard` here, so never keep work in it. Kept separate from the
@@ -24,7 +32,10 @@ REPO="/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yacht
 # missing src/app/(marketing)/fleet/[slug], so repairing from main would fix
 # /sell and 404 every vessel page in the process.
 PROD_BRANCH="restore/prod-plus-leads"
-STATE="$HOME/.local/state/grayyachts-sell-watchdog"
+STATE="${WATCHDOG_STATE_DIR:-$HOME/.local/state/grayyachts-sell-watchdog}"
+DRY_RUN="${WATCHDOG_DRY_RUN:-0}"
+SUBJECT_PREFIX="${WATCHDOG_ALERT_SUBJECT_PREFIX:-}"
+REPAIR_WAIT="${WATCHDOG_REPAIR_WAIT:-15}"
 ALERT_TO="connorgray@jeffbrownyachts.com"
 ALERT_FROM="Gray Yachts Watchdog <onboarding@resend.dev>"
 # Expected on a healthy page. If the markup is rewritten, update these.
@@ -39,24 +50,31 @@ resend_key() {
 }
 
 send_mail() {  # subject, body
-  local key; key="$(resend_key)"
+  local key resp subject="${SUBJECT_PREFIX}$1"
+  key="$(resend_key)"
   [ -z "$key" ] && { log "no Resend key in keychain — cannot email"; return 1; }
-  /usr/bin/curl -s -m 25 -X POST https://api.resend.com/emails \
+  resp="$(/usr/bin/curl -s -m 25 -X POST https://api.resend.com/emails \
     -H "Authorization: Bearer $key" -H "Content-Type: application/json" \
-    --data "$(/usr/bin/python3 - "$1" "$2" <<'PY'
+    --data "$(/usr/bin/python3 - "$ALERT_FROM" "$ALERT_TO" "$subject" "$2" <<'PY'
 import json,sys
-print(json.dumps({"from":"Gray Yachts Watchdog <onboarding@resend.dev>",
-  "to":["connorgray@jeffbrownyachts.com"],
-  "subject":sys.argv[1],
-  "text":sys.argv[2]}))
+print(json.dumps({"from":sys.argv[1],
+  "to":[sys.argv[2]],
+  "subject":sys.argv[3],
+  "text":sys.argv[4]}))
 PY
-)" >/dev/null
+)")"
+  # Log Resend's answer: a rejected send used to vanish into /dev/null.
+  case "$resp" in
+    *'"id"'*) log "emailed \"$subject\" — resend $resp" ;;
+    *)        log "EMAIL FAILED \"$subject\" — resend said: ${resp:-<no response>}"; return 1 ;;
+  esac
 }
 
 # ── health check ────────────────────────────────────────────────────────
 check() {
   local body code vessels
-  body="$(/usr/bin/curl -sL -m 25 "$URL?wd=$RANDOM" -w '\n%{http_code}')" || return 1
+  body="$(/usr/bin/curl -sL -m 25 "$URL?wd=$RANDOM" -w '\n%{http_code}')" \
+    || { echo "could not reach $URL (curl failed)"; return 2; }
   code="$(printf '%s' "$body" | tail -n1)"
   [ "$code" != "200" ] && { echo "http $code"; return 1; }
   # NB: no `... | grep -q` here. grep -q exits early, the writer takes SIGPIPE,
@@ -68,11 +86,26 @@ check() {
   local lead
   lead="$(/usr/bin/curl -s -m 25 -o /dev/null -w '%{http_code}' -X POST "$LEAD_ENDPOINT" \
           -H 'Content-Type: application/json' -d '{}')"
-  [ "$lead" != "400" ] && { echo "lead endpoint returned $lead, expected 400"; return 1; }
+  # 429 = rate limited: the worker answered, so the endpoint is alive. Treating
+  # it as an outage produced 47 false "DOWN" verdicts on Oct 18-19.
+  case "$lead" in
+    400|429) ;;
+    000) echo "could not reach lead endpoint (curl failed)"; return 2 ;;
+    *)   echo "lead endpoint returned $lead, expected 400"; return 1 ;;
+  esac
   return 0
 }
 
-REASON="$(check)" && HEALTHY=1 || HEALTHY=0
+REASON="$(check)"; CHECK_RC=$?
+[ "$CHECK_RC" = "0" ] && HEALTHY=1 || HEALTHY=0
+
+# Couldn't reach the site at all. If this Mac is offline too (sleep/wake,
+# Wi-Fi drop) that is not an outage — a redeploy can't fix it and the alert
+# couldn't be sent anyway — so don't touch production.
+if [ "$CHECK_RC" = "2" ] && ! /usr/bin/curl -s -m 15 -o /dev/null https://api.resend.com; then
+  log "inconclusive: $REASON, and this Mac is offline — skipping"
+  exit 0
+fi
 
 if [ "$HEALTHY" = "1" ]; then
   # Only announce recovery if we were previously down.
@@ -92,19 +125,33 @@ fi
 
 log "DOWN: $REASON"
 
-# ── repair: rebuild from origin/main and deploy ─────────────────────────
+# ── repair: rebuild from the production branch and deploy ───────────────
 cd "$REPO" || { log "watchdog checkout missing at $REPO"; exit 1; }
-OUT="$(
-  { git fetch -q origin "$PROD_BRANCH" \
-    && git reset -q --hard "origin/$PROD_BRANCH" \
-    && npm run build \
-    && npx --yes opennextjs-cloudflare build \
-    && npm run deploy; } 2>&1
-)"
-DEPLOY_RC=$?
-SHA="$(git log --oneline -1 2>/dev/null)"
+if [ "$DRY_RUN" = "1" ]; then
+  # Fetching only updates remote-tracking refs; nothing is reset or deployed.
+  git fetch -q origin "$PROD_BRANCH"
+  SHA="$(git log --oneline -1 "origin/$PROD_BRANCH" 2>/dev/null)"
+  OUT="DRY RUN — would run in $REPO:
+  git reset -q --hard origin/$PROD_BRANCH   (-> $SHA)
+  npm ci && npm run build && npx --yes opennextjs-cloudflare build && npm run deploy"
+  DEPLOY_RC=0
+  log "DRY RUN: repair planned, not executed — would deploy $SHA"
+else
+  # npm ci: the reset can change package-lock.json, and building against the
+  # old node_modules either fails or ships the wrong dependency versions.
+  OUT="$(
+    { git fetch -q origin "$PROD_BRANCH" \
+      && git reset -q --hard "origin/$PROD_BRANCH" \
+      && npm ci --no-audit --no-fund \
+      && npm run build \
+      && npx --yes opennextjs-cloudflare build \
+      && npm run deploy; } 2>&1
+  )"
+  DEPLOY_RC=$?
+  SHA="$(git log --oneline -1 2>/dev/null)"
+fi
 
-sleep 15
+sleep "$REPAIR_WAIT"
 REASON2="$(check)" && FIXED=1 || FIXED=0
 
 if [ "$FIXED" = "1" ]; then
