@@ -2,13 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!--
+      Install / reinstall (runs the script from the MAIN checkout; repairs
+      happen in the separate .claude/worktrees/sell-watchdog checkout):
+        cp ops/com.grayyachts.sell-watchdog.plist ~/Library/LaunchAgents/
+        launchctl bootout gui/$(id -u)/com.grayyachts.sell-watchdog 2>/dev/null
+        launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.grayyachts.sell-watchdog.plist
+      Verify: launchctl print gui/$(id -u)/com.grayyachts.sell-watchdog | grep "last exit"
+              tail ~/Library/Logs/grayyachts-sell-watchdog.log
+      Exit code 126 / "Operation not permitted" = macOS TCC blocking launchd
+      from ~/Desktop: give /bin/bash Full Disk Access.
+    -->
     <key>Label</key>
     <string>com.grayyachts.sell-watchdog</string>
 
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/connorgray/Desktop/Claude OS/Gray Yachts/grayyachts.com/.claude/worktrees/sell-watchdog/scripts/sell-watchdog.sh</string>
+        <string>/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com/scripts/sell-watchdog.sh</string>
     </array>
 
     <!-- every 10 minutes -->
@@ -19,7 +30,7 @@
     <true/>
 
     <key>WorkingDirectory</key>
-    <string>/Users/connorgray/Desktop/Claude OS/Gray Yachts/grayyachts.com/.claude/worktrees/sell-watchdog</string>
+    <string>/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com</string>
 
     <!-- npm/node live in the user PATH; launchd starts with a bare one -->
     <key>EnvironmentVariables</key>

@@ -8,13 +8,18 @@
 #
 # Repair is always "rebuild from the production branch and deploy".
 #
-# Install: scripts/install-sell-watchdog.sh   (launchd, every 10 minutes)
+# Install: ops/com.grayyachts.sell-watchdog.plist (launchd, every 10 minutes;
+#          see the install steps in that file)
 # Logs:    ~/Library/Logs/grayyachts-sell-watchdog.log
 set -uo pipefail
 
 URL="https://grayyachts.com/sell"
 LEAD_ENDPOINT="https://grayyachts.com/api/valuation"
-REPO="/Users/connorgray/Desktop/Claude OS/Gray Yachts/grayyachts.com/.claude/worktrees/sell-watchdog"
+# Dedicated throwaway checkout used ONLY for repairs: the repair step runs
+# `git reset --hard` here, so never keep work in it. Kept separate from the
+# main checkout (which launchd runs this script from) so a repair never
+# rewrites the running script or anyone's uncommitted work.
+REPO="/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com/.claude/worktrees/sell-watchdog"
 # grayyachts.com is deployed from restore/prod-plus-leads, NOT main. main is
 # missing src/app/(marketing)/fleet/[slug], so repairing from main would fix
 # /sell and 404 every vessel page in the process.
