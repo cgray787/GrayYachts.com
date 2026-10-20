@@ -1,0 +1,9 @@
+[Unit]
+Description=Gray Yachts automation daily health email
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/grayyachts-health/vps_health.py
+TimeoutStartSec=600

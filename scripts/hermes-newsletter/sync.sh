@@ -15,4 +15,7 @@ for pair in "${FILES[@]}"; do
   b=$(ssh "$HOST" "sha256sum '$remote'" | cut -d' ' -f1)
   if [[ $a == "$b" ]]; then echo "ok     $local_file"; else echo "DRIFT  $local_file -> $remote"; drift=1; fi
 done
-exit $drift
+[[ $drift == 0 ]] || exit 1
+# End to end: build the real prompt from live data on the VPS (2026-10-19 the prompt outgrew the
+# 128 KB argument limit and every run crashed before Hermes started).
+ssh "$HOST" "cd /root/.hermes/scripts && python3 grayyachts-newsletter.py preflight" || { echo "PREFLIGHT FAILED"; exit 1; }
