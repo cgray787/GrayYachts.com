@@ -14,7 +14,7 @@
 
 **Deploy warning:** production is served from the `worktree-neverland-brochure` lineage. Deploying from a `main`-based branch 404s every `/fleet/<slug>`. Verify with `git branch --contains f68d6c2` before any deploy, and always use `npm run deploy`.
 
-**Database access:** DDL goes through `~/Desktop/Claude OS/fb-yacht-leads/db.mjs` (Supabase Management API; the MCP server is read-only for this project). Run `node db.mjs path/to.sql`.
+**Database access:** DDL goes through `~/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads/db.mjs` (Supabase Management API; the MCP server is read-only for this project). Run `node db.mjs path/to.sql`.
 
 ---
 
@@ -47,7 +47,7 @@ The repo has no unit-test runner (only Playwright as a devDep). TDD needs one.
 - [ ] **Step 1: Install vitest**
 
 ```bash
-cd "/Users/connorgray/Desktop/Claude OS/grayyachts.com"
+cd "/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com"
 npm install -D vitest@^3
 ```
 
@@ -90,7 +90,7 @@ git commit -m "chore: add vitest for unit tests"
 ### Task 2: Add CRM columns
 
 **Files:**
-- Create: `~/Desktop/Claude OS/fb-yacht-leads/sql/003_crm_columns.sql`
+- Create: `~/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads/sql/003_crm_columns.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -134,7 +134,7 @@ create index if not exists fb_leads_next_touch_idx
 - [ ] **Step 2: Apply it**
 
 ```bash
-cd "/Users/connorgray/Desktop/Claude OS/fb-yacht-leads"
+cd "/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads"
 node db.mjs sql/003_crm_columns.sql
 ```
 Expected: `[]`
@@ -149,7 +149,7 @@ Expected: `n` = 11
 - [ ] **Step 4: Commit**
 
 ```bash
-cd "/Users/connorgray/Desktop/Claude OS/fb-yacht-leads"
+cd "/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads"
 git add sql/003_crm_columns.sql
 git commit -m "feat(db): CRM columns on fb_leads"
 ```
@@ -159,8 +159,8 @@ git commit -m "feat(db): CRM columns on fb_leads"
 ### Task 3: Cadence engine
 
 **Files:**
-- Create: `~/Desktop/Claude OS/fb-yacht-leads/sql/004_cadence.sql`
-- Create: `~/Desktop/Claude OS/fb-yacht-leads/sql/004_cadence_test.sql`
+- Create: `~/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads/sql/004_cadence.sql`
+- Create: `~/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads/sql/004_cadence_test.sql`
 
 - [ ] **Step 1: Write the failing test first**
 
@@ -200,7 +200,7 @@ rollback;
 - [ ] **Step 2: Run it and watch it fail**
 
 ```bash
-cd "/Users/connorgray/Desktop/Claude OS/fb-yacht-leads"
+cd "/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/14 - Listings & Leads/fb-yacht-leads"
 node db.mjs sql/004_cadence_test.sql
 ```
 Expected: every `passed` is `false` or `null` — no trigger exists yet, so `next_touch_at` stays null.
@@ -588,7 +588,7 @@ git commit -m "feat(crm): lead profile page"
 - [ ] **Step 1: Change the label**
 
 ```bash
-cd "/Users/connorgray/Desktop/Claude OS/grayyachts.com"
+cd "/Users/connorgray/Desktop/Artificial Intelligence/Projects/10 - Gray Yachts/11 - Websites/grayyachts.com"
 sed -i '' 's/label: "FB Marketplace Leads"/label: "FB CRM"/' src/components/portal/sidebar.tsx
 grep -n '"FB CRM"' src/components/portal/sidebar.tsx
 ```
