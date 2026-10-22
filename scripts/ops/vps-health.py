@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -101,10 +102,66 @@ def services():
     detail = f"failing Gray Yachts services: {', '.join(ours) or 'none'}; other failing services: {', '.join(other) or 'none'}; disk {pct}% used"
     return not ours and pct < 85, detail
 
+# Unrecorded live changes (added 2026-10-22): on 2026-10-20 a config file was switched off and
+# Cloudflare Access was put in front of the Command Center with no record of who did it.
+# Every live change must have a matching `coord log` entry in the shared agent-ops ledger.
+LEDGER = Path('/opt/agent-ops')
+WATCH = ['/etc/systemd/system', '/root/.config/graycapital', '/opt/grayyachts-automation/private/config',
+         '/opt/grayyachts-automation/source', '/opt/grayyachts-automation/marketplace', '/opt/grayyachts-automation/pnw-sync',
+         '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health',
+         '/root/.hermes/config.yaml', '/root/.hermes/SOUL.md', '/root/.hermes/scripts']
+SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/)')
+
+def unrecorded():
+    subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, timeout=60)
+    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
+    changed = []
+    for root in WATCH:
+        base = Path(root)
+        files = [base] if base.is_file() else (p for p in base.rglob('*') if p.is_file()) if base.exists() else []
+        for f in files:
+            if SKIP.search(str(f)): continue
+            if dt.datetime.fromtimestamp(f.stat().st_mtime, dt.timezone.utc) >= cutoff: changed.append(str(f))
+    recorded = []
+    for entry in (LEDGER / 'changes').rglob('*.md'):
+        text = entry.read_text(errors='ignore')
+        at = re.search(r'^at: (\S+)', text, re.M)
+        if not at or dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00')) < cutoff - dt.timedelta(hours=24): continue
+        for field in ('paths', 'system'):
+            m = re.search(rf'^{field}: (.*)$', text, re.M)
+            if m: recorded += [x.strip() for x in re.split(r'[,\s]+', m.group(1)) if len(x.strip()) > 3]
+    missing = [f for f in changed if not any(r in f or f.endswith(r) for r in recorded)]
+    detail = f"{len(changed)} live files changed in 24 h, {len(missing)} with no ledger entry"
+    if missing: detail += ': ' + ', '.join(missing[:8]) + (' …' if len(missing) > 8 else '') + '. Find who changed them; record with coord log.'
+    return not missing, detail
+
+# Machine routes the VPS jobs call. A redirect to the Cloudflare Access login means the jobs are locked out.
+ROUTES = ['/api/fb-crm/sweep', '/api/fb-crm/reminders', '/api/valuation-leads/reminders', '/api/jobs']
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k): return None
+
+def command_center():
+    blocked, missing = [], []
+    for route in ROUTES:
+        try:
+            r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, headers={'User-Agent': 'GrayYachts-Health/1.0'}), timeout=20)
+            headers, code = r.headers, r.status
+        except urllib.error.HTTPError as e:
+            headers, code = e.headers, e.code
+        # Cloudflare answers at the edge without reaching the app: an Access login redirect, or a
+        # bot block (error 1010) for some clients. Both show `cfOrigin;dur=0` in Server-Timing.
+        edge_only = 'cfOrigin;dur=0' in (headers.get('Server-Timing') or '')
+        if 'cloudflareaccess.com' in (headers.get('Location') or '') or (edge_only and code in (302, 403)): blocked.append(f'{route} ({code})')
+        elif code == 404: missing.append(route)
+    problems = ([f"blocked at Cloudflare before reaching the app: {', '.join(blocked)}"] if blocked else []) + ([f"route not found: {', '.join(missing)}"] if missing else [])
+    return not problems, '; '.join(problems) or f"all {len(ROUTES)} machine routes reachable by the VPS jobs"
+
 check('SEO agent (today 07:15 PT)', seo)
 check('Newsletter', newsletter)
 check('Hermes Codex login', codex_login)
 check('VPS services and disk', services)
+check('Unrecorded live changes', unrecorded)
+check('Command Center machine routes', command_center)
 
 bad = [name for name, ok, _ in checks if not ok]
 subject = f"Gray Yachts automation: {'ACTION NEEDED — ' + ', '.join(bad) if bad else 'all OK'} ({today})"
