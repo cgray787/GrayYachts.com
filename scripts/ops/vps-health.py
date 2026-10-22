@@ -149,7 +149,7 @@ def covers(recorded, path):
     recorded = recorded.rstrip('/')
     return path == recorded or path.startswith(recorded + '/')
 
-def drift(current, previous, entries, now_utc, previous_scan=None):
+def drift(current, previous, entries, now_utc, previous_scan=None, windows=None):
     """Return (changed, unrecorded) paths.
 
     With a saved inventory, every difference since the last scan counts, however old its mtime (a late or
@@ -168,6 +168,7 @@ def drift(current, previous, entries, now_utc, previous_scan=None):
     if previous_scan is not None:
         for path in previous:
             if path not in current: changes[path + ' (deleted)'] = (previous_scan - BEFORE, now_utc + BEFORE)
+    if windows is not None: windows.update(changes)  # each finding's own matching bounds, for pending retries
     missing = []
     for label, (lo, hi) in changes.items():
         path = label.removesuffix(' (deleted)')
@@ -187,16 +188,18 @@ def unrecorded():
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
     entries = ledger_entries()
-    changed, missing = drift(current, previous, entries, now_utc, previous_scan)
+    windows = {}
+    changed, missing = drift(current, previous, entries, now_utc, previous_scan, windows)
     # Findings from runs whose email failed stay pending until a ledger entry covers them or they are delivered.
     pending = json.loads(PENDING.read_text()) if PENDING.exists() else []
-    for label, lo, hi in pending:
+    for label, lo, hi in pending:  # retried with the bounds stored when the finding was first made
         lo, hi, path = dt.datetime.fromisoformat(lo), dt.datetime.fromisoformat(hi), label.removesuffix(' (deleted)')
-        if label not in missing and not any(lo <= at <= max(hi, now_utc + BEFORE) and any(covers(r, path) for r in paths) for at, paths in entries):
+        windows.setdefault(label, (lo, hi))
+        if label not in missing and not any(lo <= at <= hi and any(covers(r, path) for r in paths) for at, paths in entries):
             missing.append(label); changed.append(label)
     missing, changed = sorted(set(missing)), sorted(set(changed))
     if '--dry-run' not in sys.argv:
-        PENDING.write_text(json.dumps([[m, (now_utc - WINDOW).isoformat(), now_utc.isoformat()] for m in missing]))
+        PENDING.write_text(json.dumps([[m, windows[m][0].isoformat(), windows[m][1].isoformat()] for m in missing]))
     since = f"since the last check ({previous_scan:%Y-%m-%d %H:%M} UTC)" if previous_scan else 'in the last 24 h (first check: deletions tracked from the next run)'
     detail = f"{len(changed)} live files changed {since}, {len(missing)} with no ledger entry"
     # List every finding: the baseline advances once the email is sent, so anything not listed would be lost.
@@ -226,7 +229,9 @@ def classify(code, headers, body=''):
     # The app's middleware also answers 401 ("Sign in required") when a machine route is missing from its
     # exemption list; only the route's own token check ("unauthorized") means the job can get through.
     if code == 401 and re.search(r'sign.?in required', body, re.I): return "rejected by the app's sign-in check (route not exempted for machine tokens)"
-    if code == 401: return None
+    if 'cloudflare-access' in (headers.get('WWW-Authenticate') or '').lower(): return f'Cloudflare Access challenge ({code})'
+    # Healthy only when the route's own token check answers: {"error":"unauthorized"}.
+    if code == 401 and re.search(r'"error"\s*:\s*"unauthorized"', body, re.I): return None
     return f'unexpected {code}' + (f" → {headers.get('Location')}" if headers.get('Location') else '')
 
 def command_center():

@@ -46,6 +46,12 @@ class Drift(unittest.TestCase):
         cur = {'/etc/x/a': [ts(NOW - dt.timedelta(hours=1)), 12]}
         entries = [(NOW - dt.timedelta(hours=8), ['/etc/x/a'])]
         self.assertEqual(vh.drift(cur, {'/etc/x/a': [ts(NOW - dt.timedelta(days=2)), 10]}, entries, NOW, NOW - dt.timedelta(days=1))[1], ['/etc/x/a'])
+    def test_finding_windows_are_reported_for_pending_retries(self):  # fifth review, finding 2
+        cur = {'/etc/x/a': [ts(NOW - dt.timedelta(hours=1)), 12]}
+        w = {}
+        vh.drift(cur, {}, [], NOW, None, w)
+        lo, hi = w['/etc/x/a']
+        self.assertEqual(lo, NOW - dt.timedelta(hours=1) - vh.BEFORE)
     def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
         import os, tempfile
         d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')
@@ -64,13 +70,16 @@ class Drift(unittest.TestCase):
 class Routes(unittest.TestCase):
     H = lambda self, **h: {k.replace('_', '-'): v for k, v in h.items()}
     def test_app_401_is_healthy(self):
-        self.assertIsNone(vh.classify(401, self.H(Server_Timing='cfEdge;dur=3, cfOrigin;dur=40')))
+        self.assertIsNone(vh.classify(401, self.H(Server_Timing='cfEdge;dur=3, cfOrigin;dur=40'), '{"error":"unauthorized"}'))
     def test_access_login_redirect(self):
         self.assertIn('Access', vh.classify(302, self.H(Location='https://x.cloudflareaccess.com/cdn-cgi/access/login')))
     def test_middleware_sign_in_401_is_not_healthy(self):  # third review, finding 1
         self.assertIn('sign-in', vh.classify(401, {}, '{"error":"Sign in required."}'))
         self.assertIn('sign-in', vh.classify(401, {}, '{"error":"Cloudflare Access sign-in required."}'))
         self.assertIsNone(vh.classify(401, {}, '{"error":"unauthorized"}'))
+    def test_access_401_and_unknown_401_are_not_healthy(self):  # fifth review, finding 1
+        self.assertIsNotNone(vh.classify(401, self.H(WWW_Authenticate='Cloudflare-Access resource_metadata="x"'), ''))
+        self.assertIsNotNone(vh.classify(401, {}, 'Unauthorized'))
     def test_cloudflare_bot_block(self):
         self.assertIn('blocked by Cloudflare', vh.classify(403, self.H(Server_Timing='cfEdge;dur=2,cfOrigin;dur=0')))
     def test_other_failures_are_not_healthy(self):  # review finding 1
