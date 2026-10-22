@@ -142,44 +142,57 @@ def covers(recorded, path):
     recorded = recorded.rstrip('/')
     return path == recorded or path.startswith(recorded + '/')
 
-def drift(current, previous, entries, now_utc):
-    """Return the changed and unrecorded paths. A change is a new or modified file within the window, or a
-    file present in the previous inventory that is now gone (dated now). Each needs a ledger entry naming that
-    exact path (or a parent directory) logged close to the change time."""
+def drift(current, previous, entries, now_utc, previous_scan=None):
+    """Return (changed, unrecorded) paths.
+
+    With a saved inventory, every difference since the last scan counts, however old its mtime (a late or
+    missed run must not hide changes). Without one (first run), files modified in the last 24 h count.
+    A modified file needs a ledger entry naming that exact path (or a parent directory) logged between
+    30 min before and 24 h after its mtime. A deleted file needs one logged between the previous scan and now."""
     changes = {}
     for path, (mtime, _size) in current.items():
         when = dt.datetime.fromtimestamp(mtime, dt.timezone.utc)
-        if when >= now_utc - WINDOW and (path not in previous or previous[path] != current[path]): changes[path] = when
-    for path in previous:
-        if path not in current: changes[path + ' (deleted)'] = now_utc
+        if previous_scan is not None:
+            if path not in previous or previous[path] != current[path]: changes[path] = (when - BEFORE, when + AFTER)
+        elif when >= now_utc - WINDOW: changes[path] = (when - BEFORE, when + AFTER)
+    if previous_scan is not None:
+        for path in previous:
+            if path not in current: changes[path + ' (deleted)'] = (previous_scan - BEFORE, now_utc + BEFORE)
     missing = []
-    for label, when in changes.items():
+    for label, (lo, hi) in changes.items():
         path = label.removesuffix(' (deleted)')
-        if not any(when - BEFORE <= at <= when + AFTER and any(covers(r, path) for r in paths) for at, paths in entries):
+        if not any(lo <= at <= hi and any(covers(r, path) for r in paths) for at, paths in entries):
             missing.append(label)
     return sorted(changes), sorted(missing)
 
 def unrecorded():
-    if not (LEDGER / 'changes').is_dir(): return False, f'ledger not found at {LEDGER}; cannot verify live changes'
+    """Returns (ok, detail, commit) — call commit() only after the email is delivered, so findings
+    are re-reported if delivery fails."""
+    if not (LEDGER / 'changes').is_dir(): return False, f'ledger not found at {LEDGER}; cannot verify live changes', None
     pull = subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, text=True, timeout=60)
-    if pull.returncode: return False, 'ledger sync failed, so live changes could not be verified: ' + (pull.stderr or pull.stdout).strip()[:160]
-    previous = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else {}
+    if pull.returncode: return False, 'ledger sync failed, so live changes could not be verified: ' + (pull.stderr or pull.stdout).strip()[:160], None
+    saved = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else None
+    previous = saved['files'] if saved else {}
+    previous_scan = dt.datetime.fromisoformat(saved['scanned_at']) if saved else None
+    now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
-    changed, missing = drift(current, previous, ledger_entries(), dt.datetime.now(dt.timezone.utc))
-    if '--dry-run' not in sys.argv: INVENTORY.write_text(json.dumps(current))  # a dry run must not move the baseline
-    detail = f"{len(changed)} live files changed in the last 24 h, {len(missing)} with no ledger entry" + ('' if previous else ' (first run: deletions are tracked from the next run)')
+    changed, missing = drift(current, previous, ledger_entries(), now_utc, previous_scan)
+    since = f"since the last check ({previous_scan:%Y-%m-%d %H:%M} UTC)" if previous_scan else 'in the last 24 h (first check: deletions tracked from the next run)'
+    detail = f"{len(changed)} live files changed {since}, {len(missing)} with no ledger entry"
     if missing: detail += ': ' + ', '.join(missing[:8]) + (' …' if len(missing) > 8 else '') + '. Find who changed them and record it with `coord log … --paths`.'
-    return not missing, detail
+    commit = lambda: INVENTORY.write_text(json.dumps({'scanned_at': now_utc.isoformat(), 'files': current}))
+    return not missing, detail, commit
 
 # Machine routes the VPS jobs call. Without a token each must reach the app and get its 401; anything else
 # (Access login redirect, Cloudflare bot block, 404, 5xx, a redirect) means the jobs cannot use it.
-ROUTES = ['/api/fb-crm/sweep', '/api/fb-crm/reminders', '/api/valuation-leads/reminders', '/api/jobs']
+# (route, method the job uses) — probing with the wrong method returns 405 even when healthy.
+ROUTES = [('/api/fb-crm/sweep', 'POST'), ('/api/fb-crm/reminders', 'GET'), ('/api/valuation-leads/reminders', 'GET'), ('/api/jobs', 'POST')]
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *a, **k): return None
 
-def probe(route):
+def probe(route, method):
     try:
-        r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, headers={'User-Agent': 'GrayYachts-Health/1.0'}), timeout=20)
+        r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, method=method, data=b'{}' if method == 'POST' else None, headers={'User-Agent': 'GrayYachts-Health/1.0', 'Content-Type': 'application/json'}), timeout=20)
         return r.status, r.headers
     except urllib.error.HTTPError as e:
         return e.code, e.headers
@@ -192,8 +205,8 @@ def classify(code, headers):
 
 def command_center():
     problems = []
-    for route in ROUTES:
-        try: issue = classify(*probe(route))
+    for route, method in ROUTES:
+        try: issue = classify(*probe(route, method))
         except Exception as error: issue = f'unreachable ({type(error).__name__})'
         if issue: problems.append(f'{route}: {issue}')
     return not problems, '; '.join(problems) or f'all {len(ROUTES)} machine routes reach the app and require their token'
@@ -203,7 +216,11 @@ def main():
     check('Newsletter', newsletter)
     check('Hermes Codex login', codex_login)
     check('VPS services and disk', services)
-    check('Unrecorded live changes', unrecorded)
+    try:
+        ok, detail, commit_inventory = unrecorded()
+    except Exception as error:
+        ok, detail, commit_inventory = False, f'check could not run: {type(error).__name__}: {str(error)[:200]}', None
+    checks.append(('Unrecorded live changes', ok, detail))
     check('Command Center machine routes', command_center)
 
     bad = [name for name, ok, _ in checks if not ok]
@@ -211,7 +228,7 @@ def main():
     body = '\n\n'.join(f"{'OK  ' if ok else 'FIX '} {name}\n     {detail}" for name, ok, detail in checks)
     body += '\n\nSent daily at 08:00 PT by grayyachts-health.timer on the VPS (scripts/ops/vps-health.py).'
 
-    if '--dry-run' in sys.argv:
+    if '--dry-run' in sys.argv:  # a dry run never moves the baseline
         print(subject + '\n\n' + body)
         return
     key = next((l.split('=', 1)[1].strip().strip('"\'') for l in RESEND_ENV.read_text().splitlines() if l.startswith('RESEND_API_KEY=')), '')
@@ -219,6 +236,7 @@ def main():
                                      headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Health/1.0'})
     with urllib.request.urlopen(request, timeout=25) as response:
         response.read()
+    if commit_inventory: commit_inventory()  # only after delivery, so undelivered findings are re-reported
     print(subject)
 
 

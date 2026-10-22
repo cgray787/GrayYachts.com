@@ -30,10 +30,18 @@ class Drift(unittest.TestCase):
         cur = {'/etc/x/a': [ts(NOW - dt.timedelta(hours=2)), 10]}
         entries = [(NOW - dt.timedelta(hours=1, minutes=45), ['/etc/x/a'])]
         self.assertEqual(vh.drift(cur, {}, entries, NOW)[1], [])
-    def test_deleted_file_is_reported(self):  # review finding 5
+    def test_deleted_file_is_reported(self):  # first review, finding 5
         prev = {'/etc/systemd/system/job.timer': [ts(NOW - dt.timedelta(days=5)), 10]}
-        changed, missing = vh.drift({}, prev, [], NOW)
+        changed, missing = vh.drift({}, prev, [], NOW, NOW - dt.timedelta(days=1))
         self.assertEqual(missing, ['/etc/systemd/system/job.timer (deleted)'])
+    def test_deletion_logged_between_scans_counts(self):  # second review, finding 4
+        prev = {'/etc/systemd/system/job.timer': [ts(NOW - dt.timedelta(days=5)), 10]}
+        entries = [(NOW - dt.timedelta(hours=2), ['/etc/systemd/system/job.timer'])]
+        self.assertEqual(vh.drift({}, prev, entries, NOW, NOW - dt.timedelta(days=1))[1], [])
+    def test_late_scan_still_sees_older_changes(self):  # second review, finding 3
+        old, new = [ts(NOW - dt.timedelta(days=4)), 10], [ts(NOW - dt.timedelta(days=2)), 11]
+        changed, missing = vh.drift({'/etc/x/a': new}, {'/etc/x/a': old}, [], NOW, NOW - dt.timedelta(days=3))
+        self.assertEqual(missing, ['/etc/x/a'])
     def test_unchanged_old_file_is_ignored(self):
         old = [ts(NOW - dt.timedelta(days=3)), 10]
         self.assertEqual(vh.drift({'/a': old}, {'/a': old}, [], NOW), ([], []))
@@ -50,10 +58,17 @@ class Routes(unittest.TestCase):
         for code, headers in [(503, {}), (403, self.H(Server_Timing='cfOrigin;dur=12')), (302, self.H(Location='/login')), (404, {}), (200, {})]:
             self.assertIsNotNone(vh.classify(code, headers), code)
 
+class Methods(unittest.TestCase):  # second review, finding 1
+    def test_post_only_routes_are_probed_with_post(self):
+        methods = dict(vh.ROUTES)
+        self.assertEqual(methods['/api/jobs'], 'POST'); self.assertEqual(methods['/api/fb-crm/sweep'], 'POST')
+        self.assertEqual(methods['/api/valuation-leads/reminders'], 'GET')
+
 class LedgerSync(unittest.TestCase):  # review finding 4
     def test_missing_ledger_fails(self):
         vh.LEDGER = Path('/nonexistent-ledger')
-        ok, detail = vh.unrecorded()
+        ok, detail, commit = vh.unrecorded()
+        self.assertIsNone(commit)  # nothing to save when verification failed
         self.assertFalse(ok); self.assertIn('ledger not found', detail)
 
 if __name__ == '__main__':
