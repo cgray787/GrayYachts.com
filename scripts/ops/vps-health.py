@@ -104,76 +104,123 @@ def services():
 
 # Unrecorded live changes (added 2026-10-22): on 2026-10-20 a config file was switched off and
 # Cloudflare Access was put in front of the Command Center with no record of who did it.
-# Every live change must have a matching `coord log` entry in the shared agent-ops ledger.
+# Every live change must have a matching `coord log ... --paths <file>` entry in the agent-ops ledger.
 LEDGER = Path('/opt/agent-ops')
+INVENTORY = Path('/opt/grayyachts-health/inventory.json')
 WATCH = ['/etc/systemd/system', '/root/.config/graycapital', '/opt/grayyachts-automation/private/config',
          '/opt/grayyachts-automation/source', '/opt/grayyachts-automation/marketplace', '/opt/grayyachts-automation/pnw-sync',
-         '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health',
+         '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health/vps_health.py',
          '/root/.hermes/config.yaml', '/root/.hermes/SOUL.md', '/root/.hermes/scripts']
-SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/)')
+SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/|-state\.json$)')  # job-written state files are not changes
+WINDOW = dt.timedelta(hours=24)
+# Agents log after changing: an entry covers a change made up to 24 h before it, or up to 30 min after it
+# (clock skew, or logging just ahead of the final write). An older entry never covers a newer edit.
+BEFORE, AFTER = dt.timedelta(minutes=30), dt.timedelta(hours=24)
 
-def unrecorded():
-    subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, timeout=60)
-    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=24)
-    changed = []
-    for root in WATCH:
+def inventory(watch=WATCH):
+    files = {}
+    for root in watch:
         base = Path(root)
-        files = [base] if base.is_file() else (p for p in base.rglob('*') if p.is_file()) if base.exists() else []
-        for f in files:
-            if SKIP.search(str(f)): continue
-            if dt.datetime.fromtimestamp(f.stat().st_mtime, dt.timezone.utc) >= cutoff: changed.append(str(f))
-    recorded = []
-    for entry in (LEDGER / 'changes').rglob('*.md'):
+        for f in ([base] if base.is_file() else base.rglob('*') if base.is_dir() else []):
+            if f.is_file() and not SKIP.search(str(f)):
+                st = f.stat(); files[str(f)] = [st.st_mtime, st.st_size]
+    return files
+
+def ledger_entries(ledger=LEDGER):
+    """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
+    entries = []
+    for entry in (ledger / 'changes').rglob('*.md'):
         text = entry.read_text(errors='ignore')
         at = re.search(r'^at: (\S+)', text, re.M)
-        if not at or dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00')) < cutoff - dt.timedelta(hours=24): continue
-        for field in ('paths', 'system'):
-            m = re.search(rf'^{field}: (.*)$', text, re.M)
-            if m: recorded += [x.strip() for x in re.split(r'[,\s]+', m.group(1)) if len(x.strip()) > 3]
-    missing = [f for f in changed if not any(r in f or f.endswith(r) for r in recorded)]
-    detail = f"{len(changed)} live files changed in 24 h, {len(missing)} with no ledger entry"
-    if missing: detail += ': ' + ', '.join(missing[:8]) + (' …' if len(missing) > 8 else '') + '. Find who changed them; record with coord log.'
+        paths = re.search(r'^paths: (.*)$', text, re.M)
+        if not at or not paths: continue
+        when = dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00'))
+        entries.append((when, [x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()]))
+    return entries
+
+def covers(recorded, path):
+    recorded = recorded.rstrip('/')
+    return path == recorded or path.startswith(recorded + '/')
+
+def drift(current, previous, entries, now_utc):
+    """Return the changed and unrecorded paths. A change is a new or modified file within the window, or a
+    file present in the previous inventory that is now gone (dated now). Each needs a ledger entry naming that
+    exact path (or a parent directory) logged close to the change time."""
+    changes = {}
+    for path, (mtime, _size) in current.items():
+        when = dt.datetime.fromtimestamp(mtime, dt.timezone.utc)
+        if when >= now_utc - WINDOW and (path not in previous or previous[path] != current[path]): changes[path] = when
+    for path in previous:
+        if path not in current: changes[path + ' (deleted)'] = now_utc
+    missing = []
+    for label, when in changes.items():
+        path = label.removesuffix(' (deleted)')
+        if not any(when - BEFORE <= at <= when + AFTER and any(covers(r, path) for r in paths) for at, paths in entries):
+            missing.append(label)
+    return sorted(changes), sorted(missing)
+
+def unrecorded():
+    if not (LEDGER / 'changes').is_dir(): return False, f'ledger not found at {LEDGER}; cannot verify live changes'
+    pull = subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, text=True, timeout=60)
+    if pull.returncode: return False, 'ledger sync failed, so live changes could not be verified: ' + (pull.stderr or pull.stdout).strip()[:160]
+    previous = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else {}
+    current = inventory()
+    changed, missing = drift(current, previous, ledger_entries(), dt.datetime.now(dt.timezone.utc))
+    if '--dry-run' not in sys.argv: INVENTORY.write_text(json.dumps(current))  # a dry run must not move the baseline
+    detail = f"{len(changed)} live files changed in the last 24 h, {len(missing)} with no ledger entry" + ('' if previous else ' (first run: deletions are tracked from the next run)')
+    if missing: detail += ': ' + ', '.join(missing[:8]) + (' …' if len(missing) > 8 else '') + '. Find who changed them and record it with `coord log … --paths`.'
     return not missing, detail
 
-# Machine routes the VPS jobs call. A redirect to the Cloudflare Access login means the jobs are locked out.
+# Machine routes the VPS jobs call. Without a token each must reach the app and get its 401; anything else
+# (Access login redirect, Cloudflare bot block, 404, 5xx, a redirect) means the jobs cannot use it.
 ROUTES = ['/api/fb-crm/sweep', '/api/fb-crm/reminders', '/api/valuation-leads/reminders', '/api/jobs']
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *a, **k): return None
 
+def probe(route):
+    try:
+        r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, headers={'User-Agent': 'GrayYachts-Health/1.0'}), timeout=20)
+        return r.status, r.headers
+    except urllib.error.HTTPError as e:
+        return e.code, e.headers
+
+def classify(code, headers):
+    if 'cloudflareaccess.com' in (headers.get('Location') or ''): return 'behind the Cloudflare Access login'
+    if 'cfOrigin;dur=0' in (headers.get('Server-Timing') or '') and code != 401: return f'blocked by Cloudflare ({code})'
+    if code == 401: return None
+    return f'unexpected {code}' + (f" → {headers.get('Location')}" if headers.get('Location') else '')
+
 def command_center():
-    blocked, missing = [], []
+    problems = []
     for route in ROUTES:
-        try:
-            r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, headers={'User-Agent': 'GrayYachts-Health/1.0'}), timeout=20)
-            headers, code = r.headers, r.status
-        except urllib.error.HTTPError as e:
-            headers, code = e.headers, e.code
-        # Cloudflare answers at the edge without reaching the app: an Access login redirect, or a
-        # bot block (error 1010) for some clients. Both show `cfOrigin;dur=0` in Server-Timing.
-        edge_only = 'cfOrigin;dur=0' in (headers.get('Server-Timing') or '')
-        if 'cloudflareaccess.com' in (headers.get('Location') or '') or (edge_only and code in (302, 403)): blocked.append(f'{route} ({code})')
-        elif code == 404: missing.append(route)
-    problems = ([f"blocked at Cloudflare before reaching the app: {', '.join(blocked)}"] if blocked else []) + ([f"route not found: {', '.join(missing)}"] if missing else [])
-    return not problems, '; '.join(problems) or f"all {len(ROUTES)} machine routes reachable by the VPS jobs"
+        try: issue = classify(*probe(route))
+        except Exception as error: issue = f'unreachable ({type(error).__name__})'
+        if issue: problems.append(f'{route}: {issue}')
+    return not problems, '; '.join(problems) or f'all {len(ROUTES)} machine routes reach the app and require their token'
 
-check('SEO agent (today 07:15 PT)', seo)
-check('Newsletter', newsletter)
-check('Hermes Codex login', codex_login)
-check('VPS services and disk', services)
-check('Unrecorded live changes', unrecorded)
-check('Command Center machine routes', command_center)
+def main():
+    check('SEO agent (today 07:15 PT)', seo)
+    check('Newsletter', newsletter)
+    check('Hermes Codex login', codex_login)
+    check('VPS services and disk', services)
+    check('Unrecorded live changes', unrecorded)
+    check('Command Center machine routes', command_center)
 
-bad = [name for name, ok, _ in checks if not ok]
-subject = f"Gray Yachts automation: {'ACTION NEEDED — ' + ', '.join(bad) if bad else 'all OK'} ({today})"
-body = '\n\n'.join(f"{'OK  ' if ok else 'FIX '} {name}\n     {detail}" for name, ok, detail in checks)
-body += '\n\nSent daily at 08:00 PT by grayyachts-health.timer on the VPS (scripts/ops/vps-health.py).'
+    bad = [name for name, ok, _ in checks if not ok]
+    subject = f"Gray Yachts automation: {'ACTION NEEDED — ' + ', '.join(bad) if bad else 'all OK'} ({today})"
+    body = '\n\n'.join(f"{'OK  ' if ok else 'FIX '} {name}\n     {detail}" for name, ok, detail in checks)
+    body += '\n\nSent daily at 08:00 PT by grayyachts-health.timer on the VPS (scripts/ops/vps-health.py).'
 
-if '--dry-run' in sys.argv:
-    print(subject + '\n\n' + body)
-    sys.exit(0)
-key = next((l.split('=', 1)[1].strip().strip('"\'') for l in RESEND_ENV.read_text().splitlines() if l.startswith('RESEND_API_KEY=')), '')
-request = urllib.request.Request('https://api.resend.com/emails', data=json.dumps({'from': 'Gray Yachts Health <onboarding@resend.dev>', 'to': [TO], 'subject': subject, 'text': body}).encode(),
-                                 headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Health/1.0'})
-with urllib.request.urlopen(request, timeout=25) as response:
-    response.read()
-print(subject)
+    if '--dry-run' in sys.argv:
+        print(subject + '\n\n' + body)
+        return
+    key = next((l.split('=', 1)[1].strip().strip('"\'') for l in RESEND_ENV.read_text().splitlines() if l.startswith('RESEND_API_KEY=')), '')
+    request = urllib.request.Request('https://api.resend.com/emails', data=json.dumps({'from': 'Gray Yachts Health <onboarding@resend.dev>', 'to': [TO], 'subject': subject, 'text': body}).encode(),
+                                     headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Health/1.0'})
+    with urllib.request.urlopen(request, timeout=25) as response:
+        response.read()
+    print(subject)
+
+
+if __name__ == '__main__':
+    main()
