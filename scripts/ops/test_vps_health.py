@@ -52,6 +52,11 @@ class Drift(unittest.TestCase):
         vh.drift(cur, {}, [], NOW, None, w)
         lo, hi = w['/etc/x/a']
         self.assertEqual(lo, NOW - dt.timedelta(hours=1) - vh.BEFORE)
+    def test_permission_change_is_a_change(self):  # sixth review, finding 2
+        import os, tempfile
+        d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
+        before = vh.inventory([d]); st = os.stat(f); os.chmod(f, 0o644); os.utime(f, (st.st_atime, st.st_mtime))
+        self.assertNotEqual(before[f], vh.inventory([d])[f])
     def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
         import os, tempfile
         d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')

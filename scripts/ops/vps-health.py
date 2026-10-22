@@ -127,10 +127,13 @@ def inventory(watch=WATCH):
         base = Path(root)
         for f in ([base] if base.is_file() or base.is_symlink() else base.rglob('*') if base.is_dir() else []):
             if SKIP.search(str(f)): continue
+            st = f.lstat()
+            # Mode and owner are part of the fingerprint: a lost executable bit breaks a job without
+            # touching mtime or size.
             if f.is_symlink():
-                files[str(f)] = [f.lstat().st_mtime, 'link:' + os.readlink(f)]
+                files[str(f)] = [st.st_mtime, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid]
             elif f.is_file():
-                st = f.lstat(); files[str(f)] = [st.st_mtime, st.st_size]
+                files[str(f)] = [st.st_mtime, st.st_size, st.st_mode, st.st_uid, st.st_gid]
     return files
 
 def ledger_entries(ledger=LEDGER):
@@ -157,7 +160,7 @@ def drift(current, previous, entries, now_utc, previous_scan=None, windows=None)
     Each change needs a ledger entry naming that exact path (or a parent directory): logged between the
     previous scan and now, or on the first run between 30 min before and 24 h after the file's mtime."""
     changes = {}
-    for path, (mtime, _size) in current.items():
+    for path, (mtime, *_rest) in current.items():
         when = dt.datetime.fromtimestamp(mtime, dt.timezone.utc)
         if previous_scan is not None:
             # The change happened after the previous scan, whatever mtime says (restores keep old mtimes).
@@ -191,15 +194,17 @@ def unrecorded():
     windows = {}
     changed, missing = drift(current, previous, entries, now_utc, previous_scan, windows)
     # Findings from runs whose email failed stay pending until a ledger entry covers them or they are delivered.
-    pending = json.loads(PENDING.read_text()) if PENDING.exists() else []
-    for label, lo, hi in pending:  # retried with the bounds stored when the finding was first made
-        lo, hi, path = dt.datetime.fromisoformat(lo), dt.datetime.fromisoformat(hi), label.removesuffix(' (deleted)')
-        windows.setdefault(label, (lo, hi))
-        if label not in missing and not any(lo <= at <= hi and any(covers(r, path) for r in paths) for at, paths in entries):
-            missing.append(label); changed.append(label)
-    missing, changed = sorted(set(missing)), sorted(set(changed))
+    # Each undelivered finding is its own event with the bounds it was found with; several events can
+    # exist for one path. An event clears only when a ledger entry falls inside its own bounds, or on delivery.
+    events = [[m, windows[m][0].isoformat(), windows[m][1].isoformat()] for m in missing]
+    for label, lo, hi in (json.loads(PENDING.read_text()) if PENDING.exists() else []):
+        path = label.removesuffix(' (deleted)')
+        if [label, lo, hi] in events: continue
+        if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, path) for r in paths) for at, paths in entries):
+            events.append([label, lo, hi])
+    missing, changed = sorted({e[0] for e in events}), sorted(set(changed) | {e[0] for e in events})
     if '--dry-run' not in sys.argv:
-        PENDING.write_text(json.dumps([[m, windows[m][0].isoformat(), windows[m][1].isoformat()] for m in missing]))
+        PENDING.write_text(json.dumps(events))
     since = f"since the last check ({previous_scan:%Y-%m-%d %H:%M} UTC)" if previous_scan else 'in the last 24 h (first check: deletions tracked from the next run)'
     detail = f"{len(changed)} live files changed {since}, {len(missing)} with no ledger entry"
     # List every finding: the baseline advances once the email is sent, so anything not listed would be lost.
