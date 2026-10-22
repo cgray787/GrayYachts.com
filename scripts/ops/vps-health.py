@@ -10,6 +10,7 @@ Usage: vps_health.py [--dry-run]   (dry run prints instead of emailing)
 import base64
 import datetime as dt
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -107,6 +108,7 @@ def services():
 # Every live change must have a matching `coord log ... --paths <file>` entry in the agent-ops ledger.
 LEDGER = Path('/opt/agent-ops')
 INVENTORY = Path('/opt/grayyachts-health/inventory.json')
+PENDING = Path('/opt/grayyachts-health/pending-findings.json')
 WATCH = ['/etc/systemd/system', '/root/.config/graycapital', '/opt/grayyachts-automation/private/config',
          '/opt/grayyachts-automation/source', '/opt/grayyachts-automation/marketplace', '/opt/grayyachts-automation/pnw-sync',
          '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health/vps_health.py',
@@ -118,12 +120,17 @@ WINDOW = dt.timedelta(hours=24)
 BEFORE, AFTER = dt.timedelta(minutes=30), dt.timedelta(hours=24)
 
 def inventory(watch=WATCH):
+    """{path: [mtime, size]} for files and [mtime, 'link:<target>'] for symlinks (lstat, never followed),
+    so masking a unit (a symlink to /dev/null) or re-pointing one is a change."""
     files = {}
     for root in watch:
         base = Path(root)
-        for f in ([base] if base.is_file() else base.rglob('*') if base.is_dir() else []):
-            if f.is_file() and not SKIP.search(str(f)):
-                st = f.stat(); files[str(f)] = [st.st_mtime, st.st_size]
+        for f in ([base] if base.is_file() or base.is_symlink() else base.rglob('*') if base.is_dir() else []):
+            if SKIP.search(str(f)): continue
+            if f.is_symlink():
+                files[str(f)] = [f.lstat().st_mtime, 'link:' + os.readlink(f)]
+            elif f.is_file():
+                st = f.lstat(); files[str(f)] = [st.st_mtime, st.st_size]
     return files
 
 def ledger_entries(ledger=LEDGER):
@@ -154,7 +161,9 @@ def drift(current, previous, entries, now_utc, previous_scan=None):
         when = dt.datetime.fromtimestamp(mtime, dt.timezone.utc)
         if previous_scan is not None:
             # The change happened after the previous scan, whatever mtime says (restores keep old mtimes).
-            if path not in previous or previous[path] != current[path]: changes[path] = (previous_scan - BEFORE, now_utc + BEFORE)
+            # Logged after the later of the previous scan and the file's mtime (restored files keep old mtimes,
+            # and a morning entry must not cover an unlogged afternoon edit).
+            if path not in previous or previous[path] != current[path]: changes[path] = (max(previous_scan, when) - BEFORE, now_utc + BEFORE)
         elif when >= now_utc - WINDOW: changes[path] = (when - BEFORE, when + AFTER)
     if previous_scan is not None:
         for path in previous:
@@ -177,12 +186,24 @@ def unrecorded():
     previous_scan = dt.datetime.fromisoformat(saved['scanned_at']) if saved else None
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
-    changed, missing = drift(current, previous, ledger_entries(), now_utc, previous_scan)
+    entries = ledger_entries()
+    changed, missing = drift(current, previous, entries, now_utc, previous_scan)
+    # Findings from runs whose email failed stay pending until a ledger entry covers them or they are delivered.
+    pending = json.loads(PENDING.read_text()) if PENDING.exists() else []
+    for label, lo, hi in pending:
+        lo, hi, path = dt.datetime.fromisoformat(lo), dt.datetime.fromisoformat(hi), label.removesuffix(' (deleted)')
+        if label not in missing and not any(lo <= at <= max(hi, now_utc + BEFORE) and any(covers(r, path) for r in paths) for at, paths in entries):
+            missing.append(label); changed.append(label)
+    missing, changed = sorted(set(missing)), sorted(set(changed))
+    if '--dry-run' not in sys.argv:
+        PENDING.write_text(json.dumps([[m, (now_utc - WINDOW).isoformat(), now_utc.isoformat()] for m in missing]))
     since = f"since the last check ({previous_scan:%Y-%m-%d %H:%M} UTC)" if previous_scan else 'in the last 24 h (first check: deletions tracked from the next run)'
     detail = f"{len(changed)} live files changed {since}, {len(missing)} with no ledger entry"
     # List every finding: the baseline advances once the email is sent, so anything not listed would be lost.
     if missing: detail += ':\n       ' + '\n       '.join(missing) + '\n     Find who changed them and record it with `coord log … --paths`.'
-    commit = lambda: INVENTORY.write_text(json.dumps({'scanned_at': now_utc.isoformat(), 'files': current}))
+    def commit():  # after delivery: advance the baseline and clear delivered findings
+        INVENTORY.write_text(json.dumps({'scanned_at': now_utc.isoformat(), 'files': current}))
+        PENDING.unlink(missing_ok=True)
     return not missing, detail, commit
 
 # Machine routes the VPS jobs call. Without a token each must reach the app and get its 401; anything else

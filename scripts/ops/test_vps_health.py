@@ -42,6 +42,17 @@ class Drift(unittest.TestCase):
         mtime = [ts(NOW - dt.timedelta(days=5)), 12]
         entries = [(NOW - dt.timedelta(days=5), ['/etc/x/a'])]
         self.assertEqual(vh.drift({'/etc/x/a': mtime}, {'/etc/x/a': [mtime[0], 10]}, entries, NOW, NOW - dt.timedelta(days=1))[1], ['/etc/x/a'])
+    def test_morning_entry_does_not_cover_afternoon_edit(self):  # fourth review, finding 1
+        cur = {'/etc/x/a': [ts(NOW - dt.timedelta(hours=1)), 12]}
+        entries = [(NOW - dt.timedelta(hours=8), ['/etc/x/a'])]
+        self.assertEqual(vh.drift(cur, {'/etc/x/a': [ts(NOW - dt.timedelta(days=2)), 10]}, entries, NOW, NOW - dt.timedelta(days=1))[1], ['/etc/x/a'])
+    def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
+        import os, tempfile
+        d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')
+        open(unit, 'w').write('[Timer]')
+        before = vh.inventory([d]); os.remove(unit); os.symlink('/dev/null', unit)
+        after = vh.inventory([d])
+        self.assertEqual(after[unit][1], 'link:/dev/null'); self.assertNotEqual(before[unit], after[unit])
     def test_late_scan_still_sees_older_changes(self):  # second review, finding 3
         old, new = [ts(NOW - dt.timedelta(days=4)), 10], [ts(NOW - dt.timedelta(days=2)), 11]
         changed, missing = vh.drift({'/etc/x/a': new}, {'/etc/x/a': old}, [], NOW, NOW - dt.timedelta(days=3))
