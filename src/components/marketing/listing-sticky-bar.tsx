@@ -45,7 +45,7 @@ export function ListingStickyBar({
               BROCHURE
             </a>
           )}
-          {/* Anchors to the on-page enquiry form rather than a mailto:,
+          {/* Anchors to the on-page inquiry form rather than a mailto:,
               which silently no-ops without a registered mail handler. */}
           <a
             href="#enquire"

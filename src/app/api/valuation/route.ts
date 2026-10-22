@@ -218,7 +218,7 @@ export async function POST(req: Request) {
         : ""
     }
 
-    <p style="margin:24px 0"><a href="https://command.graycapital.org/valuation-leads" style="display:inline-block;background:#203342;color:white;padding:14px 20px;border-radius:4px;text-decoration:none">Open Seller Inquiries</a></p>
+    <p style="margin:24px 0"><a href="https://command.graycapital.org/valuation-leads" style="display:inline-block;background:#203342;color:white;padding:14px 20px;border-radius:4px;text-decoration:none">Open Seller Inquries</a></p>
     <p style="margin-top:24px;font-size:12px;color:#8892A5">
       Reply to this email to answer ${esc(name.split(" ")[0] || "them")} directly.
     </p>

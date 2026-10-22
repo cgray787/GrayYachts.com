@@ -1,5 +1,9 @@
 # Gray Yachts - grayyachts.com
 
+## Hard wording rule — Connor, 2026-10-21
+
+Use **inquries** as the exact plural in all authored copy, including customer email/SMS, scripts, prompts, templates, ads, reports, website/UI text, and replies to Connor. Use **inquiry** for the singular. Do not autocorrect the plural to `inquiries` or use `enquiries` / `enquiry`. Check this before sending or publishing. Preserve exact quotes, source/history records, and technical identifiers.
+
 ## Project Overview
 
 Luxury yacht management platform with a client portal for yacht owners. Features yacht comparison (with live web scraping), document management, maintenance tracking, and service provider directory.

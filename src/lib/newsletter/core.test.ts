@@ -211,12 +211,12 @@ describe('per-edition licensed and generated media',()=>{
  it('labels generated illustrations and requires a relevance note',async()=>{
   const {db,env}=database();const s=store();
   Object.assign(env,{YACHT_PHOTOS:s.bucket,AI:{run:async()=>({image:btoa('x'.repeat(30000))})}});
-  const g=await generateMedia(env,{prompt:'A broker and buyer reviewing a boat enquiry form at a marina office desk'});
+  const g=await generateMedia(env,{prompt:'A broker and buyer reviewing a boat inquiry form at a marina office desk'});
   const media=await mediaById(env,[g.id]);
-  const [img]=validateImages([{id:g.id,alt:'Illustration of an enquiry form on a desk',caption:'An enquiry is not an offer',relevance:'Shows the enquiry-to-offer step the section explains'},photos()[0]],undefined,media);
-  expect(img.caption).toBe('An enquiry is not an offer (AI-generated illustration)');
+  const [img]=validateImages([{id:g.id,alt:'Illustration of an inquiry form on a desk',caption:'An inquiry is not an offer',relevance:'Shows the inquiry-to-offer step the section explains'},photos()[0]],undefined,media);
+  expect(img.caption).toBe('An inquiry is not an offer (AI-generated illustration)');
   expect(img.credit).toBe('AI-generated illustration');
-  expect(()=>validateImages([{id:g.id,alt:'Illustration of an enquiry form',caption:'An enquiry is not an offer'},photos()[0]],undefined,media)).toThrow('relevance');
+  expect(()=>validateImages([{id:g.id,alt:'Illustration of an inquiry form',caption:'An inquiry is not an offer'},photos()[0]],undefined,media)).toThrow('relevance');
   db.close();
  });
 });

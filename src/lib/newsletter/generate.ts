@@ -28,6 +28,7 @@ Editorial guidance you may develop as advice, not a measured market claim: compa
 There is no current sold-price dataset, no supplied personal anecdote, and no supplied testimonial. Do not invent statistics, prices, inventory, credentials, dealer relationships, named customers, quotes, or first-person experiences. Do not imply guaranteed sale timing or price uplift. No unsourced claims about typical percentages, requirements, market trends, or seasonal demand.`;
 const SHAPE = `Return JSON only: {"title":"...","excerpt":"...","introduction":"...","sections":[{"heading":"...","paragraphs":["..."]}],"questions":[{"question":"...","answer":"..."}]}. Use 3-7 sections and 2-5 questions. Write 600-1000 words overall. Plain text within fields; no HTML, Markdown, URLs, or chatbot framing.`;
 async function model(env: NewsletterEnv, system: string, input: string): Promise<unknown> {
+ system += '\nHard wording rule from Connor: use inquries as the exact plural and inquiry as the singular. Do not autocorrect the approved plural. Apply this during writing, editing, and final review.';
  if(env.NEWSLETTER_AI_PROVIDER==='cloudflare') {
   if(!env.AI)throw new Error('Cloudflare newsletter AI binding is missing');
   const result=await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast',{

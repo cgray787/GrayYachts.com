@@ -392,7 +392,7 @@ export const brochures: Record<string, BrochureContent> = {
       "Jimmie is a 1997 Rozema 50 — a custom welded-aluminum workboat built for the shellfish industry and still doing the job she was designed for. Rozema Boat Works of Mount Vernon has built aluminum commercial hulls for Pacific Northwest operators for decades, and this is one of their custom oyster boats: a long, flat, unobstructed working deck, shallow draft, and the kind of structure that shrugs off a working life on the tideflats.",
       "The layout is all business. A raised pilothouse sits well aft, leaving the entire foredeck clear for gear, totes and bulk product, with a deck davit for handling loads over the side. Welded aluminum means no core to rot and a hull that tolerates beach work and grid time that would end a fiberglass boat.",
       "Power is twin outboards on the transom — simple to service, straightforward to repower, and friendly to the shallow water this kind of work demands. The pilothouse is functional and uncluttered, with clear sightlines fore and aft for close-quarters deck handling, and the battery bank and systems sit in dry, accessible compartments.",
-      "Offered at $1,100,000. USCG documented. Survey, service history and sea trial available on request — serious inquiries welcome.",
+      "Offered at $1,100,000. USCG documented. Survey, service history and sea trial available on request — serious inquries welcome.",
     ],
     highlights: [
       "1997 Rozema 50' — custom aluminum build",

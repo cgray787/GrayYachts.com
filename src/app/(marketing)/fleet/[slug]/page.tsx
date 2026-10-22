@@ -194,7 +194,7 @@ export default async function ListingPage({
                 <Download size={13} /> BROCHURE
               </a>
             )}
-            {/* Anchors to the enquiry form. Was a mailto:, which silently
+            {/* Anchors to the inquiry form. Was a mailto:, which silently
                 does nothing when no mail handler is registered. */}
             <a
               href="#enquire"

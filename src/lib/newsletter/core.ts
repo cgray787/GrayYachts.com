@@ -44,6 +44,7 @@ export function validateArticle(value: unknown): Article {
  if (!text(a.title, 12, 100) || !text(a.excerpt, 40, 240) || !text(a.introduction, 80, 2000)) throw new Error('Invalid article summary');
  if (!Array.isArray(a.sections) || a.sections.length < 3 || a.sections.length > 7 || a.sections.some(s => !text(s.heading, 5, 120) || !Array.isArray(s.paragraphs) || s.paragraphs.length < 1 || s.paragraphs.length > 5 || s.paragraphs.some(p => !text(p, 30, 2000)))) throw new Error('Invalid article sections');
  if (!Array.isArray(a.questions) || a.questions.length < 2 || a.questions.length > 5 || a.questions.some(q => !text(q.question, 10, 160) || !text(q.answer, 30, 1200))) throw new Error('Invalid article questions');
+ if (/\b(?:enquiries|inquiries|enquiry)\b/i.test(JSON.stringify(a))) throw new Error('Use inquries for the plural and inquiry for the singular');
  const words = [a.introduction, ...a.sections.flatMap(s => s.paragraphs), ...a.questions.map(q => q.answer)].join(' ').split(/\s+/).length;
  if (words < 450 || words > 1800) throw new Error('Article length outside editorial range');
  return a;
