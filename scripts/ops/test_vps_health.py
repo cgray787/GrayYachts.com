@@ -38,6 +38,10 @@ class Drift(unittest.TestCase):
         prev = {'/etc/systemd/system/job.timer': [ts(NOW - dt.timedelta(days=5)), 10]}
         entries = [(NOW - dt.timedelta(hours=2), ['/etc/systemd/system/job.timer'])]
         self.assertEqual(vh.drift({}, prev, entries, NOW, NOW - dt.timedelta(days=1))[1], [])
+    def test_restored_file_with_old_mtime_needs_a_fresh_entry(self):  # third review, finding 2
+        mtime = [ts(NOW - dt.timedelta(days=5)), 12]
+        entries = [(NOW - dt.timedelta(days=5), ['/etc/x/a'])]
+        self.assertEqual(vh.drift({'/etc/x/a': mtime}, {'/etc/x/a': [mtime[0], 10]}, entries, NOW, NOW - dt.timedelta(days=1))[1], ['/etc/x/a'])
     def test_late_scan_still_sees_older_changes(self):  # second review, finding 3
         old, new = [ts(NOW - dt.timedelta(days=4)), 10], [ts(NOW - dt.timedelta(days=2)), 11]
         changed, missing = vh.drift({'/etc/x/a': new}, {'/etc/x/a': old}, [], NOW, NOW - dt.timedelta(days=3))
@@ -52,6 +56,10 @@ class Routes(unittest.TestCase):
         self.assertIsNone(vh.classify(401, self.H(Server_Timing='cfEdge;dur=3, cfOrigin;dur=40')))
     def test_access_login_redirect(self):
         self.assertIn('Access', vh.classify(302, self.H(Location='https://x.cloudflareaccess.com/cdn-cgi/access/login')))
+    def test_middleware_sign_in_401_is_not_healthy(self):  # third review, finding 1
+        self.assertIn('sign-in', vh.classify(401, {}, '{"error":"Sign in required."}'))
+        self.assertIn('sign-in', vh.classify(401, {}, '{"error":"Cloudflare Access sign-in required."}'))
+        self.assertIsNone(vh.classify(401, {}, '{"error":"unauthorized"}'))
     def test_cloudflare_bot_block(self):
         self.assertIn('blocked by Cloudflare', vh.classify(403, self.H(Server_Timing='cfEdge;dur=2,cfOrigin;dur=0')))
     def test_other_failures_are_not_healthy(self):  # review finding 1

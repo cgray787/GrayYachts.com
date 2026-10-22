@@ -147,13 +147,14 @@ def drift(current, previous, entries, now_utc, previous_scan=None):
 
     With a saved inventory, every difference since the last scan counts, however old its mtime (a late or
     missed run must not hide changes). Without one (first run), files modified in the last 24 h count.
-    A modified file needs a ledger entry naming that exact path (or a parent directory) logged between
-    30 min before and 24 h after its mtime. A deleted file needs one logged between the previous scan and now."""
+    Each change needs a ledger entry naming that exact path (or a parent directory): logged between the
+    previous scan and now, or on the first run between 30 min before and 24 h after the file's mtime."""
     changes = {}
     for path, (mtime, _size) in current.items():
         when = dt.datetime.fromtimestamp(mtime, dt.timezone.utc)
         if previous_scan is not None:
-            if path not in previous or previous[path] != current[path]: changes[path] = (when - BEFORE, when + AFTER)
+            # The change happened after the previous scan, whatever mtime says (restores keep old mtimes).
+            if path not in previous or previous[path] != current[path]: changes[path] = (previous_scan - BEFORE, now_utc + BEFORE)
         elif when >= now_utc - WINDOW: changes[path] = (when - BEFORE, when + AFTER)
     if previous_scan is not None:
         for path in previous:
@@ -179,7 +180,8 @@ def unrecorded():
     changed, missing = drift(current, previous, ledger_entries(), now_utc, previous_scan)
     since = f"since the last check ({previous_scan:%Y-%m-%d %H:%M} UTC)" if previous_scan else 'in the last 24 h (first check: deletions tracked from the next run)'
     detail = f"{len(changed)} live files changed {since}, {len(missing)} with no ledger entry"
-    if missing: detail += ': ' + ', '.join(missing[:8]) + (' …' if len(missing) > 8 else '') + '. Find who changed them and record it with `coord log … --paths`.'
+    # List every finding: the baseline advances once the email is sent, so anything not listed would be lost.
+    if missing: detail += ':\n       ' + '\n       '.join(missing) + '\n     Find who changed them and record it with `coord log … --paths`.'
     commit = lambda: INVENTORY.write_text(json.dumps({'scanned_at': now_utc.isoformat(), 'files': current}))
     return not missing, detail, commit
 
@@ -193,13 +195,16 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 def probe(route, method):
     try:
         r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, method=method, data=b'{}' if method == 'POST' else None, headers={'User-Agent': 'GrayYachts-Health/1.0', 'Content-Type': 'application/json'}), timeout=20)
-        return r.status, r.headers
+        return r.status, r.headers, r.read(400).decode(errors='ignore')
     except urllib.error.HTTPError as e:
-        return e.code, e.headers
+        return e.code, e.headers, e.read(400).decode(errors='ignore')
 
-def classify(code, headers):
+def classify(code, headers, body=''):
     if 'cloudflareaccess.com' in (headers.get('Location') or ''): return 'behind the Cloudflare Access login'
     if 'cfOrigin;dur=0' in (headers.get('Server-Timing') or '') and code != 401: return f'blocked by Cloudflare ({code})'
+    # The app's middleware also answers 401 ("Sign in required") when a machine route is missing from its
+    # exemption list; only the route's own token check ("unauthorized") means the job can get through.
+    if code == 401 and re.search(r'sign.?in required', body, re.I): return "rejected by the app's sign-in check (route not exempted for machine tokens)"
     if code == 401: return None
     return f'unexpected {code}' + (f" → {headers.get('Location')}" if headers.get('Location') else '')
 
