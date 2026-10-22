@@ -128,12 +128,14 @@ def inventory(watch=WATCH):
         for f in ([base] if base.is_file() or base.is_symlink() else base.rglob('*') if base.is_dir() else []):
             if SKIP.search(str(f)): continue
             st = f.lstat()
-            # Mode and owner are part of the fingerprint: a lost executable bit breaks a job without
-            # touching mtime or size.
+            # The change time is the later of mtime and ctime: ctime moves on every content, permission or
+            # owner change and can't be preserved by a copy or restore. ctime_ns, mode and owner are part of
+            # the fingerprint (a lost executable bit breaks a job without touching mtime or size).
+            changed_at = max(st.st_mtime, st.st_ctime)
             if f.is_symlink():
-                files[str(f)] = [st.st_mtime, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid]
+                files[str(f)] = [changed_at, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
             elif f.is_file():
-                files[str(f)] = [st.st_mtime, st.st_size, st.st_mode, st.st_uid, st.st_gid]
+                files[str(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
 def ledger_entries(ledger=LEDGER):

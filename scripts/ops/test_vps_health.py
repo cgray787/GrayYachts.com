@@ -57,6 +57,12 @@ class Drift(unittest.TestCase):
         d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
         before = vh.inventory([d]); st = os.stat(f); os.chmod(f, 0o644); os.utime(f, (st.st_atime, st.st_mtime))
         self.assertNotEqual(before[f], vh.inventory([d])[f])
+    def test_chmod_after_logged_edit_is_dated_by_ctime(self):  # seventh review
+        import os, tempfile, time
+        d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
+        st = os.stat(f); os.utime(f, (st.st_atime, st.st_mtime - 3600)); time.sleep(0.01); os.chmod(f, 0o644)
+        entry = vh.inventory([d])[f]
+        self.assertGreaterEqual(entry[0], os.stat(f).st_ctime)  # change time follows the chmod, not the old mtime
     def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
         import os, tempfile
         d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')
