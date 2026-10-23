@@ -119,9 +119,64 @@ describe("rateLimitResponse", () => {
     expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(await res.json()).toEqual({
       ok: false,
-      error: "rate_limited",
-      message: "Too many requests from this network — please try again later.",
+      error: "Too many requests from this network — please try again later.",
+      code: "rate_limited",
       retryAfterSeconds: 1234,
     });
+  });
+});
+
+describe("KV write throttling (one write per key per second)", () => {
+  /** KV that accepts one write per key per fake-timer second and rejects the rest. */
+  function throttlingKv() {
+    const store = new Map<string, string>();
+    const lastWrite = new Map<string, number>();
+    return {
+      store,
+      get: vi.fn(async (k: string) => store.get(k) ?? null),
+      put: vi.fn(async (k: string, v: string) => {
+        const sec = Math.floor(Date.now() / 1000);
+        if (lastWrite.get(k) === sec) throw new Error("KV PUT failed: 429 Too Many Requests");
+        lastWrite.set(k, sec);
+        store.set(k, v);
+      }),
+    };
+  }
+
+  it("keeps an exhausted quota at 429 across rapid retries even though every write fails", async () => {
+    const kv = throttlingKv();
+    useEnv({ RATE_LIMIT: kv });
+    // Fill the quota one request per second (writes succeed).
+    for (let i = 0; i < SCRAPE_LIMIT.limit; i++) {
+      vi.setSystemTime(new Date(Date.now() + 1000));
+      expect((await rateLimited("1.2.3.4", SCRAPE_LIMIT)).limited).toBe(false);
+    }
+    // Same second: 25 retries. The decision comes from the read, so none pass.
+    vi.setSystemTime(new Date(Date.now() + 1000));
+    const results = [];
+    for (let i = 0; i < 25; i++) results.push(await rateLimited("1.2.3.4", SCRAPE_LIMIT));
+    expect(results.every(r => r.limited && r.via === "kv")).toBe(true);
+  });
+
+  it("never lets a failed write authorize a request, and still counts once per second under a burst", async () => {
+    const kv = throttlingKv();
+    useEnv({ RATE_LIMIT: kv });
+    // 5 requests in one second: the first write lands, 4 are throttled.
+    for (let i = 0; i < 5; i++) expect((await rateLimited("1.2.3.4", VALUATION_LIMIT)).via).toBe("kv");
+    expect(kv.put).toHaveBeenCalledTimes(5);
+    const bucket = Math.floor(Date.now() / 1000 / VALUATION_LIMIT.windowS);
+    expect(kv.store.get(`valuation:1.2.3.4:${bucket}`)).toBe("1");
+    // One request per second afterwards is counted normally until the window locks.
+    let limitedAt = 0;
+    for (let s = 1; s <= VALUATION_LIMIT.limit + 1; s++) {
+      vi.setSystemTime(new Date(Date.now() + 1000));
+      if ((await rateLimited("1.2.3.4", VALUATION_LIMIT)).limited) { limitedAt = s; break; }
+    }
+    expect(limitedAt).toBe(VALUATION_LIMIT.limit); // 1 counted in the burst + (limit-1) singles, then 429
+  });
+
+  it("fails open only when the read itself fails", async () => {
+    useEnv({ RATE_LIMIT: { get: async () => { throw new Error("kv down"); }, put: vi.fn() } });
+    expect(await rateLimited("1.2.3.4", SCRAPE_LIMIT)).toMatchObject({ limited: false, via: "kv-error" });
   });
 });

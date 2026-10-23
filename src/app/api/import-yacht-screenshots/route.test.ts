@@ -56,7 +56,7 @@ it(`allows ${SCREENSHOT_IMPORT_LIMIT.limit} imports per IP per window, then answ
   const res = await POST(valid());
   expect(res.status).toBe(429);
   expect(res.headers.get('Retry-After')).toMatch(/^\d+$/);
-  expect(await res.json()).toMatchObject({ ok: false, error: 'rate_limited' });
+  expect(await res.json()).toMatchObject({ ok: false, code: 'rate_limited', error: expect.stringContaining('try again later') });
   expect(extractScreenshots).toHaveBeenCalledTimes(SCREENSHOT_IMPORT_LIMIT.limit);
   expect(photoBucket).toHaveBeenCalledTimes(SCREENSHOT_IMPORT_LIMIT.limit);
 });

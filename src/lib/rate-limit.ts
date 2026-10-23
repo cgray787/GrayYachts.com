@@ -94,27 +94,48 @@ export async function rateLimited(ip: string, policy: RateLimitPolicy): Promise<
   }
 
   // Authoritative: KV counter, shared across isolates.
+  const kv = env.RATE_LIMIT as KV | undefined;
+  if (!kv) return { limited: false, via: "no-kv", retryAfterS };
+  const bucket = Math.floor(nowS / policy.windowS);
+  const key = `${policy.prefix}:${ip}:${bucket}`;
+  let n: number;
   try {
-    const kv = env.RATE_LIMIT as KV | undefined;
-    if (!kv) return { limited: false, via: "no-kv", retryAfterS };
-    const bucket = Math.floor(nowS / policy.windowS);
-    const key = `${policy.prefix}:${ip}:${bucket}`;
-    const n = Number((await kv.get(key)) ?? "0") + 1;
-    await kv.put(key, String(n), { expirationTtl: policy.windowS * 2 });
-    return { limited: n > policy.limit, via: "kv", retryAfterS };
+    n = Number((await kv.get(key)) ?? "0") + 1;
   } catch (e) {
-    console.error(`${tag} kv limiter failed`, e);
-    return { limited: false, via: "kv-error", retryAfterS }; // fail open
+    console.error(`${tag} kv read failed`, e);
+    return { limited: false, via: "kv-error", retryAfterS }; // fail open on a KV outage only
   }
+  // Decide from the read, before writing: an exhausted quota is rejected no
+  // matter what happens to the write below, so a client that retries fast after
+  // a 429 stays at 429.
+  if (n > policy.limit) return { limited: true, via: "kv", retryAfterS };
+  // KV accepts one write per key per second, so under a burst some of these
+  // writes fail. A failed write never authorizes anything (the decision above
+  // already passed); it only means the counter advances at most once per second
+  // per IP, so a burst can exceed `limit` by roughly one request per second of
+  // burst before the window locks. An atomic counter (Durable Object) would
+  // close that gap; KV is what this site has today.
+  try {
+    await kv.put(key, String(n), { expirationTtl: policy.windowS * 2 });
+  } catch (e) {
+    console.error(`${tag} kv write failed (counter not advanced)`, e);
+  }
+  return { limited: false, via: "kv", retryAfterS };
 }
 
-/** The shared 429 for the cost/write routes (inquiry keeps its own wording). */
+export const RATE_LIMIT_MESSAGE = "Too many requests from this network — please try again later.";
+
+/**
+ * The shared 429 for the cost/write routes (inquiry keeps its own wording).
+ * `error` carries the readable text because the compare-tool clients show
+ * `data.error` to the visitor; `code` is the stable machine-readable value.
+ */
 export function rateLimitResponse(result: RateLimitResult) {
   return NextResponse.json(
     {
       ok: false,
-      error: "rate_limited",
-      message: "Too many requests from this network — please try again later.",
+      error: RATE_LIMIT_MESSAGE,
+      code: "rate_limited",
       retryAfterSeconds: result.retryAfterS,
     },
     {

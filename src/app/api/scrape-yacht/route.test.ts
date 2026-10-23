@@ -47,7 +47,7 @@ it(`answers the ${SCRAPE_LIMIT.limit + 1}th uncached scrape per IP per window wi
   expect(res.status).toBe(429);
   expect(res.headers.get("Retry-After")).toMatch(/^\d+$/);
   expect(res.headers.get("Cache-Control")).toBe("no-store");
-  expect(await res.json()).toMatchObject({ ok: false, error: "rate_limited" });
+  expect(await res.json()).toMatchObject({ ok: false, code: "rate_limited", error: expect.stringContaining("try again later") });
   expect(fetchBoatsGroupListing).not.toHaveBeenCalled();
   expect(fetchSpy).not.toHaveBeenCalled();
 });
