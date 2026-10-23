@@ -205,7 +205,9 @@ def unrecorded():
     pull = subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, text=True, timeout=60)
     if pull.returncode: return False, 'ledger sync failed, so live changes could not be verified: ' + (pull.stderr or pull.stdout).strip()[:160], None
     saved = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else None
-    previous = saved['files'] if saved else {}
+    # Apply the current exclusions to the saved inventory and pending findings too, so files that became
+    # excluded after an upgrade are not reported as deleted.
+    previous = {k: v for k, v in (saved['files'] if saved else {}).items() if not SKIP.search(k)}
     previous_scan = dt.datetime.fromisoformat(saved['scanned_at']) if saved else None
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
@@ -218,6 +220,7 @@ def unrecorded():
     events = [[m, windows[m][0].isoformat(), windows[m][1].isoformat()] for m in missing]
     for label, lo, hi in (json.loads(PENDING.read_text()) if PENDING.exists() else []):
         path = label.removesuffix(' (deleted)')
+        if SKIP.search(path): continue
         if [label, lo, hi] in events: continue
         if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, path) for r in paths) for at, paths in entries):
             events.append([label, lo, hi])

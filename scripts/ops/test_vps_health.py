@@ -94,6 +94,10 @@ class Drift(unittest.TestCase):
         open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {gone}\n')
         entries = vh.ledger_entries(__import__('pathlib').Path(d))
         self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(real), 'removed.json')) for _, paths in entries for r in paths))
+    def test_newly_excluded_files_are_not_reported_as_deleted(self):  # PR #68 review, second pass
+        prev = {'/x/boatwizard/collection-status.json': [ts(NOW - dt.timedelta(days=2)), 10, 0, 0, 0, 0]}
+        filtered = {k: v for k, v in prev.items() if not vh.SKIP.search(k)}
+        self.assertEqual(vh.drift({}, filtered, [], NOW, NOW - dt.timedelta(days=1)), ([], []))
     def test_job_state_files_are_skipped(self):
         self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
         self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))
