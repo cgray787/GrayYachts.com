@@ -147,9 +147,33 @@ class Drift(unittest.TestCase):
         self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
     def test_relative_symlink_target_resolves_against_link_dir(self):
         import os
-        d = '/opt/x'; prev = {'/opt/x/cfg': [0, 'link:../real', 0, 0, 0, 0]}
-        links = {k: os.path.realpath(os.path.join(os.path.dirname(k), v[1][5:])) for k, v in prev.items()}
-        self.assertEqual(links['/opt/x/cfg'], os.path.realpath('/opt/real'))
+        prev = {'/opt/x/cfg': [0, 'link:../real', 0, 0, 0, 0]}  # an older save without the resolved target
+        self.assertEqual(vh.previous_targets(prev)['/opt/x/cfg'], os.path.realpath('/opt/real'))
+    def test_saved_link_target_survives_a_chained_repoint(self):  # PR #68 review, eighth pass
+        import os, tempfile
+        old, new = tempfile.mkdtemp(), tempfile.mkdtemp(); base = tempfile.mkdtemp()
+        mid = os.path.join(base, 'mid'); os.symlink(old, mid)
+        link = os.path.join(base, 'cfg'); os.symlink(mid, link)
+        saved = vh.inventory([base])[vh.canon(link)]
+        self.assertEqual(saved[6], os.path.realpath(old))
+        os.remove(mid); os.symlink(new, mid)  # the intermediate link moves after the scan
+        self.assertEqual(vh.previous_targets({vh.canon(link): saved}), {vh.canon(link): os.path.realpath(old)})
+        self.assertEqual(vh.fingerprint(saved), vh.fingerprint(vh.inventory([base])[vh.canon(link)]))  # cfg itself unchanged
+    def test_parent_entry_covers_files_under_an_aliased_watch_root(self):  # PR #68 review, eighth pass
+        import os, tempfile
+        real = tempfile.mkdtemp(); home = tempfile.mkdtemp(); alias = os.path.join(home, 'graycapital'); os.symlink(real, alias)
+        f = os.path.join(real, 'job.json'); open(f, 'w').write('{}')
+        old = vh.WATCH; vh.WATCH = [alias]
+        try:
+            current = vh.inventory([alias]); key = vh.canon(f)
+            self.assertIn(key, current); self.assertTrue(key.startswith(os.path.realpath(real)))
+            self.assertIn(os.path.join(alias, 'job.json'), vh.names(key))
+            now = dt.datetime.now(dt.timezone.utc)  # real clock: the temp file's mtime is now, not the fixed NOW
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))  # the ledger names the alias's parent directory
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {now.isoformat().replace("+00:00","Z")}\npaths: {home}\n')
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+            self.assertEqual(vh.drift(current, {}, entries, now, now - dt.timedelta(days=1))[1], [])
+        finally: vh.WATCH = old
     def test_job_state_files_are_skipped(self):
         self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
         self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))
