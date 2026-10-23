@@ -98,30 +98,36 @@ def run():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return
-        ctx = context()
-        if not ctx['due']:
-            return
-        attempt_path = WORK / (ctx['slot'] + '.attempts')
-        attempts = int(attempt_path.read_text()) if attempt_path.exists() else 0
-        if attempts >= 3:
-            print('Newsletter generation needs attention: three attempts for ' + ctx['slot'])
-            alert(ctx['slot'], 'three attempts used')
-            return
-        attempt_path.write_text(str(attempts + 1))
+        # Every failure on the run path alerts (Codex review 2026-10-23): context() and the post-agent status
+        # request used to sit outside the handler, so an HTTP, credential or calendar error exited silently.
+        # Until context() has named the edition slot, today's Pacific date is the slot the alert is filed under.
+        slot = dt.datetime.now(ZoneInfo('America/Los_Angeles')).date().isoformat()
+        attempt = None
         try:
+            ctx = context()
+            if not ctx['due']:
+                return
+            slot = ctx['slot']
+            attempt_path = WORK / (slot + '.attempts')
+            attempts = int(attempt_path.read_text()) if attempt_path.exists() else 0
+            if attempts >= 3:
+                print('Newsletter generation needs attention: three attempts for ' + slot)
+                alert(slot, 'three attempts used')
+                return
+            attempt = attempts + 1
+            attempt_path.write_text(str(attempt))
             process = agent(ctx)
+            if (WORK / (slot + '.skip.json')).exists():
+                print(json.dumps({'slot': slot, 'state': 'no-new-verified-news', 'agent_exit': process.returncode}))
+                return
+            status = request('/api/newsletter/run')
+            issue = next((i for i in status['issues'] if i['slot'] == slot), None)
+            print(json.dumps({'slot': slot, 'agent_exit': process.returncode, 'issue': issue, 'delivery': status.get('delivery')}))
+            if not issue or not issue.get('title'):
+                raise RuntimeError(f'Hermes did not store a draft (agent exit {process.returncode}); inspect the private agent log')
         except Exception as error:
-            alert(ctx['slot'], f'{type(error).__name__}: {str(error)[:300]} (attempt {attempts + 1} of 3)')
+            alert(slot, f'{type(error).__name__}: {str(error)[:300]}' + (f' (attempt {attempt} of 3)' if attempt else ''))
             raise
-        if (WORK / (ctx['slot'] + '.skip.json')).exists():
-            print(json.dumps({'slot':ctx['slot'],'state':'no-new-verified-news','agent_exit':process.returncode}))
-            return
-        status = request('/api/newsletter/run')
-        issue = next((i for i in status['issues'] if i['slot'] == ctx['slot']), None)
-        print(json.dumps({'slot': ctx['slot'], 'agent_exit': process.returncode, 'issue': issue, 'delivery': status.get('delivery')}))
-        if not issue or not issue.get('title'):
-            alert(ctx['slot'], f'Hermes did not store a draft (agent exit {process.returncode}, attempt {attempts + 1} of 3)')
-            raise RuntimeError('Hermes did not store a draft; inspect the private agent log')
 
 def preflight():
     """End-to-end check after any change: build the real prompt from live data and check Hermes's login."""
