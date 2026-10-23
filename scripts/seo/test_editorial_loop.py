@@ -115,7 +115,7 @@ class PromptUpgradeTests(unittest.TestCase):
   out=json.dumps({'is_error':False,'structured_output':result})
   loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=0,stdout=out,stderr='')
  def result(self,**extra):
-  r={'updates':[],'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'Keep answers first.'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
+  r={'updates':self.research(loop.today(),broken=0),'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'Keep answers first.'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
   r.update(extra);return r
  def research(self,day,broken):
   ids=[t['id'] for t in loop.choose_topics(day)]
@@ -192,7 +192,9 @@ class KeywordTargetTests(unittest.TestCase):
    seen={}
    def fake(cmd,**kw):
     seen['input']=kw.get('input','')
-    out={'updates':[],'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'x'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
+    ctx=json.loads(seen['input'].split('Current context:\n',1)[1])
+    updates=[{'topicId':t['id'],'changeType':'unchanged','summary':'No verified change.','sourceUrl':t['sourceUrl'],'sourcePublishedAt':None} for t in ctx['topics']]
+    out={'updates':updates,'draft':None,'critique':{'findings':[],'revisionsMade':[],'lesson':'x'},'experimentProposal':None,'revisionProposal':None,'earnedMediaIdeas':[]}
     return types.SimpleNamespace(returncode=0,stdout=json.dumps({'is_error':False,'structured_output':out}),stderr='')
    loop.subprocess.run=fake
    try:loop.run(argparse.Namespace(dry_run=False))

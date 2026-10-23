@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from urllib.parse import urlparse
 import urllib.request
 from zoneinfo import ZoneInfo
@@ -60,19 +61,21 @@ def invoke_agent(prompt, schema):
             hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
             # --ignore-rules, not --safe-mode: safe mode also drops ~/.hermes/config.yaml, which holds the web
             # search/extract backend, so every research fetch failed (2026-10-19). Tools stay limited by -t web.
-            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--ignore-rules','--provider','codex','--max-turns','12','--source','tool','-t','web','-q',hermes_prompt]
+            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--ignore-rules','--provider','codex','--max-turns','12','--source','tool','-t',('none' if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE')=='official_sources' else 'web'),'-q',hermes_prompt]
             proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
-            output=(proc.stdout or '').strip();result=None
-            for index,char in enumerate(output):
-                if char!='{':continue
-                try:
-                    candidate,_=json.JSONDecoder().raw_decode(output[index:])
-                    if isinstance(candidate,dict):
-                        result=candidate
-                        break
-                except ValueError:continue
-            if result is None:raise ValueError('Hermes did not return a JSON object')
+            output=(proc.stdout or '').strip();result=None;last_error=None
+            decoder=json.JSONDecoder();index=0
+            while index<len(output):
+                if output[index]!='{':index+=1;continue
+                try:candidate,end=decoder.raw_decode(output,index)
+                except ValueError:index+=1;continue
+                index=end  # never mistake an inner object for a complete final response
+                if not isinstance(candidate,dict):continue
+                try:jsonschema.validate(candidate,schema)
+                except jsonschema.ValidationError as exc:last_error=exc.message;continue
+                result=candidate  # the last schema-valid object is the final answer
+            if result is None:raise ValueError('Hermes did not return schema-valid JSON: '+str(last_error or 'no object'))
         elif provider=='claude':
             command=[shutil.which('claude') or str(Path.home()/'.local/bin/claude'),'-p','--output-format','json','--json-schema',json.dumps(schema),'--max-budget-usd',str(read(CONTENT/'program.json')['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
             proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
@@ -97,12 +100,49 @@ def write(path, value):
 
 def today(): return dt.datetime.now(ZONE).date()
 TOOL_FAILURE=re.compile(r'(?:providers?|backends?) (?:is |are )?not configured|no [a-z ]{0,30}?(?:providers?|backends?) (?:is |are )?configured|(?:retrieval|fetch|extraction)\b[^.]{0,80}?\bfailed|search (?:fallback )?(?:is |was )?(?:also )?unavailable|web (?:tools?|access) (?:is |are |was |were )?unavailable',re.I)
+TOOL_FAILURE=re.compile(TOOL_FAILURE.pattern+r'|insufficient(?: access)? credits|(?:credits?|quota|balance)[^.]{0,50}(?:exhausted|depleted|insufficient)|payment required|rate limit(?:ed| exceeded)|(?:all|every)[^.]{0,65}(?:requests?|sources?)[^.]{0,50}failed',re.I)
+
+def research_health(result, topic_ids):
+    updates=result.get('updates',[])
+    ids=[u['topicId'] for u in updates]
+    if set(ids)!=set(topic_ids) or len(ids)!=len(set(ids)):
+        raise ValueError('Research updates do not cover each supplied topic exactly once')
+    unverified=[u for u in updates if u['changeType']=='unverified']
+    evidence='\n'.join([u.get('summary','') for u in updates]+result.get('critique',{}).get('findings',[]))
+    broken=[u for u in updates if TOOL_FAILURE.search(u.get('summary',''))]
+    if updates and (len(unverified)==len(updates) or len(broken)*2>=len(updates) or (len(unverified)*2>=len(updates) and TOOL_FAILURE.search(evidence))):
+        raise RuntimeError(f'Research tools unavailable or evidence unverified for {max(len(unverified),len(broken))}/{len(updates)} topics')
+
+def atomic_text(path, text):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp')
+    try:
+        temporary.write_text(text,encoding='utf-8')
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+def finalize_run(result, state, lessons, key):
+    # JSON is the durable recovery record if rendering or the final state write fails.
+    previous=read(STATE/'runs'/f'{key}.json')
+    if previous and previous!=result:
+        digest=hashlib.sha256(json.dumps(previous,sort_keys=True).encode()).hexdigest()
+        write(STATE/'attempts'/key/f'previous-{digest}.json',previous)
+    write(STATE/'runs'/f'{key}.json',result)
+    atomic_text(STATE/'runs'/f'{key}.md',render_review(result))
+    if not result['qualityGate']['issues']:
+        lessons=[lesson for lesson in lessons if lesson.get('date')!=key]
+        lessons.append({'date':key,'kind':'editorial_observation','lesson':result['critique']['lesson'],'notRankingEvidence':True})
+        write(STATE/'lessons.json',lessons[-30:])
+    state.update(lastSuccess=key,failures=0,blocked=False,lastError=None)
+    write(STATE/'state.json',state)
+
 def timestamp(): return dt.datetime.now(ZONE).isoformat()
 def valid_url(value):
     u = urlparse(value)
     return u.scheme == 'https' and bool(u.hostname) and not u.username and not u.password
 
-def validate_article(a, asof=None, allowed_paths=None, jby_brands=None):
+def validate_article(a, asof=None, allowed_paths=None, jby_brands=None, enforce_wording=False):
     """Mechanical gates only. This does not establish factual truth or ranking quality."""
     asof = asof or today()
     issues = []
@@ -130,6 +170,7 @@ def validate_article(a, asof=None, allowed_paths=None, jby_brands=None):
     if allowed_paths is not None and any(l['path'] not in allowed_paths for l in a.get('internalLinks',[])): issues.append('unknown internal link')
     # A brand Jeff Brown Yachts represents is a material connection; readers must be told (Google helpful content, CORE-EEAT T04).
     if jby_brands and any(re.search(rf'\b{re.escape(b)}\b',text,re.I) for b in jby_brands) and not any(d.strip() for d in a.get('disclosures',[])): issues.append('missing material connection disclosure')
+    if enforce_wording and re.search(r'\b(?:inquiries|enquiries|enquiry)\b',text,re.I):issues.append('use inquries plural and inquiry singular')
     if re.search(r'[—–-]', text): issues.append('dash in customer copy')
     if re.search(r'<[^>]+>', text): issues.append('raw HTML in article')
     stock=r"guarantee(?:d)? (?:rank|first|top)|as an ai|delve|unparalleled|it['’]?s (?:important|worth) (?:to note|noting)|in today['’]?s (?:fast|ever|competitive|modern)|at the end of the day|look no further|game ?changer|unlock the (?:secret|potential)"
@@ -267,7 +308,12 @@ def run(args):
             notify('Gray Yachts SEO agent is PAUSED',f"The daily SEO run is paused after two failed runs and did nothing today.\n\nLast error: {state.get('lastError')}\nLast attempt: {state.get('lastAttempt')}\nLast success: {state.get('lastSuccess')}\n\nAfter fixing the cause, run:\n  python3 scripts/seo/editorial_loop.py resume\n\nState: {STATE/'state.json'}")
             sys.exit(1)
         day=today(); key=day.isoformat()
-        if state.get('lastSuccess')==key and not args.dry_run:print('Already completed today');return
+        if state.get('lastSuccess')==key and not args.dry_run:
+            try:research_health(read(STATE/'runs'/f'{key}.json',{}),[t['id'] for t in choose_topics(day)])
+            except (ValueError,RuntimeError,KeyError):
+                state['invalidatedLastSuccess']=key;state.pop('lastSuccess',None)
+                print('Earlier run lacks verified research; retrying without discarding its record')
+            else:print('Already completed today');return
         program=read(CONTENT/'program.json')
         existing=read(CONTENT/'articles.json',[])
         candidate=choose_refresh_candidate(day,existing)
@@ -276,29 +322,52 @@ def run(args):
         for p in sorted((STATE/'runs').glob('*.json'))[-10:]:
             prior.append(read(p,{}))
         # Every earlier draft, not just the last 10 runs: a draft can go live long before articles.json is synced.
-        drafted=[r for r in (read(p,{}) for p in sorted((STATE/'runs').glob('*.json'))) if r.get('draft') and r.get('date')!=key]
+        drafted=[r for r in (read(p,{}) for p in sorted((STATE/'runs').glob('*.json'))) if r.get('draft')]
         week_start=day-dt.timedelta(days=day.weekday())
         count=sum(bool(r.get('draft')) and r.get('date','')>=week_start.isoformat() for r in prior)
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
         context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in drafted], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
+        mode=os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE','web')
+        if mode not in ('web','official_sources'):raise ValueError('Unknown research mode')
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         if args.dry_run:
-            print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':['WebSearch','WebFetch'],'publishing':False,'stateDirectory':str(STATE)},indent=2));return
+            print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':([] if mode=='official_sources' else ['WebSearch','WebFetch']),'researchMode':mode,'publishing':False,'stateDirectory':str(STATE)},indent=2));return
         try:
+            cached=read(STATE/'runs'/f'{key}.json',{})
+            if cached.get('date')==key and cached.get('qualityGate'):
+                try:research_health(cached,[t['id'] for t in context['topics']])
+                except (ValueError,RuntimeError,KeyError):pass
+                else:
+                    finalize_run(cached,state,lessons,key)
+                    print(json.dumps({'status':'recovered','draft':(cached.get('draft')or{}).get('slug')}));return
+            if mode=='official_sources':
+                import public_sources
+                context['officialSourceSnapshots']=public_sources.snapshots(context['topics'])
+                snapshot_file=STATE/'sources'/key/(uuid.uuid4().hex+'.json')
+                write(snapshot_file,context['officialSourceSnapshots'])
+                prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             result=invoke_agent(prompt,article_schema())
             known_ids={s['id'] for s in context['topics']}
             for update in result['updates']:
                 if update['topicId'] not in known_ids or not valid_url(update['sourceUrl']):raise ValueError('Unknown topic or invalid research source')
                 if update.get('sourcePublishedAt') and dt.date.fromisoformat(update['sourcePublishedAt'][:10])>day:raise ValueError('Future source date')
-            # A run whose web tools were down still "completes" with every topic marked unverified;
-            # that silently happened on the VPS on 2026-10-19 (no Hermes search/extract backend). Fail it so it alerts.
-            broken=[u['topicId'] for u in result['updates'] if TOOL_FAILURE.search(u.get('summary',''))]
-            if result['updates'] and len(broken)*2>=len(result['updates']):raise RuntimeError(f"Research tools unavailable for {len(broken)}/{len(result['updates'])} topics: {result['updates'][0]['summary'][:200]}")
+            research_health(result,known_ids)
+            if mode=='official_sources':
+                checks={item['topicId']:item for item in context['officialSourceSnapshots']}
+                for update in result['updates']:
+                    source=checks[update['topicId']]
+                    if update['changeType']!='unverified' and (source['status']!='retrieved' or update['sourceUrl'] not in [source['url'],source['requestedUrl']]):raise ValueError('Research claim lacks a retrieved official snapshot')
+                result['sourceChecks']=[{k:v for k,v in item.items() if k!='text'} for item in context['officialSourceSnapshots']]
+                result['researchMode']=mode
+                result['sourceSnapshotFile']=str(snapshot_file.relative_to(STATE))
+                retrieved={url for item in context['officialSourceSnapshots'] if item['status']=='retrieved' for url in [item['url'],item['requestedUrl']]}
+                cited=((result.get('draft') or {}).get('sources',[])+(result.get('revisionProposal') or {}).get('sources',[]))
+                if any(item['url'] not in retrieved for item in cited):raise ValueError('Draft citation was not read in official-source mode')
             a=result.get('draft')
             if a and not may_draft:raise ValueError('Unscheduled draft returned')
             if a:
-                issues=validate_article(a,allowed_paths=site_paths(),jby_brands=jby_brands())
+                issues=validate_article(a,allowed_paths=site_paths(),jby_brands=jby_brands(),enforce_wording=True)
                 if a['slug'] in {x['slug'] for x in context['alreadyWritten']}:issues.append('duplicate slug')
                 # aiAssisted drives the "how this was made" disclosure on the article page (Google: Who, How, Why).
                 a.update(status='draft',author='Gray Yachts editorial team',createdAt=key,updatedAt=key,publishedAt=None,reviewedBy=None,revision=1,aiAssisted=True,relatedPaths=[l['path'] for l in a['internalLinks']] or ['/sell','/fleet','/boat-shows','/brands'])
@@ -315,15 +384,9 @@ def run(args):
                         except (ValueError,TypeError):rissues.append('invalid source date')
                 result['revisionGate']={'issues':sorted(set(rissues)),'status':'needs_revision' if rissues else 'needs_human_review'}
             result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],performanceStatus=context['performance']['status'])
-            write(STATE/'runs'/f'{key}.json',result)
-            (STATE/'runs'/f'{key}.md').write_text(render_review(result))
-            # Lessons improve subsequent draft critique; they are not accepted SEO experiment outcomes.
-            if not result['qualityGate']['issues']:
-                lessons=[l for l in lessons if l.get('date')!=key]  # a same-day rerun replaces, not adds
-                lessons.append({'date':key,'kind':'editorial_observation','lesson':result['critique']['lesson'],'notRankingEvidence':True})
-                write(STATE/'lessons.json',lessons[-30:])
-            state.update(lastSuccess=key,failures=0,blocked=False,lastError=None)
-            write(STATE/'state.json',state)
+            attempt=STATE/'attempts'/key/(uuid.uuid4().hex+'.json')
+            write(attempt,result)
+            finalize_run(result,state,lessons,key)
             print(json.dumps({'status':'completed','researchUpdates':len(result['updates']),'draft':a['title'] if a else None,'review':str(STATE/'runs'/f'{key}.md'),'qualityGate':result['qualityGate']}))
         except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired,KeyError,TypeError) as exc:
             failures=state.get('failures',0)+1
