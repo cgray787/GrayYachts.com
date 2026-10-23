@@ -185,9 +185,10 @@ class PreviousTarget(str):
     is tracked in its own right, so the repoint entry never covers that root's files (Codex review, PR #68)."""
 
 def covers(recorded, path):
+    previous = isinstance(recorded, PreviousTarget)  # rstrip() below returns a plain str
     recorded = recorded.rstrip('/')
     hit = path == recorded or path.startswith(recorded + '/')
-    if hit and isinstance(recorded, PreviousTarget):
+    if hit and previous:
         real = os.path.realpath(path)
         for root in (os.path.realpath(r) for r in WATCH):
             if root.startswith(recorded + '/') and (real == root or real.startswith(root + '/')): return False
