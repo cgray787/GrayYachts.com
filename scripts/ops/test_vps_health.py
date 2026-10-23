@@ -115,6 +115,15 @@ class Drift(unittest.TestCase):
         try: entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
         finally: vh.WATCH = old
         self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(a), 'x.json')) for _, paths in entries for r in paths))
+    def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
+        import os, tempfile
+        unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+        self.assertTrue(any(vh.covers(r, link) for _, paths in entries for r in paths))
+        self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
     def test_relative_symlink_target_resolves_against_link_dir(self):
         import os
         d = '/opt/x'; prev = {'/opt/x/cfg': [0, 'link:../real', 0, 0, 0, 0]}
