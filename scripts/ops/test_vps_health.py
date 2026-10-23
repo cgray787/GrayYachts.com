@@ -56,20 +56,30 @@ class Drift(unittest.TestCase):
         import os, tempfile
         d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
         before = vh.inventory([d]); st = os.stat(f); os.chmod(f, 0o644); os.utime(f, (st.st_atime, st.st_mtime))
-        self.assertNotEqual(before[f], vh.inventory([d])[f])
+        self.assertNotEqual(before[vh.canon(f)], vh.inventory([d])[vh.canon(f)])
     def test_chmod_after_logged_edit_is_dated_by_ctime(self):  # seventh review
         import os, tempfile, time
         d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
         st = os.stat(f); os.utime(f, (st.st_atime, st.st_mtime - 3600)); time.sleep(0.01); os.chmod(f, 0o644)
-        entry = vh.inventory([d])[f]
+        entry = vh.inventory([d])[vh.canon(f)]
         self.assertGreaterEqual(entry[0], os.stat(f).st_ctime)  # change time follows the chmod, not the old mtime
+    def test_directory_alias_resolves_to_one_name(self):  # 2026-10-23 first live run
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        open(os.path.join(real, 'a.json'), 'w').write('{}')
+        inv = vh.inventory([real, alias])
+        self.assertEqual(len(inv), 1); self.assertEqual(list(inv)[0], os.path.join(os.path.realpath(real), 'a.json'))
+        self.assertEqual(vh.canon(os.path.join(alias, 'a.json')), list(inv)[0])
+    def test_job_state_files_are_skipped(self):
+        self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
+        self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))
     def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
         import os, tempfile
         d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')
         open(unit, 'w').write('[Timer]')
         before = vh.inventory([d]); os.remove(unit); os.symlink('/dev/null', unit)
-        after = vh.inventory([d])
-        self.assertEqual(after[unit][1], 'link:/dev/null'); self.assertNotEqual(before[unit], after[unit])
+        after = vh.inventory([d]); k = vh.canon(unit)
+        self.assertEqual(after[k][1], 'link:/dev/null'); self.assertNotEqual(before[k], after[k])
     def test_late_scan_still_sees_older_changes(self):  # second review, finding 3
         old, new = [ts(NOW - dt.timedelta(days=4)), 10], [ts(NOW - dt.timedelta(days=2)), 11]
         changed, missing = vh.drift({'/etc/x/a': new}, {'/etc/x/a': old}, [], NOW, NOW - dt.timedelta(days=3))

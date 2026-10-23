@@ -113,11 +113,19 @@ WATCH = ['/etc/systemd/system', '/root/.config/graycapital', '/opt/grayyachts-au
          '/opt/grayyachts-automation/source', '/opt/grayyachts-automation/marketplace', '/opt/grayyachts-automation/pnw-sync',
          '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health/vps_health.py',
          '/root/.hermes/config.yaml', '/root/.hermes/SOUL.md', '/root/.hermes/scripts']
-SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/|-state\.json$)')  # job-written state files are not changes
+# Job-written state (collector status/history, browser state, *-state.json) is not a change anyone makes.
+SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/|-state\.json$|/(collection-status|query-history|browser-state)\.json$)')
 WINDOW = dt.timedelta(hours=24)
 # Agents log after changing: an entry covers a change made up to 24 h before it, or up to 30 min after it
 # (clock skew, or logging just ahead of the final write). An older entry never covers a newer edit.
 BEFORE, AFTER = dt.timedelta(minutes=30), dt.timedelta(hours=24)
+
+def canon(p):
+    """One name per file: resolve directory symlinks (/root/.config/graycapital is a link into /opt) but keep a
+    symlinked file as its own entry. On 2026-10-23 the same file appeared under two names and was reported
+    unrecorded although its change had been logged under the other name."""
+    p = Path(p)
+    return os.path.join(os.path.realpath(p.parent), p.name)
 
 def inventory(watch=WATCH):
     """{path: [mtime, size]} for files and [mtime, 'link:<target>'] for symlinks (lstat, never followed),
@@ -125,7 +133,8 @@ def inventory(watch=WATCH):
     files = {}
     for root in watch:
         base = Path(root)
-        for f in ([base] if base.is_file() or base.is_symlink() else base.rglob('*') if base.is_dir() else []):
+        # A watch root that is a directory (or a symlink to one) is walked; a file or dangling link is itself.
+        for f in (base.rglob('*') if base.is_dir() else [base] if (base.is_file() or base.is_symlink()) else []):
             if SKIP.search(str(f)): continue
             st = f.lstat()
             # The change time is the later of mtime and ctime: ctime moves on every content, permission or
@@ -133,9 +142,9 @@ def inventory(watch=WATCH):
             # the fingerprint (a lost executable bit breaks a job without touching mtime or size).
             changed_at = max(st.st_mtime, st.st_ctime)
             if f.is_symlink():
-                files[str(f)] = [changed_at, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
+                files[canon(f)] = [changed_at, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
             elif f.is_file():
-                files[str(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
+                files[canon(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
 def ledger_entries(ledger=LEDGER):
@@ -147,7 +156,7 @@ def ledger_entries(ledger=LEDGER):
         paths = re.search(r'^paths: (.*)$', text, re.M)
         if not at or not paths: continue
         when = dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00'))
-        entries.append((when, [x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()]))
+        entries.append((when, [canon(x.strip().rstrip('/')) if os.path.lexists(x.strip().rstrip('/')) else x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()]))
     return entries
 
 def covers(recorded, path):
