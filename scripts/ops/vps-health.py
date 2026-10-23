@@ -149,10 +149,11 @@ def inventory(watch=WATCH):
                 files[canon(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
-def watched(path, watch=WATCH):
-    """True if path lies under a watch root in its own right (then only its own entries cover it)."""
+def watched(path, watch=None):
+    """True if path lies under a watch root in its own right (then only its own entries cover it).
+    The watch list is read at call time (a default argument would freeze the list at import)."""
     real = os.path.realpath(path)
-    return any(real == os.path.realpath(r) or real.startswith(os.path.realpath(r).rstrip('/') + '/') for r in watch)
+    return any(real == os.path.realpath(r) or real.startswith(os.path.realpath(r).rstrip('/') + '/') for r in (WATCH if watch is None else watch))
 
 def ledger_entries(ledger=LEDGER, previous_links=None):
     """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
