@@ -109,7 +109,7 @@ export async function stallAlert(env: NewsletterEnv, now = new Date()) {
   body: JSON.stringify({
    from: env.NEWSLETTER_FROM, to: [env.NEWSLETTER_REVIEW_TO],
    subject: `Gray Yachts newsletter: no new draft for ${days} days`,
-   text: `No newsletter draft has reached GrayYachts.com for ${days} days (last draft: ${last}). Drafts are written by the Hermes job on the VPS (45.132.242.109, job 4c4b201a5833). Check its log there: ~/.hermes/workspaces/grayyachts-newsletter/<date>.agent.log, and \`hermes auth status openai-codex\` (an expired ChatGPT sign-in caused the October 2026 outage). This alert repeats every 3 days until drafts resume.`,
+   text: `No newsletter draft has reached GrayYachts.com for ${days} days (last draft: ${last}). Drafts are written by the Hermes job on the VPS (job 4c4b201a5833). Check its log there: ~/.hermes/workspaces/grayyachts-newsletter/<date>.agent.log, and \`hermes auth status openai-codex\` (an expired ChatGPT sign-in caused the October 2026 outage). This alert repeats every 3 days until drafts resume.`,
   }),
   signal: AbortSignal.timeout(30000),
  });
