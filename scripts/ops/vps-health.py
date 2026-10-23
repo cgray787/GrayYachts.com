@@ -170,10 +170,11 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
         recorded = []
         for x in (x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()):
             recorded += [x, canon(x)]
-            # Fully resolve directory aliases and deleted paths only. A file symlink (a systemd enable link,
-            # for example) covers itself, never its target: an unlogged edit of the unit file must still show.
+            # Fully resolve plain paths (including deleted ones, whose existing parents resolve) and directory
+            # aliases only. A symlink to a file, or a dangling one left by a deleted unit, covers itself and
+            # never its target: an unlogged edit or deletion of the unit file must still show.
             real = os.path.realpath(x)
-            if not (os.path.islink(x) and os.path.isfile(real)): recorded.append(real)
+            if not os.path.islink(x) or os.path.isdir(real): recorded.append(real)
             # A logged repoint of a directory symlink also covers what lived under its previous target.
             old_target = (previous_links or {}).get(canon(x))
             if old_target and not watched(old_target): recorded.append(PreviousTarget(old_target))

@@ -127,6 +127,15 @@ class Drift(unittest.TestCase):
             self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
             self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths))
         finally: vh.WATCH = old
+    def test_logged_dangling_symlink_does_not_cover_deleted_target(self):  # PR #68 review, seventh pass
+        import os, tempfile
+        unit = os.path.join(tempfile.mkdtemp(), 'job.service')  # the unit file was deleted without a log entry
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+        self.assertTrue(any(vh.covers(r, link) for _, paths in entries for r in paths))
+        self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
     def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
         import os, tempfile
         unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')
