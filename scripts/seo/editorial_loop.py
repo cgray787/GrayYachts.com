@@ -101,7 +101,8 @@ def write(path, value):
 
 def today(): return dt.datetime.now(ZONE).date()
 TOOL_FAILURE=re.compile(r'(?:providers?|backends?) (?:is |are )?not configured|no [a-z ]{0,30}?(?:providers?|backends?) (?:is |are )?configured|(?:retrieval|fetch|extraction)\b[^.]{0,80}?\bfailed|search (?:fallback )?(?:is |was )?(?:also )?unavailable|web (?:tools?|access) (?:is |are |was |were )?unavailable',re.I)
-TOOL_FAILURE=re.compile(TOOL_FAILURE.pattern+r'|insufficient(?: access)? credits|(?:credits?|quota|balance)[^.]{0,50}(?:exhausted|depleted|insufficient)|payment required|rate limit(?:ed| exceeded)|(?:all|every)[^.]{0,65}(?:requests?|sources?)[^.]{0,50}failed',re.I)
+# Plain-language outage wording the models actually use (Codex review 2026-10-23): "web search failed", "search tool failed", "could not fetch".
+TOOL_FAILURE=re.compile(TOOL_FAILURE.pattern+r'|(?:web )?search(?: tools?)?(?: has| have)? failed|search tools? (?:is |are |was |were )?(?:unavailable|not available|down)|(?:could not|couldn\'t|unable to|failed to) (?:fetch|retrieve|search)|insufficient(?: access)? credits|(?:credits?|quota|balance)[^.]{0,50}(?:exhausted|depleted|insufficient)|payment required|rate limit(?:ed| exceeded)|(?:all|every)[^.]{0,65}(?:requests?|sources?)[^.]{0,50}failed',re.I)
 
 def research_health(result, topic_ids):
     updates=result.get('updates',[])
@@ -139,6 +140,10 @@ def finalize_run(result, state, lessons, key):
     write(STATE/'state.json',state)
 
 def timestamp(): return dt.datetime.now(ZONE).isoformat()
+def cited_source(a, index):
+    """The cited source record, or None when the model cited an index that does not exist (bool is not an index)."""
+    sources=a.get('sources') or []
+    return sources[index] if isinstance(index,int) and not isinstance(index,bool) and 0<=index<len(sources) else None
 def valid_url(value):
     u = urlparse(value)
     return u.scheme == 'https' and bool(u.hostname) and not u.username and not u.password
@@ -164,7 +169,7 @@ def validate_article(a, asof=None, allowed_paths=None, jby_brands=None, enforce_
     prose = [a['title'], a['description']]
     for s in a['sections']:
         prose += [s['heading'], *s['paragraphs'], *s['bullets']]
-        if any(not isinstance(i,int) or i < 0 or i >= len(a['sources']) for i in s['sourceIndexes']): issues.append('bad citation index')
+        if any(cited_source(a,i) is None for i in s['sourceIndexes']): issues.append('bad citation index')
     for q in a['faq']: prose += [q['question'],q['answer']]
     prose += [l['anchor'] for l in a.get('internalLinks',[])] + list(a.get('disclosures',[]))
     text = '\n'.join(prose)
@@ -289,7 +294,8 @@ def render_review(result):
         lines += ['Internal links: '+(', '.join(f"{l['path']} ({l['anchor']})" for l in a['internalLinks']) or 'none')]
         for s in a['sections']:
             lines += ['## '+s['heading'],'',*s['paragraphs'],*['* '+b for b in s['bullets']]]
-            lines += [f"Source: {a['sources'][i]['url']}" for i in s['sourceIndexes']]
+            # A saved record may hold an index the model invented; the review must still render (2026-10-23 review).
+            lines += [f"Source: {(cited_source(a,i) or {}).get('url','[invalid citation]')}" for i in s['sourceIndexes']]
         for q in a['faq']:lines += ['### '+q['question'],q['answer']]
     rp=result.get('revisionProposal')
     if rp:
@@ -371,6 +377,9 @@ def run(args):
                 if any(item['url'] not in retrieved for item in cited):raise ValueError('Draft citation was not read in official-source mode')
             a=result.get('draft')
             if a and not may_draft:raise ValueError('Unscheduled draft returned')
+            # Fail before anything is saved: an invented citation index used to raise IndexError while rendering,
+            # after runs/<day>.json was written and outside the failure handler (Codex review 2026-10-23).
+            if a and any(cited_source(a,i) is None for s in a.get('sections',[]) for i in s.get('sourceIndexes',[])):raise ValueError('Invalid citation index: the draft cites a source that does not exist')
             if a:
                 issues=validate_article(a,allowed_paths=site_paths(),jby_brands=jby_brands(),enforce_wording=True)
                 if a['slug'] in {x['slug'] for x in context['alreadyWritten']}:issues.append('duplicate slug')
@@ -392,7 +401,7 @@ def run(args):
             write(attempt.with_name(attempt.stem+'-outcome.json'),{'status':'validated','date':key})
             finalize_run(result,state,lessons,key)
             print(json.dumps({'status':'completed','researchUpdates':len(result['updates']),'draft':a['title'] if a else None,'review':str(STATE/'runs'/f'{key}.md'),'qualityGate':result['qualityGate']}))
-        except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired,KeyError,TypeError) as exc:
+        except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired,KeyError,TypeError,IndexError) as exc:
             if attempt is not None:
                 try:write(attempt.with_name(attempt.stem+'-outcome.json'),{'status':'failed','date':key,'error':str(exc)[:700]})
                 except OSError:pass

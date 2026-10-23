@@ -98,6 +98,38 @@ class ReliabilityTests(unittest.TestCase):
    with self.assertRaises(SystemExit):loop.run(argparse.Namespace(dry_run=False))
   self.assertIn('citation was not read',loop.read(self.state/'state.json')['lastError'])
 
+ def test_tool_failure_matches_search_and_fetch_wording(self):
+  for text in ['web search failed','The search tool failed to return results','Could not fetch the official page','retrieval failed','no providers configured']:
+   with self.subTest(text=text):self.assertTrue(loop.TOOL_FAILURE.search(text),text)
+  for text in ['No material change found in the current official page.','Fetched the page and found a new date.']:
+   with self.subTest(text=text):self.assertIsNone(loop.TOOL_FAILURE.search(text),text)
+ def test_search_failed_wording_in_every_update_fails_the_run(self):
+  result=self.result()
+  for item in result['updates']:item.update(summary='Web search failed, so this could not be checked.')
+  with self.assertRaisesRegex(RuntimeError,'Research tools unavailable'):loop.research_health(result,[t['topicId']for t in result['updates']])
+ def draft(self,indexes):
+  article=copy.deepcopy(loop.read(loop.CONTENT/'articles.json')[0])
+  article.update(slug='citation-index-check',intent={'dominantIntent':'informational','journeyStage':'consideration','evidence':'A verified owner question.'},internalLinks=[],disclosures=[])
+  article['sections'][0]['sourceIndexes']=indexes
+  return article
+ def test_invalid_citation_index_fails_before_the_record_is_saved(self):
+  result=self.result(self.draft([999]))
+  with patch.object(loop,'invoke_agent',return_value=result),self.assertRaises(SystemExit)as e:loop.run(argparse.Namespace(dry_run=False))
+  self.assertEqual(e.exception.code,1)
+  self.assertFalse((self.state/'runs/2026-10-12.json').exists())
+  self.assertIn('citation',loop.read(self.state/'state.json')['lastError'].lower())
+  self.assertTrue(any(loop.read(p).get('status')=='failed'for p in (self.state/'attempts/2026-10-12').glob('*-outcome.json')))
+ def test_render_review_tolerates_an_invalid_saved_citation(self):
+  result=self.result(self.draft([0,999,-1,'x']));result['critique']['findings']=[]
+  text=loop.render_review(result)
+  self.assertIn('[invalid citation]',text);self.assertIn(result['draft']['sources'][0]['url'],text)
+ def test_render_exception_is_a_recorded_failure_not_a_crash(self):
+  result=self.result(self.draft([0]))
+  with patch.object(loop,'invoke_agent',return_value=result),patch.object(loop,'render_review',side_effect=IndexError('list index out of range')),self.assertRaises(SystemExit)as e:loop.run(argparse.Namespace(dry_run=False))
+  self.assertEqual(e.exception.code,1)
+  self.assertIn('list index out of range',loop.read(self.state/'state.json')['lastError'])
+  self.assertEqual(loop.read(self.state/'runs/2026-10-12.json')['draft']['slug'],'citation-index-check')
+
 class PublicSourceTests(unittest.TestCase):
  def test_connection_pins_validated_ip_and_preserves_tls_hostname(self):
   from unittest.mock import MagicMock
