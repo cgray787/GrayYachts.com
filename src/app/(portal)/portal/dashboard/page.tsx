@@ -3,65 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "./dashboard-client";
 import type { DashboardYacht, DashboardActivity, DashboardStats } from "./dashboard-client";
 
-/* ───── Demo / fallback data ───── */
-
-const DEMO_YACHTS: DashboardYacht[] = [
-  {
-    name: "Serenity II",
-    spec: "42m · Motor Yacht",
-    badge: "Active",
-    badgeColor: "bg-emerald-400/15 text-emerald-400",
-    gradient: "from-slate-700 via-slate-600 to-blue-900",
-  },
-  {
-    name: "Windchaser",
-    spec: "28m · Sailing Yacht",
-    badge: "In Marina",
-    badgeColor: "bg-blue-400/15 text-blue-400",
-    gradient: "from-blue-900 via-indigo-800 to-slate-700",
-  },
-  {
-    name: "Aegean Star",
-    spec: "35m · Catamaran",
-    badge: "Maintenance",
-    badgeColor: "bg-amber-400/15 text-amber-400",
-    gradient: "from-slate-800 via-teal-900 to-slate-700",
-  },
-];
-
-const DEMO_ACTIVITIES: DashboardActivity[] = [
-  {
-    title: "Hull inspection completed",
-    detail: "Serenity II · 2 hours ago",
-    dotColor: "bg-emerald-400",
-  },
-  {
-    title: "Engine service scheduled",
-    detail: "Windchaser · Yesterday",
-    dotColor: "bg-gold",
-  },
-  {
-    title: "New document uploaded",
-    detail: "Aegean Star · 2 days ago",
-    dotColor: "bg-blue-400",
-  },
-  {
-    title: "Insurance renewal due",
-    detail: "Serenity II · 3 days ago",
-    dotColor: "bg-red-400",
-  },
-  {
-    title: "Charter booking confirmed",
-    detail: "Windchaser · 5 days ago",
-    dotColor: "bg-emerald-400",
-  },
-];
-
-const DEMO_STATS: DashboardStats = {
-  yachtCount: 3,
-  pendingServices: 2,
-  documentCount: 12,
-  nextAppointment: "May 15",
+const EMPTY_STATS: DashboardStats = {
+  yachtCount: 0,
+  pendingServices: 0,
+  documentCount: 0,
+  nextAppointment: null,
 };
 
 /* ───── Helpers ───── */
@@ -130,27 +76,22 @@ function timeAgo(dateStr: string): string {
 /* ───── Page ───── */
 
 export default async function DashboardPage() {
-  let firstName = "James";
-  // Demo data is ONLY shown when Supabase is unconfigured (e.g. local dev
-  // without env vars). An authenticated user with zero owned yachts must
-  // see an empty fleet — never seed yachts that aren't theirs. Anything
-  // else would risk showing a client another client's data, or making them
-  // think they own boats they don't.
-  let yachts: DashboardYacht[] = DEMO_YACHTS;
-  let activities: DashboardActivity[] = DEMO_ACTIVITIES;
-  let stats: DashboardStats = DEMO_STATS;
+  let firstName = "";
+  let dataUnavailable = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // Empty data is distinct from unavailable data; never display seeded clients.
+  let yachts: DashboardYacht[] = [];
+  let activities: DashboardActivity[] = [];
+  let stats: DashboardStats = EMPTY_STATS;
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
     try {
-      const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        redirect("/login");
-      }
-
       /* ── Profile (first name for greeting) ── */
       const { data: profile } = await supabase
         .from("profiles")
@@ -159,7 +100,7 @@ export default async function DashboardPage() {
         .single();
 
       const fullName = profile?.full_name ?? "";
-      firstName = fullName.split(" ")[0] || "James";
+      firstName = fullName.trim().split(/\s+/)[0] || "";
 
       /* ── Yachts ── */
       const yachtsResult = await supabase
@@ -222,6 +163,10 @@ export default async function DashboardPage() {
         .eq("user_id", user.id)
         .gte("service_date", new Date().toISOString());
 
+      if ([yachtsResult, activityResult, docResult, maintResult, pendingResult].some(result => result.error)) {
+        throw new Error("Dashboard data is unavailable");
+      }
+
       if (yachtsResult.data) {
         stats = {
           yachtCount: yachtsResult.data.length,
@@ -233,7 +178,7 @@ export default async function DashboardPage() {
         };
       }
     } catch {
-      // Supabase not configured — use demo data
+      dataUnavailable = true;
     }
   }
 
@@ -243,6 +188,7 @@ export default async function DashboardPage() {
       yachts={yachts}
       activities={activities}
       stats={stats}
+      dataUnavailable={dataUnavailable}
     />
   );
 }
