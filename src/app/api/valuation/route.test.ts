@@ -53,7 +53,7 @@ it(`allows ${VALUATION_LIMIT.limit} leads per IP per window and answers the next
   const res = await post(lead, { "cf-connecting-ip": "203.0.113.7" });
   expect(res.status).toBe(429);
   expect(res.headers.get("Retry-After")).toMatch(/^\d+$/);
-  expect(await res.json()).toMatchObject({ ok: false, error: "rate_limited", message: expect.stringContaining("try again later") });
+  expect(await res.json()).toMatchObject({ ok: false, code: "rate_limited", error: expect.stringContaining("try again later") });
   // Another visitor is unaffected.
   expect(await (await post(lead, { "cf-connecting-ip": "203.0.113.8" })).json()).toMatchObject({ error: "mailer_unconfigured" });
 });

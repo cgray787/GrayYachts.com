@@ -50,7 +50,7 @@ it(`accepts ${PHOTO_UPLOAD_LIMIT.limit} uploads per IP per window and answers th
   const res = await POST(upload(PHOTO_UPLOAD_LIMIT.limit + 1));
   expect(res.status).toBe(429);
   expect(res.headers.get('Retry-After')).toMatch(/^\d+$/);
-  expect(await res.json()).toMatchObject({ ok: false, error: 'rate_limited' });
+  expect(await res.json()).toMatchObject({ ok: false, code: 'rate_limited', error: expect.stringContaining('try again later') });
   expect(put).toHaveBeenCalledTimes(PHOTO_UPLOAD_LIMIT.limit);
   expect(photoBucket).toHaveBeenCalledTimes(PHOTO_UPLOAD_LIMIT.limit);
 });
