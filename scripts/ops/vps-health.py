@@ -176,13 +176,22 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
             if not (os.path.islink(x) and os.path.isfile(real)): recorded.append(real)
             # A logged repoint of a directory symlink also covers what lived under its previous target.
             old_target = (previous_links or {}).get(canon(x))
-            if old_target and not watched(old_target): recorded.append(old_target)
+            if old_target and not watched(old_target): recorded.append(PreviousTarget(old_target))
         entries.append((when, sorted(set(recorded))))
     return entries
 
+class PreviousTarget(str):
+    """A directory covered only because a logged symlink used to point at it. A watch root nested inside it
+    is tracked in its own right, so the repoint entry never covers that root's files (Codex review, PR #68)."""
+
 def covers(recorded, path):
     recorded = recorded.rstrip('/')
-    return path == recorded or path.startswith(recorded + '/')
+    hit = path == recorded or path.startswith(recorded + '/')
+    if hit and isinstance(recorded, PreviousTarget):
+        real = os.path.realpath(path)
+        for root in (os.path.realpath(r) for r in WATCH):
+            if root.startswith(recorded + '/') and (real == root or real.startswith(root + '/')): return False
+    return hit
 
 def drift(current, previous, entries, now_utc, previous_scan=None, windows=None):
     """Return (changed, unrecorded) paths.

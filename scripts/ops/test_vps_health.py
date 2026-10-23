@@ -115,6 +115,18 @@ class Drift(unittest.TestCase):
         try: entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
         finally: vh.WATCH = old
         self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(a), 'x.json')) for _, paths in entries for r in paths))
+    def test_repoint_coverage_excludes_watch_root_nested_in_old_target(self):  # PR #68 review, sixth pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # repointed a -> b
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+            self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+            self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths))
+        finally: vh.WATCH = old
     def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
         import os, tempfile
         unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')
