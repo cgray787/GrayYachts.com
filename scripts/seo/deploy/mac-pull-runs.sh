@@ -25,7 +25,8 @@ for f in "$DEST"/*.json; do
   if "$OSASCRIPT" -e "display notification \"$(printf %s "$title" | tr -d '"\\')\" with title \"Gray Yachts SEO draft ready ($day)\" subtitle \"Review: runs/$day.md\""; then
     echo "$day" >> "$SEEN"
   else
-    echo "$(date '+%F %T') notification FAILED for $day (exit $?); will retry on the next pull" >&2
+    status=$?  # captured before the date substitution below resets $? (Codex review of PR #72)
+    echo "$(date '+%F %T') notification FAILED for $day (exit $status); will retry on the next pull" >&2
   fi
 done
 echo "$(date '+%F %T') pulled $(ls "$DEST" | wc -l | tr -d ' ') files"

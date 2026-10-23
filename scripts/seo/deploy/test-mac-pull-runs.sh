@@ -27,6 +27,7 @@ echo "--- pull 1: notification fails"
 bash "$HERE/mac-pull-runs.sh" > "$T/out1" 2> "$T/err1" || fail "pull 1 exited non-zero: $(cat "$T/err1")"
 grep -qx 2026-10-23 "$T/seen" && fail "day marked seen although the notification failed"
 grep -q "2026-10-23" "$T/err1" || fail "notification failure not written to stderr: $(cat "$T/err1")"
+grep -q "(exit 1)" "$T/err1" || fail "osascript exit status not logged (expected exit 1): $(cat "$T/err1")"
 grep -q "pulled 2 files" "$T/out1" || fail "pull line missing: $(cat "$T/out1")"
 
 echo "--- pull 2: notification succeeds"
