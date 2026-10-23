@@ -133,8 +133,10 @@ def inventory(watch=WATCH):
     files = {}
     for root in watch:
         base = Path(root)
-        # A watch root that is a directory (or a symlink to one) is walked; a file or dangling link is itself.
-        for f in (base.rglob('*') if base.is_dir() else [base] if (base.is_file() or base.is_symlink()) else []):
+        # A watch root that is a directory is walked. If the root itself is a symlink it is also inventoried
+        # as a link, so repointing it (e.g. /root/.config/graycapital) is a change in its own right.
+        roots = [base] if base.is_symlink() else []
+        for f in list(roots) + (list(base.rglob('*')) if base.is_dir() else [base] if base.is_file() else []):
             if SKIP.search(str(f)): continue
             st = f.lstat()
             # The change time is the later of mtime and ctime: ctime moves on every content, permission or
@@ -156,7 +158,13 @@ def ledger_entries(ledger=LEDGER):
         paths = re.search(r'^paths: (.*)$', text, re.M)
         if not at or not paths: continue
         when = dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00'))
-        entries.append((when, [canon(x.strip().rstrip('/')) if os.path.lexists(x.strip().rstrip('/')) else x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()]))
+        # Every recorded path is kept under both its canonical name and its fully resolved name, so an entry
+        # naming an alias directory (/root/.config/graycapital) covers children under the real path (/opt/...),
+        # and a path deleted through an alias still matches (realpath resolves the parents that exist).
+        recorded = []
+        for x in (x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()):
+            recorded += [x, canon(x), os.path.realpath(x)]
+        entries.append((when, sorted(set(recorded))))
     return entries
 
 def covers(recorded, path):

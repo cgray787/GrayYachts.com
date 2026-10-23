@@ -68,8 +68,32 @@ class Drift(unittest.TestCase):
         real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
         open(os.path.join(real, 'a.json'), 'w').write('{}')
         inv = vh.inventory([real, alias])
-        self.assertEqual(len(inv), 1); self.assertEqual(list(inv)[0], os.path.join(os.path.realpath(real), 'a.json'))
-        self.assertEqual(vh.canon(os.path.join(alias, 'a.json')), list(inv)[0])
+        # One entry for the file under its real name, plus the alias link itself (repointing it is a change).
+        self.assertEqual(set(inv), {os.path.join(os.path.realpath(real), 'a.json'), vh.canon(alias)})
+        self.assertEqual(vh.canon(os.path.join(alias, 'a.json')), os.path.join(os.path.realpath(real), 'a.json'))
+    def test_alias_directory_entry_covers_real_path_children(self):  # PR #68 review, finding 2
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        child = os.path.join(real, 'gmail.json'); open(child, 'w').write('{}')
+        old_ledger = vh.LEDGER; d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {alias}\n')
+        vh.LEDGER = __import__('pathlib').Path(d)
+        try: entries = vh.ledger_entries(vh.LEDGER)
+        finally: vh.LEDGER = old_ledger
+        self.assertTrue(any(vh.covers(r, vh.canon(child)) for _, paths in entries for r in paths))
+    def test_repointed_root_symlink_is_a_change(self):  # PR #68 review, finding 1
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        before = vh.inventory([link]); os.remove(link); os.symlink(b, link)
+        self.assertNotEqual(before.get(vh.canon(link)), vh.inventory([link]).get(vh.canon(link)))
+    def test_deleted_alias_path_is_canonicalised(self):  # PR #68 review, finding 3
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        gone = os.path.join(alias, 'removed.json')  # never existed, like a file deleted through the alias
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {gone}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d))
+        self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(real), 'removed.json')) for _, paths in entries for r in paths))
     def test_job_state_files_are_skipped(self):
         self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
         self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))
