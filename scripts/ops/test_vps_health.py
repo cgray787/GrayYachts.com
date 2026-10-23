@@ -106,6 +106,20 @@ class Drift(unittest.TestCase):
         open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
         entries = vh.ledger_entries(__import__('pathlib').Path(d), prev_links)
         self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+    def test_old_target_coverage_skips_independently_watched_dirs(self):  # PR #68 review, fourth pass
+        import os, tempfile
+        a = tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [a]
+        try: entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+        finally: vh.WATCH = old
+        self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(a), 'x.json')) for _, paths in entries for r in paths))
+    def test_relative_symlink_target_resolves_against_link_dir(self):
+        import os
+        d = '/opt/x'; prev = {'/opt/x/cfg': [0, 'link:../real', 0, 0, 0, 0]}
+        links = {k: os.path.realpath(os.path.join(os.path.dirname(k), v[1][5:])) for k, v in prev.items()}
+        self.assertEqual(links['/opt/x/cfg'], os.path.realpath('/opt/real'))
     def test_job_state_files_are_skipped(self):
         self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
         self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))

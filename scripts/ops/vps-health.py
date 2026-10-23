@@ -149,6 +149,11 @@ def inventory(watch=WATCH):
                 files[canon(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
+def watched(path, watch=WATCH):
+    """True if path lies under a watch root in its own right (then only its own entries cover it)."""
+    real = os.path.realpath(path)
+    return any(real == os.path.realpath(r) or real.startswith(os.path.realpath(r).rstrip('/') + '/') for r in watch)
+
 def ledger_entries(ledger=LEDGER, previous_links=None):
     """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
     entries = []
@@ -166,7 +171,7 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
             recorded += [x, canon(x), os.path.realpath(x)]
             # A logged repoint of a directory symlink also covers what lived under its previous target.
             old_target = (previous_links or {}).get(canon(x))
-            if old_target: recorded.append(old_target)
+            if old_target and not watched(old_target): recorded.append(old_target)
         entries.append((when, sorted(set(recorded))))
     return entries
 
@@ -215,7 +220,7 @@ def unrecorded():
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
     # Symlink entries of the last scan give each alias's previous target ('link:<target>' fingerprints).
-    previous_links = {k: os.path.realpath(v[1][5:]) for k, v in previous.items() if isinstance(v[1], str) and v[1].startswith('link:')}
+    previous_links = {k: os.path.realpath(os.path.join(os.path.dirname(k), v[1][5:])) for k, v in previous.items() if isinstance(v[1], str) and v[1].startswith('link:')}
     entries = ledger_entries(previous_links=previous_links)
     windows = {}
     changed, missing = drift(current, previous, entries, now_utc, previous_scan, windows)
@@ -226,7 +231,7 @@ def unrecorded():
     for label, lo, hi in (json.loads(PENDING.read_text()) if PENDING.exists() else []):
         path = label.removesuffix(' (deleted)')
         if SKIP.search(path): continue
-        label = canon(path) + (' (deleted)' if label.endswith(' (deleted)') else '')
+        path = canon(path); label = path + (' (deleted)' if label.endswith(' (deleted)') else '')
         if [label, lo, hi] in events: continue
         if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, path) for r in paths) for at, paths in entries):
             events.append([label, lo, hi])
