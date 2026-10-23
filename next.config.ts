@@ -60,6 +60,26 @@ const nextConfig: NextConfig = {
       { source: "/favicon.ico", destination: "/icon.png", permanent: true },
     ];
   },
+  // Public marketing pages: let the Cloudflare edge (with a Cache Rule) and
+  // browsers reuse responses instead of re-rendering per hit. Private/auth
+  // and API routes stay uncached. See docs/traffic-fix-2026-10-23.md.
+  async headers() {
+    const publicPage = [
+      { key: "Cache-Control", value: "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" },
+    ];
+    const noStore = [{ key: "Cache-Control", value: "private, no-store" }];
+    return [
+      { source: "/", headers: publicPage },
+      {
+        source:
+          "/:section(about-connor-gray|boat-shows|brands|catalog|fleet|insights|locations|marine-tech|newsletter|privacy|services|yachts|listings|sell)/:path*",
+        headers: publicPage,
+      },
+      { source: "/portal/:path*", headers: noStore },
+      { source: "/auth/:path*", headers: noStore },
+      { source: "/api/:path*", headers: noStore },
+    ];
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: resolvedUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: resolvedKey,
