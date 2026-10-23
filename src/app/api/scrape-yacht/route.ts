@@ -5,6 +5,7 @@ import { photoBucket } from "@/lib/yacht-photo-store";
 import { resolveYachtPhoto } from "@/lib/resolve-yacht-photo";
 import { blockedListingPage, photosFromHtml } from "@/lib/yacht-photo-candidates";
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, rateLimited, rateLimitResponse, SCRAPE_LIMIT } from "@/lib/rate-limit";
 import { jev, jevAvailable } from "@/lib/jev";
 import { applyVerification, buildVerifyQuestions, buildVerifyState, htmlToText } from "@/lib/scrape-verify";
 
@@ -2172,6 +2173,13 @@ export async function GET(request: NextRequest) {
     const cached = await edgeCache.match(cacheKey);
     if (cached) return cached;
   }
+
+  // Every uncached scrape pays Firecrawl + Claude vision and writes to R2, so
+  // the per-IP limit sits after the free paths (validation errors, edge-cache
+  // hits) and before the first upstream call. Shared KV counter; see
+  // src/lib/rate-limit.ts.
+  const rl = await rateLimited(clientIp(request), SCRAPE_LIMIT);
+  if (rl.limited) return rateLimitResponse(rl);
 
   try {
     // Configured official feed takes priority. Absent credentials make no request.

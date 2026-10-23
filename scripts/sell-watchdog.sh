@@ -108,6 +108,7 @@ if [ "$CHECK_RC" = "2" ] && ! /usr/bin/curl -s -m 15 -o /dev/null https://api.re
 fi
 
 if [ "$HEALTHY" = "1" ]; then
+  rm -f "$STATE/repair_attempts" "$STATE/last_repair"
   # Only announce recovery if we were previously down.
   if [ -f "$STATE/down" ]; then
     rm -f "$STATE/down"
@@ -124,6 +125,48 @@ Leads are being captured normally."
 fi
 
 log "DOWN: $REASON"
+
+# ── backoff: never redeploy in a loop ───────────────────────────────────
+# A redeploy cannot fix a Cloudflare plan/quota 429 or an upstream outage,
+# and every repair costs a full build + deploy + extra requests. So:
+#  * if the page itself answers 429/503 (quota, rate limit), do not redeploy;
+#  * after a repair attempt, wait an exponentially growing cooldown
+#    (20, 40, 80 … capped at 360 minutes) before the next one;
+#  * after MAX_REPAIRS failed attempts, stop repairing until a human clears
+#    $STATE/repair_attempts (alerts still go out, hourly at most).
+MAX_REPAIRS="${WATCHDOG_MAX_REPAIRS:-3}"
+ATTEMPTS="$(cat "$STATE/repair_attempts" 2>/dev/null || echo 0)"
+case "$REASON" in
+  "http 429"|"http 503")
+    touch "$STATE/down"
+    log "not redeploying: $REASON is a quota/rate-limit/upstream response, a deploy cannot fix it"
+    if [ ! -f "$STATE/notified" ] || [ "$(find "$STATE/notified" -mmin +60 2>/dev/null)" ]; then
+      touch "$STATE/notified"
+      send_mail "Gray Yachts: /sell is unavailable ($REASON) — no redeploy" \
+"The landing page at $URL returned $REASON.
+
+This is usually the Cloudflare Workers daily request limit or a rate
+limit, which a redeploy cannot fix. The watchdog did NOT redeploy.
+Check the Cloudflare dashboard (Workers plan / usage).
+
+-- automated watchdog, runs every 10 minutes"
+    fi
+    exit 0 ;;
+esac
+if [ "$ATTEMPTS" -ge "$MAX_REPAIRS" ]; then
+  touch "$STATE/down"
+  log "not redeploying: $ATTEMPTS repair attempts already failed (max $MAX_REPAIRS); clear $STATE/repair_attempts to re-arm"
+  exit 0
+fi
+if [ -f "$STATE/last_repair" ]; then
+  COOLDOWN=$(( 20 * (1 << ATTEMPTS) )); [ "$COOLDOWN" -gt 360 ] && COOLDOWN=360
+  if [ -z "$(find "$STATE/last_repair" -mmin +"$COOLDOWN" 2>/dev/null)" ]; then
+    log "not redeploying: in backoff (${COOLDOWN}m after attempt $ATTEMPTS)"
+    exit 0
+  fi
+fi
+touch "$STATE/last_repair"
+echo $(( ATTEMPTS + 1 )) > "$STATE/repair_attempts"
 
 # ── repair: rebuild from the production branch and deploy ───────────────
 cd "$REPO" || { log "watchdog checkout missing at $REPO"; exit 1; }
@@ -155,7 +198,7 @@ sleep "$REPAIR_WAIT"
 REASON2="$(check)" && FIXED=1 || FIXED=0
 
 if [ "$FIXED" = "1" ]; then
-  rm -f "$STATE/down"
+  rm -f "$STATE/down" "$STATE/repair_attempts" "$STATE/last_repair"
   log "repaired by redeploying $SHA"
   send_mail "Gray Yachts: /sell went down — fixed automatically" \
 "The landing page at $URL went down and has been repaired.

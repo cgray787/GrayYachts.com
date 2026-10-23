@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, rateLimited, INQUIRY_LIMIT } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -22,69 +23,6 @@ function esc(s: string) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-}
-
-/**
- * Rate limiting uses Cloudflare's INQUIRY_RATE_LIMIT binding (5 req / 60s per
- * IP), declared in wrangler.jsonc. An in-process Map is NOT sufficient here:
- * Workers spreads requests across isolates, so a per-isolate counter never
- * accumulates — verified against production, 7 rapid posts produced no 429.
- * If the binding is unavailable (local dev), we fail OPEN rather than block
- * genuine inquries.
- *
- * Two layers. The native `ratelimit` binding is tried first but was never
- * observed enforcing in production (beta, likely plan-gated), so KV is the
- * authoritative counter — it is the only one that actually shares state
- * across isolates.
- */
-type RateLimiter = { limit: (o: { key: string }) => Promise<{ success: boolean }> };
-type KV = {
-  get: (k: string) => Promise<string | null>;
-  put: (k: string, v: string, o?: { expirationTtl?: number }) => Promise<void>;
-};
-
-const WINDOW_S = 60;
-const MAX_PER_WINDOW = 5;
-
-async function rateLimited(ip: string): Promise<{ limited: boolean; via: string }> {
-  let env: Record<string, unknown>;
-  try {
-    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    env = (await getCloudflareContext({ async: true })).env as unknown as Record<
-      string,
-      unknown
-    >;
-  } catch (e) {
-    console.error("[inquiry] no cf context", e);
-    return { limited: false, via: "no-context" }; // fail open
-  }
-
-  // Fast path: Cloudflare's native limiter, when it actually enforces.
-  try {
-    const native = env.INQUIRY_RATE_LIMIT as RateLimiter | undefined;
-    if (native) {
-      const { success } = await native.limit({ key: ip });
-      if (!success) return { limited: true, via: "binding" };
-    }
-  } catch (e) {
-    console.error("[inquiry] native limiter failed", e);
-  }
-
-  // Authoritative: KV counter, shared across isolates. Read-modify-write is
-  // not atomic, so a tight burst can slip an extra request or two through —
-  // acceptable for a contact form, and far better than no limit at all.
-  try {
-    const kv = env.RATE_LIMIT as KV | undefined;
-    if (!kv) return { limited: false, via: "no-kv" };
-    const bucket = Math.floor(Date.now() / 1000 / WINDOW_S);
-    const key = `iq:${ip}:${bucket}`;
-    const n = Number((await kv.get(key)) ?? "0") + 1;
-    await kv.put(key, String(n), { expirationTtl: WINDOW_S * 2 });
-    return { limited: n > MAX_PER_WINDOW, via: "kv" };
-  } catch (e) {
-    console.error("[inquiry] kv limiter failed", e);
-    return { limited: false, via: "kv-error" }; // fail open
-  }
 }
 
 export async function POST(req: Request) {
@@ -122,11 +60,8 @@ export async function POST(req: Request) {
   // 200 envelope whether or not the trap was tripped. We just don't send.
   if ((body.company ?? "").trim()) return NextResponse.json({ ok: true });
 
-  const ip =
-    req.headers.get("cf-connecting-ip") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
-  const rl = await rateLimited(ip);
+  // Per-IP limit shared across isolates (KV); see src/lib/rate-limit.ts.
+  const rl = await rateLimited(clientIp(req), INQUIRY_LIMIT);
   if (rl.limited) {
     return NextResponse.json(
       { ok: false, error: "Too many messages — please try again shortly.", fallbackEmail: PUBLIC_CONTACT },

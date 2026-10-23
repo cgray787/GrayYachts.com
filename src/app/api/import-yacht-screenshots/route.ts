@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { photoBucket, savedPhotoUrl } from '@/lib/yacht-photo-store';
 import { extractScreenshots, type VisionSource } from '@/lib/yacht-screenshot-extract';
 import { assertPublicHttpUrl } from '@/lib/scrape-shared';
+import { clientIp, rateLimited, rateLimitResponse, SCREENSHOT_IMPORT_LIMIT } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   const headers = { 'Cache-Control': 'no-store' };
@@ -18,6 +19,10 @@ export async function POST(request: NextRequest) {
       || !Array.isArray(specIds) || specIds.length < 1 || specIds.length > 4
       || specIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)))
       return fail('Add one boat photo and one to four specification screenshots.', 400);
+    // Up to four images through Claude vision per call: per-IP limit after the
+    // free validation, before any storage read or model call (src/lib/rate-limit.ts).
+    const rl = await rateLimited(clientIp(request), SCREENSHOT_IMPORT_LIMIT);
+    if (rl.limited) return rateLimitResponse(rl);
     const bucket = await photoBucket();
     if (!await bucket.get(photoId)) return fail('Boat photo is missing. Upload it again.', 400);
     const sources: VisionSource[] = [];
