@@ -163,7 +163,9 @@ def names(path, watch=None):
     out = {path}
     for r in (WATCH if watch is None else watch):
         real = os.path.realpath(r).rstrip('/'); alias = r.rstrip('/')
-        if real != alias and (path == real or path.startswith(real + '/')): out.add(alias + path[len(real):])
+        # Only a directory alias has names worth adding. A watch root that is a symlink to a file, or a
+        # dangling one, stays its own entry: logging the link never covers an edit or deletion of its target.
+        if real != alias and os.path.isdir(real) and (path == real or path.startswith(real + '/')): out.add(alias + path[len(real):])
     return out
 
 def previous_targets(previous):
@@ -201,7 +203,11 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
             # A logged repoint of a directory symlink also covers what lived under its previous target.
             old_target = (previous_links or {}).get(canon(x))
             if old_target and not watched(old_target): recorded.append(PreviousTarget(old_target))
-        entries.append((when, sorted(set(recorded))))
+        # An explicitly logged path keeps full coverage even when the same directory is also an inferred
+        # previous target (PreviousTarget compares equal to the plain string, so a plain set could drop either).
+        explicit = {x for x in recorded if not isinstance(x, PreviousTarget)}
+        inferred = {x for x in recorded if isinstance(x, PreviousTarget) and str(x) not in explicit}
+        entries.append((when, sorted(explicit | inferred)))
     return entries
 
 class PreviousTarget(str):

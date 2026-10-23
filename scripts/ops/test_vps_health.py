@@ -159,6 +159,37 @@ class Drift(unittest.TestCase):
         os.remove(mid); os.symlink(new, mid)  # the intermediate link moves after the scan
         self.assertEqual(vh.previous_targets({vh.canon(link): saved}), {vh.canon(link): os.path.realpath(old)})
         self.assertEqual(vh.fingerprint(saved), vh.fingerprint(vh.inventory([base])[vh.canon(link)]))  # cfg itself unchanged
+    def test_file_symlink_watch_root_gets_no_alias_names_and_target_edit_still_shows(self):  # PR #68 review, ninth pass
+        import os, tempfile, time
+        tdir = tempfile.mkdtemp(); unit = os.path.join(tdir, 'job.service'); open(unit, 'w').write('[Unit]')
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        old = vh.WATCH; vh.WATCH = [link, tdir]
+        try:
+            aliases = vh.names(vh.canon(unit))  # on macOS the temp dir itself is a /var alias, which is fine
+            self.assertNotIn(link, aliases); self.assertNotIn(vh.canon(link), aliases)
+            before = vh.inventory([link, tdir]); time.sleep(0.01)
+            open(unit, 'w').write('[Unit]\nDescription=edited without a ledger entry')
+            after = vh.inventory([link, tdir]); self.assertNotEqual(before[vh.canon(unit)], after[vh.canon(unit)])
+            now = dt.datetime.now(dt.timezone.utc)
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {now.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+            self.assertEqual(vh.drift(after, before, entries, now, now - dt.timedelta(hours=1))[1], [vh.canon(unit)])
+            os.remove(unit)  # an unlogged deletion of the target must show too
+            self.assertEqual(vh.drift(vh.inventory([link, tdir]), before, entries, now, now - dt.timedelta(hours=1))[1], [vh.canon(unit) + ' (deleted)'])
+        finally: vh.WATCH = old
+    def test_explicitly_logged_old_target_keeps_full_coverage(self):  # PR #68 review, ninth pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            for order in (f'{link}, {os.path.realpath(a)}', f'{os.path.realpath(a)}, {link}'):
+                d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+                open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {order}\n')
+                entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+                self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths), order)
+        finally: vh.WATCH = old
     def test_parent_entry_covers_files_under_an_aliased_watch_root(self):  # PR #68 review, eighth pass
         import os, tempfile
         real = tempfile.mkdtemp(); home = tempfile.mkdtemp(); alias = os.path.join(home, 'graycapital'); os.symlink(real, alias)
