@@ -136,6 +136,22 @@ class Drift(unittest.TestCase):
         entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
         self.assertTrue(any(vh.covers(r, link) for _, paths in entries for r in paths))
         self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
+    def test_repoint_coverage_excludes_nested_watched_alias_resolving_elsewhere(self):  # PR #68 review, tenth pass
+        import os, tempfile
+        a, b, elsewhere = tempfile.mkdtemp(), tempfile.mkdtemp(), tempfile.mkdtemp()
+        sub = os.path.join(a, 'sub'); os.symlink(elsewhere, sub)  # watched alias under the old target, resolving outside it
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # repointed a -> b
+        x = os.path.join(elsewhere, 'x.json'); open(x, 'w').write('{}')
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+            self.assertIn(os.path.join(sub, 'x.json'), vh.names(vh.canon(x)))
+            for name in vh.names(vh.canon(x)):
+                self.assertFalse(any(vh.covers(r, name) for _, paths in entries for r in paths), name)
+            self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+        finally: vh.WATCH = old
     def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
         import os, tempfile
         unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')

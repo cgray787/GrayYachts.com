@@ -220,8 +220,11 @@ def covers(recorded, path):
     hit = path == recorded or path.startswith(recorded + '/')
     if hit and previous:
         real = os.path.realpath(path)
-        for root in (os.path.realpath(r) for r in WATCH):
-            if root.startswith(recorded + '/') and (real == root or real.startswith(root + '/')): return False
+        for r in WATCH:
+            # A watch root nested under the old target is checked by both its alias name (it may itself be a
+            # symlink that resolves elsewhere) and its resolved location; a hit on either is excluded.
+            for root, p in ((r.rstrip('/'), path.rstrip('/')), (os.path.realpath(r).rstrip('/'), real)):
+                if root.startswith(recorded + '/') and (p == root or p.startswith(root + '/')): return False
     return hit
 
 def drift(current, previous, entries, now_utc, previous_scan=None, windows=None):
