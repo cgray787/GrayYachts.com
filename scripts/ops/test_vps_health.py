@@ -98,6 +98,14 @@ class Drift(unittest.TestCase):
         prev = {'/x/boatwizard/collection-status.json': [ts(NOW - dt.timedelta(days=2)), 10, 0, 0, 0, 0]}
         filtered = {k: v for k, v in prev.items() if not vh.SKIP.search(k)}
         self.assertEqual(vh.drift({}, filtered, [], NOW, NOW - dt.timedelta(days=1)), ([], []))
+    def test_logged_repoint_covers_old_target_children(self):  # PR #68 review, third pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        prev_links = {vh.canon(link): os.path.realpath(a)}
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), prev_links)
+        self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
     def test_job_state_files_are_skipped(self):
         self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
         self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))

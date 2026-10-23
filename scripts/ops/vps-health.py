@@ -149,7 +149,7 @@ def inventory(watch=WATCH):
                 files[canon(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
-def ledger_entries(ledger=LEDGER):
+def ledger_entries(ledger=LEDGER, previous_links=None):
     """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
     entries = []
     for entry in (ledger / 'changes').rglob('*.md'):
@@ -164,6 +164,9 @@ def ledger_entries(ledger=LEDGER):
         recorded = []
         for x in (x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()):
             recorded += [x, canon(x), os.path.realpath(x)]
+            # A logged repoint of a directory symlink also covers what lived under its previous target.
+            old_target = (previous_links or {}).get(canon(x))
+            if old_target: recorded.append(old_target)
         entries.append((when, sorted(set(recorded))))
     return entries
 
@@ -207,11 +210,13 @@ def unrecorded():
     saved = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else None
     # Apply the current exclusions to the saved inventory and pending findings too, so files that became
     # excluded after an upgrade are not reported as deleted.
-    previous = {k: v for k, v in (saved['files'] if saved else {}).items() if not SKIP.search(k)}
+    previous = {canon(k): v for k, v in (saved['files'] if saved else {}).items() if not SKIP.search(k)}  # older saves used alias names
     previous_scan = dt.datetime.fromisoformat(saved['scanned_at']) if saved else None
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
-    entries = ledger_entries()
+    # Symlink entries of the last scan give each alias's previous target ('link:<target>' fingerprints).
+    previous_links = {k: os.path.realpath(v[1][5:]) for k, v in previous.items() if isinstance(v[1], str) and v[1].startswith('link:')}
+    entries = ledger_entries(previous_links=previous_links)
     windows = {}
     changed, missing = drift(current, previous, entries, now_utc, previous_scan, windows)
     # Findings from runs whose email failed stay pending until a ledger entry covers them or they are delivered.
@@ -221,6 +226,7 @@ def unrecorded():
     for label, lo, hi in (json.loads(PENDING.read_text()) if PENDING.exists() else []):
         path = label.removesuffix(' (deleted)')
         if SKIP.search(path): continue
+        label = canon(path) + (' (deleted)' if label.endswith(' (deleted)') else '')
         if [label, lo, hi] in events: continue
         if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, path) for r in paths) for at, paths in entries):
             events.append([label, lo, hi])
