@@ -93,6 +93,12 @@ export default function Footer() {
           <p className="text-xs text-text-secondary">
             Pacific Northwest Yacht Brokerage
           </p>
+          <Link
+            href="/privacy"
+            className="text-xs text-text-secondary underline-offset-4 transition-colors hover:text-text-primary hover:underline"
+          >
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>

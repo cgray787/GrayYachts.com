@@ -30,7 +30,7 @@ function esc(s: string) {
  * Workers spreads requests across isolates, so a per-isolate counter never
  * accumulates — verified against production, 7 rapid posts produced no 429.
  * If the binding is unavailable (local dev), we fail OPEN rather than block
- * genuine enquiries.
+ * genuine inquries.
  *
  * Two layers. The native `ratelimit` binding is tried first but was never
  * observed enforcing in production (beta, likely plan-gated), so KV is the
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     // Not configured yet — tell the client so it can show the direct-contact
-    // fallback rather than pretending the enquiry was delivered.
+    // fallback rather than pretending the inquiry was delivered.
     return NextResponse.json(
       { ok: false, error: "NOT_CONFIGURED", fallbackEmail: PUBLIC_CONTACT },
       { status: 503 },
@@ -145,8 +145,8 @@ export async function POST(req: Request) {
   }
 
   const subject = vessel
-    ? `Website enquiry — ${vessel} — ${name}`
-    : `Website enquiry — ${name}`;
+    ? `Website inquiry — ${vessel} — ${name}`
+    : `Website inquiry — ${name}`;
 
   const html = [
     `<p><strong>Name:</strong> ${esc(name)}</p>`,
