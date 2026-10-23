@@ -116,6 +116,14 @@ describe('private newsletter approval',()=>{
   expect(()=>validateArticle({title:'Title',sections:[]})).toThrow();
   expect(()=>validateArticle({title:'<script>alert(1)</script>'})).toThrow();
  });
+ it('enforces the wording rule on published copy only',()=>{
+  const paragraph='Before a viewing, write down how you plan to use the boat and what you need to ask the broker. Bring those questions with you so the visit answers them in order.';
+  const article=(word:string)=>({title:'Preparing for your next yacht viewing',excerpt:'Practical questions to bring to a yacht viewing, with space to compare your priorities and decide what to ask next.',introduction:paragraph,sections:Array.from({length:5},(_,i)=>({heading:`Planning your viewing, part ${i+1}`,paragraphs:[paragraph,paragraph,paragraph,paragraph]})),questions:[{question:'How many buyer '+word+' does a listing get?',answer:'Most listings receive a handful of '+word+' in the first month, and the serious ones ask for records.'},{question:'What should I bring to a viewing?',answer:'Bring your list of questions, recent survey notes, and the service history requests you want answered.'}]});
+  expect(()=>validateArticle(article('inquiries'))).toThrow(/inquries/);
+  expect(()=>validateArticle(article('inquries'))).not.toThrow();
+  // The pre-edit original is an audit record, not published copy: it is kept even with the wrong spelling.
+  expect(()=>validateArticle(article('inquiries'),{wording:false})).not.toThrow();
+ });
 });
 
 describe('newsletter image policy',()=>{
