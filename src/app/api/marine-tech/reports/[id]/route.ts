@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireMarineTechAdmin } from "@/lib/marine-tech/guard";
 import { createMarineTechClient } from "@/lib/marine-tech/supabase";
 
-export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: Request,
