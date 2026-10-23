@@ -12,6 +12,7 @@ import {
   type FbLead,
 } from "@/lib/fb-leads";
 import { closeLead, logSent, snooze, toggleBrokerListed } from "./actions";
+import { startVisibleRefresh } from "@/lib/visible-refresh";
 
 const money = (value: number | null) =>
   value === null ? "Price not listed" : `$${Math.round(value).toLocaleString()}`;
@@ -53,12 +54,9 @@ export default function QueueClient({
   );
 
   // A due timer or an external reply can change the queue with no local click.
-  // Refresh server props once a minute; visibleQueue derives from each payload
-  // rather than trapping the first payload in client state.
-  useEffect(() => {
-    const timer = window.setInterval(() => router.refresh(), 60_000);
-    return () => window.clearInterval(timer);
-  }, [router]);
+  // Refresh while viewed and on return; hidden tabs must not keep querying
+  // leads, exact totals, profiles and authentication around the clock.
+  useEffect(() => startVisibleRefresh(() => router.refresh()), [router]);
 
   function finish(listingId: string, action: () => Promise<void>) {
     setPendingId(listingId);
