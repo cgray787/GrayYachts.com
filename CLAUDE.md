@@ -66,9 +66,14 @@ Two protections now exist — do not route around them:
    serving** and aborts if any live listing page would 404 after the deploy.
    Override only to genuinely withdraw a listing:
    `DEPLOY_ALLOW_REMOVALS=1 npm run deploy`.
-2. **Deploy from a ref that contains all the work.** Check
-   `git rev-list --count origin/main..HEAD` before deploying; if it is
-   non-zero you are about to publish something older than the branch.
+2. **Deploy from a ref that contains all the work.** Production is the
+   `restore/prod-plus-leads` branch, not `main` (`main` lacks `fleet/[slug]`,
+   so a deploy from it 404s every vessel page). Before deploying, run
+   `git fetch origin && git rev-list --count HEAD..origin/restore/prod-plus-leads`;
+   if it is non-zero, the production branch has commits your checkout lacks and
+   you are about to publish stale code. Stop, pull, and deploy from the updated
+   production branch. `npm run deploy` builds the **working tree**: after
+   `gh pr merge`, run `git pull` first, then deploy.
 
 The preflight checks the deployed site rather than git on purpose, so it
 protects regardless of branch, worktree or machine.
