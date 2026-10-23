@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
 import hashlib
+import http.client
 from html.parser import HTMLParser
 import ipaddress
 import re
@@ -13,14 +14,45 @@ from urllib.parse import urlsplit
 MAX_BYTES = 1_000_000
 MAX_TEXT = 24_000
 
+def public_addresses(host):
+    addresses = list(dict.fromkeys(item[4][0] for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)))
+    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+        raise ValueError('Source resolves to a nonpublic address')
+    return addresses
+
 def public_url(url):
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError('Expected a public HTTPS source URL')
-    addresses = socket.getaddrinfo(parsed.hostname, 443, type=socket.SOCK_STREAM)
-    if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
-        raise ValueError('Source resolves to a nonpublic address')
+    public_addresses(parsed.hostname)
     return url
+
+class PublicHTTPSConnection(http.client.HTTPSConnection):
+    def connect(self):
+        if self.port != 443 or self._tunnel_host:
+            raise ValueError('Only direct public HTTPS connections are supported')
+        last_error = None
+        for address in public_addresses(self.host):
+            connected = None
+            try:
+                # The numeric address cannot be rebound by a second hostname lookup.
+                connected = socket.create_connection((address, 443), self.timeout, self.source_address)
+                peer = ipaddress.ip_address(connected.getpeername()[0])
+                if not peer.is_global or peer != ipaddress.ip_address(address):
+                    raise ValueError('HTTPS peer does not match the validated public address')
+                self.sock = self._context.wrap_socket(connected, server_hostname=self.host)
+                return
+            except OSError as exc:
+                if connected is not None: connected.close()
+                last_error = exc
+            except Exception:
+                if connected is not None: connected.close()
+                raise
+        raise last_error or OSError('No public source address connected')
+
+class PublicHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, request):
+        return self.do_open(PublicHTTPSConnection, request, context=self._context)
 
 class PublicRedirects(urllib.request.HTTPRedirectHandler):
     max_redirections = 3
@@ -54,7 +86,7 @@ def snapshot(topic):
             'User-Agent': 'Mozilla/5.0 (compatible; GrayYachtsEditorial/1.0)',
             'Accept': 'text/html,text/plain;q=0.9', 'Accept-Encoding': 'identity'})
         # Do not inherit proxy settings that could route public-source reads into private networks.
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), PublicRedirects())
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), PublicRedirects(), PublicHTTPSHandler())
         with opener.open(request, timeout=15) as response:
             result['url'] = response.geturl()
             public_url(result['url'])

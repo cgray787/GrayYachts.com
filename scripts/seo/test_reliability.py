@@ -33,6 +33,16 @@ class ReliabilityTests(unittest.TestCase):
   result=self.result();ids=[u['topicId']for u in result['updates']]
   for updates in [[],result['updates'][:-1],result['updates']+[result['updates'][0]]]:
    with self.subTest(count=len(updates)),self.assertRaises(ValueError):loop.research_health({**result,'updates':updates},ids)
+ def test_provider_failure_cannot_hide_behind_verified_labels(self):
+  result=self.result();result['critique']['findings']=['All requests failed because of insufficient access credits.']
+  with self.assertRaises(RuntimeError):loop.research_health(result,[t['topicId']for t in result['updates']])
+ def test_rejected_model_result_is_retained_before_semantic_gates(self):
+  result=self.result();result['updates'][0]['sourceUrl']='http://invalid.example/'
+  with patch.object(loop,'invoke_agent',return_value=result),self.assertRaises(SystemExit):loop.run(argparse.Namespace(dry_run=False))
+  attempts=list((self.state/'attempts/2026-10-12').glob('*.json'))
+  records=[loop.read(path)for path in attempts]
+  self.assertTrue(any(record.get('result')==result for record in records))
+  self.assertTrue(any(record.get('status')=='failed'for record in records))
  def test_hermes_skips_diagnostic_json_and_uses_final_valid_object(self):
   schema={'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False}
   output='Diagnostic {"error":"transient"}\n{"ok":false}\n{"ok":true}'
@@ -89,6 +99,20 @@ class ReliabilityTests(unittest.TestCase):
   self.assertIn('citation was not read',loop.read(self.state/'state.json')['lastError'])
 
 class PublicSourceTests(unittest.TestCase):
+ def test_connection_pins_validated_ip_and_preserves_tls_hostname(self):
+  from unittest.mock import MagicMock
+  sock=MagicMock();sock.getpeername.return_value=('8.8.8.8',443)
+  context=MagicMock();connection=public_sources.PublicHTTPSConnection('source.example',context=context)
+  with patch.object(public_sources,'public_addresses',return_value=['8.8.8.8']),patch.object(public_sources.socket,'create_connection',return_value=sock)as create:
+   connection.connect()
+  self.assertEqual(create.call_args.args[0],('8.8.8.8',443))
+  context.wrap_socket.assert_called_once_with(sock,server_hostname='source.example')
+ def test_connection_rejects_an_unexpected_private_peer(self):
+  from unittest.mock import MagicMock
+  sock=MagicMock();sock.getpeername.return_value=('127.0.0.1',443)
+  connection=public_sources.PublicHTTPSConnection('source.example')
+  with patch.object(public_sources,'public_addresses',return_value=['8.8.8.8']),patch.object(public_sources.socket,'create_connection',return_value=sock),self.assertRaises(ValueError):connection.connect()
+  sock.close.assert_called_once()
  def test_private_and_credentialed_sources_are_blocked(self):
   for url in ['http://example.com','https://user:password@example.com','https://example.com:8768']:
    with self.subTest(url=url),self.assertRaises(ValueError):public_sources.public_url(url)

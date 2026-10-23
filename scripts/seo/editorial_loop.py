@@ -109,9 +109,9 @@ def research_health(result, topic_ids):
     if set(ids)!=set(topic_ids) or len(ids)!=len(set(ids)):
         raise ValueError('Research updates do not cover each supplied topic exactly once')
     unverified=[u for u in updates if u['changeType']=='unverified']
-    evidence='\n'.join([u.get('summary','') for u in updates]+result.get('critique',{}).get('findings',[]))
+    critique='\n'.join(result.get('critique',{}).get('findings',[]))
     broken=[u for u in updates if TOOL_FAILURE.search(u.get('summary',''))]
-    if updates and (len(unverified)==len(updates) or len(broken)*2>=len(updates) or (len(unverified)*2>=len(updates) and TOOL_FAILURE.search(evidence))):
+    if updates and (len(unverified)==len(updates) or len(broken)*2>=len(updates) or TOOL_FAILURE.search(critique)):
         raise RuntimeError(f'Research tools unavailable or evidence unverified for {max(len(unverified),len(broken))}/{len(updates)} topics')
 
 def atomic_text(path, text):
@@ -329,11 +329,12 @@ def run(args):
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
         context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in drafted], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
         mode=os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE','web')
-        if mode not in ('web','official_sources'):raise ValueError('Unknown research mode')
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         if args.dry_run:
             print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':([] if mode=='official_sources' else ['WebSearch','WebFetch']),'researchMode':mode,'publishing':False,'stateDirectory':str(STATE)},indent=2));return
+        attempt=None
         try:
+            if mode not in ('web','official_sources'):raise ValueError('Unknown research mode')
             cached=read(STATE/'runs'/f'{key}.json',{})
             if cached.get('date')==key and cached.get('qualityGate'):
                 try:research_health(cached,[t['id'] for t in context['topics']])
@@ -349,6 +350,9 @@ def run(args):
                 prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             result=invoke_agent(prompt,article_schema())
+            # Retain the exact schema-valid response before any semantic gate can reject it.
+            attempt=STATE/'attempts'/key/(uuid.uuid4().hex+'.json')
+            write(attempt,{'date':key,'receivedAt':timestamp(),'researchMode':mode,'result':result})
             known_ids={s['id'] for s in context['topics']}
             for update in result['updates']:
                 if update['topicId'] not in known_ids or not valid_url(update['sourceUrl']):raise ValueError('Unknown topic or invalid research source')
@@ -385,11 +389,13 @@ def run(args):
                         except (ValueError,TypeError):rissues.append('invalid source date')
                 result['revisionGate']={'issues':sorted(set(rissues)),'status':'needs_revision' if rissues else 'needs_human_review'}
             result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],promptSha256=hashlib.sha256((ROOT/'scripts/seo/research-prompt.md').read_bytes()).hexdigest(),researchMode=mode,performanceStatus=context['performance']['status'])
-            attempt=STATE/'attempts'/key/(uuid.uuid4().hex+'.json')
-            write(attempt,result)
+            write(attempt.with_name(attempt.stem+'-outcome.json'),{'status':'validated','date':key})
             finalize_run(result,state,lessons,key)
             print(json.dumps({'status':'completed','researchUpdates':len(result['updates']),'draft':a['title'] if a else None,'review':str(STATE/'runs'/f'{key}.md'),'qualityGate':result['qualityGate']}))
         except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired,KeyError,TypeError) as exc:
+            if attempt is not None:
+                try:write(attempt.with_name(attempt.stem+'-outcome.json'),{'status':'failed','date':key,'error':str(exc)[:700]})
+                except OSError:pass
             failures=state.get('failures',0)+1
             state.update(failures=failures,blocked=failures>=2,lastError=str(exc)[:700],lastAttempt=timestamp())
             write(STATE/'state.json',state)
