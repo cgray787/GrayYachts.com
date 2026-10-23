@@ -70,6 +70,23 @@ class ReliabilityTests(unittest.TestCase):
   with patch.dict(loop.os.environ,{'GRAYYACHTS_SEO_PROVIDER':'hermes','GRAYYACHTS_SEO_RESEARCH_MODE':'official_sources'}),patch.object(loop.subprocess,'run',fake):
    loop.invoke_agent('research',{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False})
   cmd=seen['command'];self.assertEqual(cmd[cmd.index('-t')+1],'none')
+ def source_pack(self,topics):
+  return [{'topicId':t['id'],'requestedUrl':t['sourceUrl'],'url':t['sourceUrl'],'status':'retrieved','checkedAt':'2026-10-12T12:00:00Z','contentSha256':'test','text':'Official source text.'}for t in topics]
+ def test_official_run_retains_evidence_and_uses_only_retrieved_sources(self):
+  with patch.dict(loop.os.environ,{'GRAYYACHTS_SEO_RESEARCH_MODE':'official_sources','GRAYYACHTS_SEO_PROVIDER':'hermes'}),patch.object(public_sources,'snapshots',self.source_pack),patch.object(loop,'invoke_agent',return_value=self.result()):
+   loop.run(argparse.Namespace(dry_run=False))
+  result=loop.read(self.state/'runs/2026-10-12.json')
+  self.assertEqual(result['researchMode'],'official_sources')
+  self.assertEqual(len(result['sourceChecks']),len(loop.choose_topics(loop.today())))
+  evidence=loop.read(self.state/result['sourceSnapshotFile'])
+  self.assertTrue(all(item['text']=='Official source text.'for item in evidence))
+  self.assertEqual(len(result['promptSha256']),64)
+ def test_unread_article_citation_is_rejected_in_snapshot_mode(self):
+  article=copy.deepcopy(loop.read(loop.CONTENT/'articles.json')[0]);article['slug']='unread-source-test'
+  article['sources'][0]['url']='https://not-retrieved.example/'
+  with patch.dict(loop.os.environ,{'GRAYYACHTS_SEO_RESEARCH_MODE':'official_sources','GRAYYACHTS_SEO_PROVIDER':'hermes'}),patch.object(public_sources,'snapshots',self.source_pack),patch.object(loop,'invoke_agent',return_value=self.result(article)):
+   with self.assertRaises(SystemExit):loop.run(argparse.Namespace(dry_run=False))
+  self.assertIn('citation was not read',loop.read(self.state/'state.json')['lastError'])
 
 class PublicSourceTests(unittest.TestCase):
  def test_private_and_credentialed_sources_are_blocked(self):

@@ -16,6 +16,6 @@ Use the existing SEO deployment branch, not the public website production branch
 
 ## Verification
 
-47 unit tests currently pass, including diagnostic JSON handling, lost-draft recovery, false-success retry, missing topic coverage, exact wording for new copy, no-tools invocation and private-URL rejection. The original37 regression tests remain covered. Direct HTTPS preflight on the VPS retrieved the public FLIBS, Sirena and Aquila pages with HTTP200. A real full corrected run remains a deployment verification step; do not claim it from unit tests.
+49 unit tests currently pass, including diagnostic JSON handling, lost-draft recovery, false-success retry, missing topic coverage, exact wording for new copy, no-tools invocation and private-URL rejection. The original37 regression tests remain covered. Direct HTTPS preflight on the VPS retrieved the public FLIBS, Sirena and Aquila pages with HTTP200. A real full corrected run remains a deployment verification step; do not claim it from unit tests.
 
 Sources: existing daily state/run records, current runner/test code, installed Hermes CLI help and tool dispatcher; official OpenAI noninteractive CLI documentation; official Hermes Web Search & Extract documentation. No credential values or customer records are needed for this repair.

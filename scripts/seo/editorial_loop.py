@@ -56,6 +56,7 @@ def cli_failure(proc):
 
 def invoke_agent(prompt, schema):
     provider=os.environ.get('GRAYYACHTS_SEO_PROVIDER','claude').strip().lower()
+    if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE')=='official_sources' and provider!='hermes':raise ValueError('Official source snapshot mode requires the no-tools Hermes provider')
     with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
         if provider=='hermes':
             hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
@@ -383,7 +384,7 @@ def run(args):
                             if dt.date.fromisoformat(src['publishedAt'][:10])>day:rissues.append('future dated source')
                         except (ValueError,TypeError):rissues.append('invalid source date')
                 result['revisionGate']={'issues':sorted(set(rissues)),'status':'needs_revision' if rissues else 'needs_human_review'}
-            result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],performanceStatus=context['performance']['status'])
+            result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],promptSha256=hashlib.sha256((ROOT/'scripts/seo/research-prompt.md').read_bytes()).hexdigest(),researchMode=mode,performanceStatus=context['performance']['status'])
             attempt=STATE/'attempts'/key/(uuid.uuid4().hex+'.json')
             write(attempt,result)
             finalize_run(result,state,lessons,key)
