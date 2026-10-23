@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertPublicHttpUrl } from '@/lib/scrape-shared';
 import { photoBucket, photoKey, savedPhotoUrl, photoContentType } from '@/lib/yacht-photo-store';
 import { resolveYachtPhoto } from '@/lib/resolve-yacht-photo';
+import { clientIp, rateLimited, rateLimitResponse, PHOTO_UPLOAD_LIMIT } from '@/lib/rate-limit';
 
 function unavailable(request: NextRequest) {
   const headers = { 'Cache-Control': 'no-store', 'X-Image-Fallback': 'photo unavailable' };
@@ -46,6 +47,10 @@ export async function POST(request: NextRequest) {
   const limit = 8 * 1024 * 1024;
   if (!request.body || Number(request.headers.get('content-length')) > limit)
     return NextResponse.json({ error: 'Choose a photo under 8 MB.' }, { status: 413, headers });
+  // Each accepted upload is a new R2 object (content-addressed, so unique bytes
+  // never dedupe): per-IP limit before the body is even read (src/lib/rate-limit.ts).
+  const rl = await rateLimited(clientIp(request), PHOTO_UPLOAD_LIMIT);
+  if (rl.limited) return rateLimitResponse(rl);
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;

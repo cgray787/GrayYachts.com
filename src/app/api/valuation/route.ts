@@ -1,6 +1,7 @@
 import {listingUrl} from "@/lib/valuation-details";
 import {contactConsent} from "@/lib/lead-consent";
 import { NextResponse } from "next/server";
+import { clientIp, rateLimited, rateLimitResponse, VALUATION_LIMIT } from "@/lib/rate-limit";
 import {
   attachPhotos,
   insertLead,
@@ -105,6 +106,13 @@ export async function POST(req: Request) {
 
   try { body.existing_listing_url=listingUrl(body.existing_listing_url)??''; } catch { return NextResponse.json({ok:false,error:'invalid_listing_url'},{status:400}); }
   body.location=String(body.location??'').trim().slice(0,200);
+
+  // Every accepted lead is a Supabase insert, up to three photo uploads and an
+  // email: per-IP limit after the honeypot and validation (so a bot cannot
+  // probe the limit with junk), before the first side effect (src/lib/rate-limit.ts).
+  const rl = await rateLimited(clientIp(req), VALUATION_LIMIT);
+  if (rl.limited) return rateLimitResponse(rl);
+
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     // Fail loudly rather than swallowing a lead we cannot deliver.
