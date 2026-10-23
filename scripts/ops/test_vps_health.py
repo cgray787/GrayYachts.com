@@ -108,7 +108,7 @@ class Drift(unittest.TestCase):
         self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
     def test_old_target_coverage_skips_independently_watched_dirs(self):  # PR #68 review, fourth pass
         import os, tempfile
-        a = tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # already repointed a -> b
         d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
         open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
         old = vh.WATCH; vh.WATCH = [a]
