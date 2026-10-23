@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ATTRIBUTION_KEYS, storeInquiry, markInquiry } from "@/lib/valuation-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -29,27 +30,13 @@ const ORDER = [
   ["condition", "Condition"],
 ] as const;
 
-const ATTRIBUTION = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_content",
-  "utm_term",
-  "utm_id",
-  "fbclid",
-  "ad_id",
-  "adset_id",
-  "campaign_id",
-  "placement",
-  "landing_page",
-  "referrer",
-] as const;
+const ATTRIBUTION = ATTRIBUTION_KEYS;
 
 function esc(v: unknown) {
   return String(v ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 
 export async function POST(req: Request) {
@@ -60,16 +47,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ok:false,error:'bad_json'},{status:400});
+  }
+  const origin = req.headers.get('origin');
+  if(origin && origin !== new URL(req.url).origin) {
+    return NextResponse.json({ok:false,error:'invalid_origin'},{status:403});
+  }
+
   // Honeypot: bots fill hidden fields, humans never see them.
   if (body._gotcha || body.hp) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, accepted: false });
   }
 
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim();
   const phone = String(body.phone ?? "").trim();
 
-  if (!name || !email || !phone) {
+  if (!name || name.length>200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length>254 || !phone || phone.length>50) {
     return NextResponse.json(
       { ok: false, error: "missing_required" },
       { status: 400 },
@@ -118,18 +113,28 @@ export async function POST(req: Request) {
     });
   }
 
+  let inquiry;
+  try {
+    inquiry = await storeInquiry({...body,name,email,phone},attachments);
+    if(inquiry.accepted) return NextResponse.json({ok:true,accepted:true,lead_id:inquiry.id});
+  } catch (error) {
+    const conflict = error instanceof Error && error.message === 'submission_conflict';
+    console.error('[valuation] unable to save inquiry');
+    return NextResponse.json({ok:false,error:conflict?'submission_conflict':'storage_unavailable'}, {status:conflict?409:503});
+  }
+
   const answers = ORDER.filter(([k]) => body[k])
     .map(([k, label]) => `<tr><td style="padding:4px 14px 4px 0;color:#8892A5">${label}</td><td style="padding:4px 0;color:#0f172a"><strong>${esc(body[k])}</strong></td></tr>`)
     .join("");
 
-  const attribution = ATTRIBUTION.filter((k) => body[k])
-    .map((k) => `<tr><td style="padding:2px 14px 2px 0;color:#8892A5">${k}</td><td style="padding:2px 0;color:#475569">${esc(body[k])}</td></tr>`)
+  const attribution = ATTRIBUTION.filter((k) => inquiry.attribution[k])
+    .map((k) => `<tr><td style="padding:2px 14px 2px 0;color:#8892A5">${k}</td><td style="padding:2px 0;color:#475569">${esc(inquiry.attribution[k])}</td></tr>`)
     .join("");
 
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:640px">
     <p style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#C9A96E;margin:0 0 6px">
-      Gray Yachts &middot; new valuation request
+      Gray Yachts &middot; new valuation request &middot; ${esc(inquiry.id)}
     </p>
     <h2 style="margin:0 0 4px;font-size:22px;color:#0f172a">${esc(name)}</h2>
     <p style="margin:0 0 18px;color:#475569">${esc(vessel)}</p>
@@ -162,11 +167,14 @@ export async function POST(req: Request) {
     </p>
   </div>`;
 
-  const res = await fetch("https://api.resend.com/emails", {
+  let res: Response;
+  try {
+  res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
+      "Idempotency-Key": `valuation/${inquiry.id}`,
     },
     body: JSON.stringify({
       from: LEAD_FROM,
@@ -177,15 +185,25 @@ export async function POST(req: Request) {
       ...(attachments.length ? { attachments } : {}),
     }),
   });
+  } catch {
+    await markInquiry(inquiry.id,null).catch(()=>{});
+    return NextResponse.json({ok:false,error:'send_failed'},{status:502});
+  }
 
   if (!res.ok) {
-    const detail = await res.text();
-    console.error("[valuation] resend failed", res.status, detail);
+    console.error("[valuation] resend failed", res.status);
+    await markInquiry(inquiry.id,null).catch(()=>{});
     return NextResponse.json(
       { ok: false, error: "send_failed" },
       { status: 502 },
     );
   }
 
-  return NextResponse.json({ ok: true });
+  const receipt = await res.json().catch(()=>null);
+  if(!receipt || typeof receipt.id !== 'string' || !receipt.id) {
+    return NextResponse.json({ok:false,error:'invalid_receipt'},{status:502});
+  }
+  try { await markInquiry(inquiry.id,receipt.id); }
+  catch { return NextResponse.json({ok:false,error:'receipt_storage_failed'},{status:503}); }
+  return NextResponse.json({ ok: true, accepted:true, lead_id:inquiry.id });
 }

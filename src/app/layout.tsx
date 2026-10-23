@@ -1,3 +1,4 @@
+import PublicMeasurement from "@/components/analytics/public-measurement";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Cormorant_Garamond } from "next/font/google";
@@ -51,6 +52,7 @@ export default function RootLayout({
           sameAs: ["https://instagram.com/grayyachts_"],
           contactPoint: { "@type": "ContactPoint", contactType: "Yacht brokerage", telephone: "+1-425-671-8474", areaServed: "Pacific Northwest" },
         }) }} />
+        <PublicMeasurement />
         {children}
       </body>
     </html>
