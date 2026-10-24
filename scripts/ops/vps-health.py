@@ -113,11 +113,19 @@ WATCH = ['/etc/systemd/system', '/root/.config/graycapital', '/opt/grayyachts-au
          '/opt/grayyachts-automation/source', '/opt/grayyachts-automation/marketplace', '/opt/grayyachts-automation/pnw-sync',
          '/opt/grayyachts-seo/scripts', '/opt/grayyachts-seo/content', '/opt/grayyachts-health/vps_health.py',
          '/root/.hermes/config.yaml', '/root/.hermes/SOUL.md', '/root/.hermes/scripts']
-SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/|-state\.json$)')  # job-written state files are not changes
+# Job-written state (collector status/history, browser state, *-state.json) is not a change anyone makes.
+SKIP = re.compile(r'(__pycache__|\.pyc$|\.bak|\.tmp$|/node_modules/|/\.git/|-state\.json$|/(collection-status|query-history|browser-state)\.json$)')
 WINDOW = dt.timedelta(hours=24)
 # Agents log after changing: an entry covers a change made up to 24 h before it, or up to 30 min after it
 # (clock skew, or logging just ahead of the final write). An older entry never covers a newer edit.
 BEFORE, AFTER = dt.timedelta(minutes=30), dt.timedelta(hours=24)
+
+def canon(p):
+    """One name per file: resolve directory symlinks (/root/.config/graycapital is a link into /opt) but keep a
+    symlinked file as its own entry. On 2026-10-23 the same file appeared under two names and was reported
+    unrecorded although its change had been logged under the other name."""
+    p = Path(p)
+    return os.path.join(os.path.realpath(p.parent), p.name)
 
 def inventory(watch=WATCH):
     """{path: [mtime, size]} for files and [mtime, 'link:<target>'] for symlinks (lstat, never followed),
@@ -125,7 +133,10 @@ def inventory(watch=WATCH):
     files = {}
     for root in watch:
         base = Path(root)
-        for f in ([base] if base.is_file() or base.is_symlink() else base.rglob('*') if base.is_dir() else []):
+        # A watch root that is a directory is walked. If the root itself is a symlink it is also inventoried
+        # as a link, so repointing it (e.g. /root/.config/graycapital) is a change in its own right.
+        roots = [base] if base.is_symlink() else []
+        for f in list(roots) + (list(base.rglob('*')) if base.is_dir() else [base] if base.is_file() else []):
             if SKIP.search(str(f)): continue
             st = f.lstat()
             # The change time is the later of mtime and ctime: ctime moves on every content, permission or
@@ -133,12 +144,43 @@ def inventory(watch=WATCH):
             # the fingerprint (a lost executable bit breaks a job without touching mtime or size).
             changed_at = max(st.st_mtime, st.st_ctime)
             if f.is_symlink():
-                files[str(f)] = [changed_at, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
+                # The resolved target is saved with the scan: a later check must not re-resolve it through
+                # today's symlink chain (a repointed intermediate link would move the old target).
+                files[canon(f)] = [changed_at, 'link:' + os.readlink(f), st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns, os.path.realpath(f)]
             elif f.is_file():
-                files[str(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
+                files[canon(f)] = [changed_at, st.st_size, st.st_mode, st.st_uid, st.st_gid, st.st_ctime_ns]
     return files
 
-def ledger_entries(ledger=LEDGER):
+def watched(path, watch=None):
+    """True if path lies under a watch root in its own right (then only its own entries cover it).
+    The watch list is read at call time (a default argument would freeze the list at import)."""
+    real = os.path.realpath(path)
+    return any(real == os.path.realpath(r) or real.startswith(os.path.realpath(r).rstrip('/') + '/') for r in (WATCH if watch is None else watch))
+
+def names(path, watch=None):
+    """The canonical path plus its alias under any symlinked watch root, so an entry naming the alias's parent
+    (/root/.config) covers files that are inventoried under the real directory (/opt/...)."""
+    out = {path}
+    for r in (WATCH if watch is None else watch):
+        real = os.path.realpath(r).rstrip('/'); alias = r.rstrip('/')
+        # Only a directory alias has names worth adding. A watch root that is a symlink to a file, or a
+        # dangling one, stays its own entry: logging the link never covers an edit or deletion of its target.
+        if real != alias and os.path.isdir(real) and (path == real or path.startswith(real + '/')): out.add(alias + path[len(real):])
+    return out
+
+def previous_targets(previous):
+    """{link path: resolved target at the previous scan}. Saved targets are used when present; older
+    inventories fall back to resolving the saved link text, which follows today's symlink state."""
+    out = {}
+    for k, v in previous.items():
+        if isinstance(v[1], str) and v[1].startswith('link:'):
+            out[k] = v[6] if len(v) > 6 else os.path.realpath(os.path.join(os.path.dirname(k), v[1][5:]))
+    return out
+
+def fingerprint(v):
+    return list(v[:6])  # the saved resolved target (index 6) is context, not part of the change fingerprint
+
+def ledger_entries(ledger=LEDGER, previous_links=None):
     """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
     entries = []
     for entry in (ledger / 'changes').rglob('*.md'):
@@ -147,12 +189,44 @@ def ledger_entries(ledger=LEDGER):
         paths = re.search(r'^paths: (.*)$', text, re.M)
         if not at or not paths: continue
         when = dt.datetime.fromisoformat(at.group(1).replace('Z', '+00:00'))
-        entries.append((when, [x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()]))
+        # Every recorded path is kept under both its canonical name and its fully resolved name, so an entry
+        # naming an alias directory (/root/.config/graycapital) covers children under the real path (/opt/...),
+        # and a path deleted through an alias still matches (realpath resolves the parents that exist).
+        recorded = []
+        for x in (x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()):
+            recorded += [x, canon(x)]
+            # Fully resolve plain paths (including deleted ones, whose existing parents resolve) and directory
+            # aliases only. A symlink to a file, or a dangling one left by a deleted unit, covers itself and
+            # never its target: an unlogged edit or deletion of the unit file must still show.
+            real = os.path.realpath(x)
+            if not os.path.islink(x) or os.path.isdir(real): recorded.append(real)
+            # A logged repoint or removal of a directory symlink also covers what lived under its previous
+            # target, whether the entry names the link itself or one of its parent directories.
+            for link, old_target in (previous_links or {}).items():
+                if covers(canon(x), link) and not watched(old_target): recorded.append(PreviousTarget(old_target))
+        # An explicitly logged path keeps full coverage even when the same directory is also an inferred
+        # previous target (PreviousTarget compares equal to the plain string, so a plain set could drop either).
+        explicit = {x for x in recorded if not isinstance(x, PreviousTarget)}
+        inferred = {x for x in recorded if isinstance(x, PreviousTarget) and str(x) not in explicit}
+        entries.append((when, sorted(explicit | inferred)))
     return entries
 
+class PreviousTarget(str):
+    """A directory covered only because a logged symlink used to point at it. A watch root nested inside it
+    is tracked in its own right, so the repoint entry never covers that root's files (Codex review, PR #68)."""
+
 def covers(recorded, path):
+    previous = isinstance(recorded, PreviousTarget)  # rstrip() below returns a plain str
     recorded = recorded.rstrip('/')
-    return path == recorded or path.startswith(recorded + '/')
+    hit = path == recorded or path.startswith(recorded + '/')
+    if hit and previous:
+        real = os.path.realpath(path)
+        for r in WATCH:
+            # A watch root nested under the old target is checked by both its alias name (it may itself be a
+            # symlink that resolves elsewhere) and its resolved location; a hit on either is excluded.
+            for root, p in ((r.rstrip('/'), path.rstrip('/')), (os.path.realpath(r).rstrip('/'), real)):
+                if root.startswith(recorded + '/') and (p == root or p.startswith(root + '/')): return False
+    return hit
 
 def drift(current, previous, entries, now_utc, previous_scan=None, windows=None):
     """Return (changed, unrecorded) paths.
@@ -168,7 +242,7 @@ def drift(current, previous, entries, now_utc, previous_scan=None, windows=None)
             # The change happened after the previous scan, whatever mtime says (restores keep old mtimes).
             # Logged after the later of the previous scan and the file's mtime (restored files keep old mtimes,
             # and a morning entry must not cover an unlogged afternoon edit).
-            if path not in previous or previous[path] != current[path]: changes[path] = (max(previous_scan, when) - BEFORE, now_utc + BEFORE)
+            if path not in previous or fingerprint(previous[path]) != fingerprint(current[path]): changes[path] = (max(previous_scan, when) - BEFORE, now_utc + BEFORE)
         elif when >= now_utc - WINDOW: changes[path] = (when - BEFORE, when + AFTER)
     if previous_scan is not None:
         for path in previous:
@@ -177,7 +251,7 @@ def drift(current, previous, entries, now_utc, previous_scan=None, windows=None)
     missing = []
     for label, (lo, hi) in changes.items():
         path = label.removesuffix(' (deleted)')
-        if not any(lo <= at <= hi and any(covers(r, path) for r in paths) for at, paths in entries):
+        if not any(lo <= at <= hi and any(covers(r, n) for r in paths for n in names(path)) for at, paths in entries):
             missing.append(label)
     return sorted(changes), sorted(missing)
 
@@ -188,11 +262,14 @@ def unrecorded():
     pull = subprocess.run(['git', '-C', str(LEDGER), 'pull', '-q', '--rebase'], capture_output=True, text=True, timeout=60)
     if pull.returncode: return False, 'ledger sync failed, so live changes could not be verified: ' + (pull.stderr or pull.stdout).strip()[:160], None
     saved = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else None
-    previous = saved['files'] if saved else {}
+    # Apply the current exclusions to the saved inventory and pending findings too, so files that became
+    # excluded after an upgrade are not reported as deleted.
+    previous = {canon(k): v for k, v in (saved['files'] if saved else {}).items() if not SKIP.search(k)}  # older saves used alias names
     previous_scan = dt.datetime.fromisoformat(saved['scanned_at']) if saved else None
     now_utc = dt.datetime.now(dt.timezone.utc)
     current = inventory()
-    entries = ledger_entries()
+    # Symlink entries of the last scan give each alias's previous target ('link:<target>' fingerprints).
+    entries = ledger_entries(previous_links=previous_targets(previous))
     windows = {}
     changed, missing = drift(current, previous, entries, now_utc, previous_scan, windows)
     # Findings from runs whose email failed stay pending until a ledger entry covers them or they are delivered.
@@ -201,8 +278,10 @@ def unrecorded():
     events = [[m, windows[m][0].isoformat(), windows[m][1].isoformat()] for m in missing]
     for label, lo, hi in (json.loads(PENDING.read_text()) if PENDING.exists() else []):
         path = label.removesuffix(' (deleted)')
+        if SKIP.search(path): continue
+        path = canon(path); label = path + (' (deleted)' if label.endswith(' (deleted)') else '')
         if [label, lo, hi] in events: continue
-        if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, path) for r in paths) for at, paths in entries):
+        if not any(dt.datetime.fromisoformat(lo) <= at <= dt.datetime.fromisoformat(hi) and any(covers(r, n) for r in paths for n in names(path)) for at, paths in entries):
             events.append([label, lo, hi])
     missing, changed = sorted({e[0] for e in events}), sorted(set(changed) | {e[0] for e in events})
     if '--dry-run' not in sys.argv:

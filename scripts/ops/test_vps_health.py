@@ -56,20 +56,195 @@ class Drift(unittest.TestCase):
         import os, tempfile
         d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
         before = vh.inventory([d]); st = os.stat(f); os.chmod(f, 0o644); os.utime(f, (st.st_atime, st.st_mtime))
-        self.assertNotEqual(before[f], vh.inventory([d])[f])
+        self.assertNotEqual(before[vh.canon(f)], vh.inventory([d])[vh.canon(f)])
     def test_chmod_after_logged_edit_is_dated_by_ctime(self):  # seventh review
         import os, tempfile, time
         d = tempfile.mkdtemp(); f = os.path.join(d, 'run.sh'); open(f, 'w').write('#!/bin/sh'); os.chmod(f, 0o755)
         st = os.stat(f); os.utime(f, (st.st_atime, st.st_mtime - 3600)); time.sleep(0.01); os.chmod(f, 0o644)
-        entry = vh.inventory([d])[f]
+        entry = vh.inventory([d])[vh.canon(f)]
         self.assertGreaterEqual(entry[0], os.stat(f).st_ctime)  # change time follows the chmod, not the old mtime
+    def test_directory_alias_resolves_to_one_name(self):  # 2026-10-23 first live run
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        open(os.path.join(real, 'a.json'), 'w').write('{}')
+        inv = vh.inventory([real, alias])
+        # One entry for the file under its real name, plus the alias link itself (repointing it is a change).
+        self.assertEqual(set(inv), {os.path.join(os.path.realpath(real), 'a.json'), vh.canon(alias)})
+        self.assertEqual(vh.canon(os.path.join(alias, 'a.json')), os.path.join(os.path.realpath(real), 'a.json'))
+    def test_alias_directory_entry_covers_real_path_children(self):  # PR #68 review, finding 2
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        child = os.path.join(real, 'gmail.json'); open(child, 'w').write('{}')
+        old_ledger = vh.LEDGER; d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {alias}\n')
+        vh.LEDGER = __import__('pathlib').Path(d)
+        try: entries = vh.ledger_entries(vh.LEDGER)
+        finally: vh.LEDGER = old_ledger
+        self.assertTrue(any(vh.covers(r, vh.canon(child)) for _, paths in entries for r in paths))
+    def test_repointed_root_symlink_is_a_change(self):  # PR #68 review, finding 1
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        before = vh.inventory([link]); os.remove(link); os.symlink(b, link)
+        self.assertNotEqual(before.get(vh.canon(link)), vh.inventory([link]).get(vh.canon(link)))
+    def test_deleted_alias_path_is_canonicalised(self):  # PR #68 review, finding 3
+        import os, tempfile
+        real = tempfile.mkdtemp(); alias = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(real, alias)
+        gone = os.path.join(alias, 'removed.json')  # never existed, like a file deleted through the alias
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {gone}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d))
+        self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(real), 'removed.json')) for _, paths in entries for r in paths))
+    def test_newly_excluded_files_are_not_reported_as_deleted(self):  # PR #68 review, second pass
+        prev = {'/x/boatwizard/collection-status.json': [ts(NOW - dt.timedelta(days=2)), 10, 0, 0, 0, 0]}
+        filtered = {k: v for k, v in prev.items() if not vh.SKIP.search(k)}
+        self.assertEqual(vh.drift({}, filtered, [], NOW, NOW - dt.timedelta(days=1)), ([], []))
+    def test_logged_repoint_covers_old_target_children(self):  # PR #68 review, third pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(a, link)
+        prev_links = {vh.canon(link): os.path.realpath(a)}
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), prev_links)
+        self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+    def test_old_target_coverage_skips_independently_watched_dirs(self):  # PR #68 review, fourth pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # already repointed a -> b
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [a]
+        try: entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+        finally: vh.WATCH = old
+        self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(a), 'x.json')) for _, paths in entries for r in paths))
+    def test_repoint_coverage_excludes_watch_root_nested_in_old_target(self):  # PR #68 review, sixth pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # repointed a -> b
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+            self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+            self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths))
+        finally: vh.WATCH = old
+    def test_logged_dangling_symlink_does_not_cover_deleted_target(self):  # PR #68 review, seventh pass
+        import os, tempfile
+        unit = os.path.join(tempfile.mkdtemp(), 'job.service')  # the unit file was deleted without a log entry
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+        self.assertTrue(any(vh.covers(r, link) for _, paths in entries for r in paths))
+        self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
+    def test_repoint_coverage_excludes_nested_watched_alias_resolving_elsewhere(self):  # PR #68 review, tenth pass
+        import os, tempfile
+        a, b, elsewhere = tempfile.mkdtemp(), tempfile.mkdtemp(), tempfile.mkdtemp()
+        sub = os.path.join(a, 'sub'); os.symlink(elsewhere, sub)  # watched alias under the old target, resolving outside it
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)  # repointed a -> b
+        x = os.path.join(elsewhere, 'x.json'); open(x, 'w').write('{}')
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+            self.assertIn(os.path.join(sub, 'x.json'), vh.names(vh.canon(x)))
+            for name in vh.names(vh.canon(x)):
+                self.assertFalse(any(vh.covers(r, name) for _, paths in entries for r in paths), name)
+            self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
+        finally: vh.WATCH = old
+    def test_logged_parent_of_a_repointed_or_removed_alias_covers_its_old_children(self):  # PR #68 review, eleventh pass
+        import os, tempfile
+        for operation in ('repoint', 'remove'):
+            a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+            home = tempfile.mkdtemp(); link = os.path.join(home, 'cfg')
+            if operation == 'repoint': os.symlink(b, link)  # the link already points at b; removal leaves nothing
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {home}\n')
+            old = vh.WATCH; vh.WATCH = [sub]
+            try:
+                entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+                self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths), operation)
+                self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths), operation)
+            finally: vh.WATCH = old
+    def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
+        import os, tempfile
+        unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+        entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+        self.assertTrue(any(vh.covers(r, link) for _, paths in entries for r in paths))
+        self.assertFalse(any(vh.covers(r, os.path.realpath(unit)) for _, paths in entries for r in paths))
+    def test_relative_symlink_target_resolves_against_link_dir(self):
+        import os
+        prev = {'/opt/x/cfg': [0, 'link:../real', 0, 0, 0, 0]}  # an older save without the resolved target
+        self.assertEqual(vh.previous_targets(prev)['/opt/x/cfg'], os.path.realpath('/opt/real'))
+    def test_saved_link_target_survives_a_chained_repoint(self):  # PR #68 review, eighth pass
+        import os, tempfile
+        old, new = tempfile.mkdtemp(), tempfile.mkdtemp(); base = tempfile.mkdtemp()
+        mid = os.path.join(base, 'mid'); os.symlink(old, mid)
+        link = os.path.join(base, 'cfg'); os.symlink(mid, link)
+        saved = vh.inventory([base])[vh.canon(link)]
+        self.assertEqual(saved[6], os.path.realpath(old))
+        os.remove(mid); os.symlink(new, mid)  # the intermediate link moves after the scan
+        self.assertEqual(vh.previous_targets({vh.canon(link): saved}), {vh.canon(link): os.path.realpath(old)})
+        self.assertEqual(vh.fingerprint(saved), vh.fingerprint(vh.inventory([base])[vh.canon(link)]))  # cfg itself unchanged
+    def test_file_symlink_watch_root_gets_no_alias_names_and_target_edit_still_shows(self):  # PR #68 review, ninth pass
+        import os, tempfile, time
+        tdir = tempfile.mkdtemp(); unit = os.path.join(tdir, 'job.service'); open(unit, 'w').write('[Unit]')
+        link = os.path.join(tempfile.mkdtemp(), 'job.service'); os.symlink(unit, link)
+        old = vh.WATCH; vh.WATCH = [link, tdir]
+        try:
+            aliases = vh.names(vh.canon(unit))  # on macOS the temp dir itself is a /var alias, which is fine
+            self.assertNotIn(link, aliases); self.assertNotIn(vh.canon(link), aliases)
+            before = vh.inventory([link, tdir]); time.sleep(0.01)
+            open(unit, 'w').write('[Unit]\nDescription=edited without a ledger entry')
+            after = vh.inventory([link, tdir]); self.assertNotEqual(before[vh.canon(unit)], after[vh.canon(unit)])
+            now = dt.datetime.now(dt.timezone.utc)
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {now.isoformat().replace("+00:00","Z")}\npaths: {link}\n')
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+            self.assertEqual(vh.drift(after, before, entries, now, now - dt.timedelta(hours=1))[1], [vh.canon(unit)])
+            os.remove(unit)  # an unlogged deletion of the target must show too
+            self.assertEqual(vh.drift(vh.inventory([link, tdir]), before, entries, now, now - dt.timedelta(hours=1))[1], [vh.canon(unit) + ' (deleted)'])
+        finally: vh.WATCH = old
+    def test_explicitly_logged_old_target_keeps_full_coverage(self):  # PR #68 review, ninth pass
+        import os, tempfile
+        a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+        link = os.path.join(tempfile.mkdtemp(), 'cfg'); os.symlink(b, link)
+        old = vh.WATCH; vh.WATCH = [sub]
+        try:
+            for order in (f'{link}, {os.path.realpath(a)}', f'{os.path.realpath(a)}, {link}'):
+                d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+                open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {order}\n')
+                entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+                self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths), order)
+        finally: vh.WATCH = old
+    def test_parent_entry_covers_files_under_an_aliased_watch_root(self):  # PR #68 review, eighth pass
+        import os, tempfile
+        real = tempfile.mkdtemp(); home = tempfile.mkdtemp(); alias = os.path.join(home, 'graycapital'); os.symlink(real, alias)
+        f = os.path.join(real, 'job.json'); open(f, 'w').write('{}')
+        old = vh.WATCH; vh.WATCH = [alias]
+        try:
+            current = vh.inventory([alias]); key = vh.canon(f)
+            self.assertIn(key, current); self.assertTrue(key.startswith(os.path.realpath(real)))
+            self.assertIn(os.path.join(alias, 'job.json'), vh.names(key))
+            now = dt.datetime.now(dt.timezone.utc)  # real clock: the temp file's mtime is now, not the fixed NOW
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))  # the ledger names the alias's parent directory
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {now.isoformat().replace("+00:00","Z")}\npaths: {home}\n')
+            entries = vh.ledger_entries(__import__('pathlib').Path(d), {})
+            self.assertEqual(vh.drift(current, {}, entries, now, now - dt.timedelta(days=1))[1], [])
+        finally: vh.WATCH = old
+    def test_job_state_files_are_skipped(self):
+        self.assertTrue(vh.SKIP.search('/x/boatwizard/collection-status.json')); self.assertTrue(vh.SKIP.search('/x/query-history.json'))
+        self.assertFalse(vh.SKIP.search('/x/n8n/gmail-outreach.json'))
     def test_symlink_mask_is_a_change(self):  # fourth review, finding 2
         import os, tempfile
         d = tempfile.mkdtemp(); unit = os.path.join(d, 'job.timer')
         open(unit, 'w').write('[Timer]')
         before = vh.inventory([d]); os.remove(unit); os.symlink('/dev/null', unit)
-        after = vh.inventory([d])
-        self.assertEqual(after[unit][1], 'link:/dev/null'); self.assertNotEqual(before[unit], after[unit])
+        after = vh.inventory([d]); k = vh.canon(unit)
+        self.assertEqual(after[k][1], 'link:/dev/null'); self.assertNotEqual(before[k], after[k])
     def test_late_scan_still_sees_older_changes(self):  # second review, finding 3
         old, new = [ts(NOW - dt.timedelta(days=4)), 10], [ts(NOW - dt.timedelta(days=2)), 11]
         changed, missing = vh.drift({'/etc/x/a': new}, {'/etc/x/a': old}, [], NOW, NOW - dt.timedelta(days=3))
