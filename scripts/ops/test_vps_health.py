@@ -166,6 +166,12 @@ class Drift(unittest.TestCase):
                 self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths), operation)
                 self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths), operation)
             finally: vh.WATCH = old
+    def test_semicolon_separated_paths_are_split(self):
+        import os, tempfile
+        d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+        open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: /opt/x/a.py;/opt/x/b.md, /opt/y/c.json\n')
+        recorded = vh.ledger_entries(__import__('pathlib').Path(d), {})[0][1]
+        for p in ('/opt/x/a.py', '/opt/x/b.md', '/opt/y/c.json'): self.assertTrue(any(vh.covers(r, p) for r in recorded), p)
     def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
         import os, tempfile
         unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')
