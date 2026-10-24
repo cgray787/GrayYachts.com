@@ -6,7 +6,14 @@
 # bad transfer never replaces a working copy (Codex review 2026-10-23).
 set -euo pipefail
 cd "$(dirname "$0")"
-HOST=root@45.132.242.109
+# The VPS host is never committed (public repo). Set GRAYYACHTS_VPS (e.g. root@host) or put the
+# same value in ~/.config/grayyachts/vps-host (chmod 600).
+VPS_HOST=${GRAYYACHTS_VPS:-$(cat ~/.config/grayyachts/vps-host 2>/dev/null || true)}
+if [[ -z ${VPS_HOST} ]]; then
+  echo "sync.sh: VPS host not configured. Set GRAYYACHTS_VPS=user@host or write it to ~/.config/grayyachts/vps-host (chmod 600)." >&2
+  exit 2
+fi
+HOST=${VPS_HOST}
 LOCK=/root/.hermes/workspaces/grayyachts-newsletter/run.lock
 FILES=("newsletter.py:/root/.hermes/scripts/grayyachts-newsletter.py"
        "show_calendar.py:/root/.hermes/scripts/show_calendar.py"
