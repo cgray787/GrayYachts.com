@@ -8,6 +8,7 @@ vi.mock('@/lib/yacht-photo-store', () => ({ photoBucket: vi.fn(), savedPhotoUrl:
 vi.mock('@/lib/yacht-screenshot-extract', () => ({ extractScreenshots: vi.fn() }));
 vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext: vi.fn() }));
 import { SCREENSHOT_IMPORT_LIMIT } from '@/lib/rate-limit';
+import { fakeLimiterNamespace } from '@/test/limiter-namespace';
 afterEach(() => vi.resetAllMocks());
 const base = 'https://grayyachts.com/api/import-yacht-screenshots';
 it('persists a captured listing and retrieves it without the original browser or another extraction', async () => {
@@ -38,9 +39,8 @@ it('rejects arbitrary object keys and returns useful missing/storage errors', as
   expect((await GET(request)).status).toBe(503);
 });
 it(`allows ${SCREENSHOT_IMPORT_LIMIT.limit} imports per IP per window, then answers 429 before any storage read or vision call`, async () => {
-  const store = new Map<string, string>();
-  const kv = { get: vi.fn(async (k: string) => store.get(k) ?? null), put: vi.fn(async (k: string, v: string) => { store.set(k, v); }) };
-  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { RATE_LIMIT: kv } } as never);
+  const ns = fakeLimiterNamespace();
+  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { RATE_LIMITER: ns } } as never);
   const imageId = 'b'.repeat(64);
   vi.mocked(photoBucket).mockResolvedValue({
     get: async key => key === imageId ? { arrayBuffer: async () => new Uint8Array([137,80,78,71]).buffer, httpMetadata: { contentType: 'image/png' } } : null,
@@ -51,7 +51,7 @@ it(`allows ${SCREENSHOT_IMPORT_LIMIT.limit} imports per IP per window, then answ
   // Rejected requests (origin, shape) never consume quota.
   expect((await POST(new NextRequest(base, { method:'POST', body:'{}' }))).status).toBe(403);
   expect((await POST(new NextRequest(base, { method:'POST', headers:{origin:'https://grayyachts.com'}, body:JSON.stringify({url:'https://example.com/',photoId:'x',specIds:[]}) }))).status).toBe(400);
-  expect(kv.get).not.toHaveBeenCalled();
+  expect(ns.fetches).toBe(0);
   for (let i = 1; i <= SCREENSHOT_IMPORT_LIMIT.limit; i++) expect((await POST(valid())).status, `import ${i}`).toBe(200);
   const res = await POST(valid());
   expect(res.status).toBe(429);

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { photoBucket } from '@/lib/yacht-photo-store';
 import { PHOTO_UPLOAD_LIMIT } from '@/lib/rate-limit';
+import { fakeLimiterNamespace } from '@/test/limiter-namespace';
 import { POST } from './route';
 
 vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext: vi.fn() }));
@@ -14,14 +15,6 @@ vi.mock('@/lib/yacht-photo-store', async importOriginal => ({
 const base = 'https://grayyachts.com/api/yacht-image';
 const PNG = [137, 80, 78, 71, 13, 10, 26, 10];
 
-function kvMock() {
-  const store = new Map<string, string>();
-  return {
-    get: vi.fn(async (k: string) => store.get(k) ?? null),
-    put: vi.fn(async (k: string, v: string) => { store.set(k, v); }),
-  };
-}
-
 function upload(i: number, headers: Record<string, string> = { origin: 'https://grayyachts.com' }) {
   // Distinct bytes per upload: the store is content-addressed, so identical
   // bytes would dedupe and never reach R2 a second time.
@@ -29,12 +22,12 @@ function upload(i: number, headers: Record<string, string> = { origin: 'https://
   return new NextRequest(base, { method: 'POST', headers: { ...headers, 'content-length': String(bytes.length) }, body: bytes });
 }
 
-let kv: ReturnType<typeof kvMock>;
+let ns: ReturnType<typeof fakeLimiterNamespace>;
 let put: ReturnType<typeof vi.fn>;
 beforeEach(() => {
-  kv = kvMock();
+  ns = fakeLimiterNamespace();
   put = vi.fn();
-  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { RATE_LIMIT: kv } } as never);
+  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { RATE_LIMITER: ns } } as never);
   vi.mocked(photoBucket).mockResolvedValue({ get: async () => null, put });
 });
 afterEach(() => vi.resetAllMocks());
@@ -59,8 +52,14 @@ it('keeps the existing 403 / 413 guards ahead of the limiter so rejected request
   expect((await POST(upload(1, {}))).status).toBe(403);
   const big = new NextRequest(base, { method: 'POST', headers: { origin: 'https://grayyachts.com', 'content-length': String(9 * 1024 * 1024) }, body: new Uint8Array(PNG) });
   expect((await POST(big)).status).toBe(413);
-  expect(kv.get).not.toHaveBeenCalled();
-  expect(kv.put).not.toHaveBeenCalled();
+  expect(ns.fetches).toBe(0);
+});
+
+it('stores exactly the quota from a concurrent burst of 100 distinct uploads (atomic reservation)', async () => {
+  const res = await Promise.all(Array.from({ length: 100 }, (_, i) => POST(upload(1000 + i))));
+  expect(res.filter(r => r.status === 200)).toHaveLength(PHOTO_UPLOAD_LIMIT.limit);
+  expect(res.filter(r => r.status === 429)).toHaveLength(100 - PHOTO_UPLOAD_LIMIT.limit);
+  expect(put).toHaveBeenCalledTimes(PHOTO_UPLOAD_LIMIT.limit);
 });
 
 it('counts visitors separately by cf-connecting-ip', async () => {
