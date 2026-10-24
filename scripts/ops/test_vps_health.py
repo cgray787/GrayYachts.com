@@ -152,6 +152,20 @@ class Drift(unittest.TestCase):
                 self.assertFalse(any(vh.covers(r, name) for _, paths in entries for r in paths), name)
             self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths))
         finally: vh.WATCH = old
+    def test_logged_parent_of_a_repointed_or_removed_alias_covers_its_old_children(self):  # PR #68 review, eleventh pass
+        import os, tempfile
+        for operation in ('repoint', 'remove'):
+            a, b = tempfile.mkdtemp(), tempfile.mkdtemp(); sub = os.path.join(a, 'sub'); os.makedirs(sub)
+            home = tempfile.mkdtemp(); link = os.path.join(home, 'cfg')
+            if operation == 'repoint': os.symlink(b, link)  # the link already points at b; removal leaves nothing
+            d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, 'changes'))
+            open(os.path.join(d, 'changes', 'e.md'), 'w').write(f'at: {NOW.isoformat().replace("+00:00","Z")}\npaths: {home}\n')
+            old = vh.WATCH; vh.WATCH = [sub]
+            try:
+                entries = vh.ledger_entries(__import__('pathlib').Path(d), {vh.canon(link): os.path.realpath(a)})
+                self.assertTrue(any(vh.covers(r, os.path.join(os.path.realpath(a), 'old.json')) for _, paths in entries for r in paths), operation)
+                self.assertFalse(any(vh.covers(r, os.path.join(os.path.realpath(sub), 'unit.service')) for _, paths in entries for r in paths), operation)
+            finally: vh.WATCH = old
     def test_logged_file_symlink_does_not_cover_its_target(self):  # PR #68 review, fifth pass
         import os, tempfile
         unit = os.path.join(tempfile.mkdtemp(), 'job.service'); open(unit, 'w').write('[Unit]')

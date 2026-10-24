@@ -200,9 +200,10 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
             # never its target: an unlogged edit or deletion of the unit file must still show.
             real = os.path.realpath(x)
             if not os.path.islink(x) or os.path.isdir(real): recorded.append(real)
-            # A logged repoint of a directory symlink also covers what lived under its previous target.
-            old_target = (previous_links or {}).get(canon(x))
-            if old_target and not watched(old_target): recorded.append(PreviousTarget(old_target))
+            # A logged repoint or removal of a directory symlink also covers what lived under its previous
+            # target, whether the entry names the link itself or one of its parent directories.
+            for link, old_target in (previous_links or {}).items():
+                if covers(canon(x), link) and not watched(old_target): recorded.append(PreviousTarget(old_target))
         # An explicitly logged path keeps full coverage even when the same directory is also an inferred
         # previous target (PreviousTarget compares equal to the plain string, so a plain set could drop either).
         explicit = {x for x in recorded if not isinstance(x, PreviousTarget)}
