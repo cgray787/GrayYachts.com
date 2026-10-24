@@ -181,7 +181,8 @@ def fingerprint(v):
     return list(v[:6])  # the saved resolved target (index 6) is context, not part of the change fingerprint
 
 def ledger_entries(ledger=LEDGER, previous_links=None):
-    """(time, [exact paths]) for every change entry; `paths:` is comma-separated."""
+    """(time, [exact paths]) for every change entry. `paths:` is comma- or semicolon-separated: coord writes
+    commas, and Codex's entries use semicolons (on 2026-10-24 three logged SEO files were reported unrecorded)."""
     entries = []
     for entry in (ledger / 'changes').rglob('*.md'):
         text = entry.read_text(errors='ignore')
@@ -193,7 +194,7 @@ def ledger_entries(ledger=LEDGER, previous_links=None):
         # naming an alias directory (/root/.config/graycapital) covers children under the real path (/opt/...),
         # and a path deleted through an alias still matches (realpath resolves the parents that exist).
         recorded = []
-        for x in (x.strip().rstrip('/') for x in paths.group(1).split(',') if x.strip()):
+        for x in (x.strip().rstrip('/') for x in re.split(r'[,;]', paths.group(1)) if x.strip()):
             recorded += [x, canon(x)]
             # Fully resolve plain paths (including deleted ones, whose existing parents resolve) and directory
             # aliases only. A symlink to a file, or a dangling one left by a deleted unit, covers itself and
