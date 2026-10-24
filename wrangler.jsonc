@@ -27,8 +27,8 @@
     { "pattern": "grayyachts.com/*", "zone_name": "grayyachts.com" },
     { "pattern": "www.grayyachts.com/*", "zone_name": "grayyachts.com" }
   ],
-  // Rate limiting for the public POST /api/inquiry.
-  // Two layers, because neither alone was sufficient:
+  // RATE_LIMIT KV: newsletter stall-alert state. It also used to count /api/inquiry,
+  // which now uses the RATE_LIMITER Durable Object below. History of that limiter:
   //  - the `ratelimit` binding resolves and is invoked, but was never observed
   //    enforcing (beta / likely plan-gated) — kept as a free fast path;
   //  - KV is the one that actually counts. An in-process Map does NOT work:
@@ -37,6 +37,15 @@
   "kv_namespaces": [
     { "binding": "RATE_LIMIT", "id": "ce1e84923c4f469d8420906f9185be8c" }
   ],
+  // Atomic per-IP quota for the public cost/write API routes (src/lib/rate-limit.ts).
+  // KV could not do this: it is not atomic and allows one write per key per second,
+  // so a concurrent burst passed straight through. SQLite-backed because that is the
+  // Durable Object class type the Workers Free plan supports. The class is exported
+  // from newsletter-worker.ts; the first deploy applies migration v1-rate-limiter.
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiterDO" }]
+  },
+  "migrations": [{ "tag": "v1-rate-limiter", "new_sqlite_classes": ["RateLimiterDO"] }],
   "unsafe": {
     "bindings": [
       {

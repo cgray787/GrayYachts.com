@@ -7,6 +7,7 @@ import { photoKey, type PhotoBucket } from './yacht-photo-store';
 import { resolveYachtPhoto } from './resolve-yacht-photo';
 import { photosFromHtml, normalizePhotoUrl, canonicalListingUrl, blockedListingPage } from './yacht-photo-candidates';
 vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext: vi.fn() }));
+import { fakeLimiterNamespace } from '@/test/limiter-namespace';
 const jpeg = new Uint8Array([255, 216, 255, 224, 1, 2, 3]).buffer;
 const listing = 'https://broker.example/yacht/123';
 function storage() {
@@ -15,7 +16,7 @@ function storage() {
     get: async key => { const saved = disk.get(key); return saved ? { arrayBuffer: async () => saved.bytes, httpMetadata: { contentType: saved.contentType } } : null; },
     put: async (key, bytes, options) => { disk.set(key, { bytes, contentType: options.httpMetadata.contentType }); },
   };
-  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { YACHT_PHOTOS: bucket } } as never);
+  vi.mocked(getCloudflareContext).mockResolvedValue({ env: { YACHT_PHOTOS: bucket, RATE_LIMITER: fakeLimiterNamespace() } } as never);
   return { bucket, disk };
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
