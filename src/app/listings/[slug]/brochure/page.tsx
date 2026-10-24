@@ -113,7 +113,7 @@ export default async function BrochurePage({
           </>
         )}
         <div className="bx-cta">
-          <div className="bx-eyebrow">Serious Inquiries Welcome</div>
+          <div className="bx-eyebrow">Serious Inquries Welcome</div>
           <div className="ci">Request a private showing or full survey packet</div>
           <div style={{ color: "var(--muted)", fontSize: "13px" }}>
             Full documentation, survey history, and spec sheet on file. Talk soon.

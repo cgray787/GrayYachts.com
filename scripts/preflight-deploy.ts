@@ -4,7 +4,7 @@
  *
  * Why this exists: on 2026-08-10 grayyachts.com was overwritten by a deploy
  * from a checkout ~26 commits behind. Every /fleet/<slug> listing page began
- * 404ing, and the enquiry form, payment calculator and price sort vanished
+ * 404ing, and the inquiry form, payment calculator and price sort vanished
  * from production. Nothing failed loudly — the deploy "succeeded".
  *
  * This compares what the LIVE site is serving against what the working tree
