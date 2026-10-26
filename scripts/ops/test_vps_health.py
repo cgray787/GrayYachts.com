@@ -291,10 +291,6 @@ class LedgerSync(unittest.TestCase):  # review finding 4
         self.assertIsNone(commit)  # nothing to save when verification failed
         self.assertFalse(ok); self.assertIn('ledger not found', detail)
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class RuntimeHealth(unittest.TestCase):
     def test_probe_targets_machine_origin_and_keeps_missing_token(self):
         from unittest.mock import Mock, patch
@@ -334,3 +330,7 @@ class RuntimeHealth(unittest.TestCase):
 
     def test_unknown_failure_never_suppressed(self):
         self.assertFalse(self.service_result(failed='unknown.service')[0])
+
+
+if __name__ == '__main__':
+    unittest.main()
