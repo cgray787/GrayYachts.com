@@ -291,5 +291,46 @@ class LedgerSync(unittest.TestCase):  # review finding 4
         self.assertIsNone(commit)  # nothing to save when verification failed
         self.assertFalse(ok); self.assertIn('ledger not found', detail)
 
+class RuntimeHealth(unittest.TestCase):
+    def test_probe_targets_machine_origin_and_keeps_missing_token(self):
+        from unittest.mock import Mock, patch
+        response = Mock(status=401, headers={})
+        response.read.return_value = b'{"error":"unauthorized"}'
+        opener = Mock()
+        opener.open.return_value = response
+        with patch.object(vh.urllib.request, 'build_opener', return_value=opener):
+            result = vh.probe('/api/jobs', 'POST')
+        request = opener.open.call_args.args[0]
+        self.assertEqual(request.full_url, 'https://claude-os.connorgray41.workers.dev/api/jobs')
+        self.assertEqual(request.method, 'POST')
+        self.assertFalse(request.has_header('Authorization'))
+        self.assertIsNone(vh.classify(*result))
+
+    def service_result(self, enabled='disabled', active='inactive', failed='simon-backup.service'):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        def run(args, **kwargs):
+            result = failed if '--failed' in args else enabled if 'is-enabled' in args else active
+            return SimpleNamespace(stdout=result, returncode=0)
+        with patch.object(vh.subprocess, 'run', side_effect=run), patch.object(vh.shutil, 'disk_usage', return_value=SimpleNamespace(used=20, total=100)):
+            return vh.services()
+
+    def test_retired_timer_inactive_reports_historical_failure(self):
+        ok, detail = self.service_result()
+        self.assertTrue(ok)
+        self.assertIn('retired; replaced by verified Marine Tech backup', detail)
+        self.assertIn('failing Gray Yachts services: none', detail)
+
+    def test_reenabled_or_active_retired_timer_failure_still_alerts(self):
+        for enabled, active in [('enabled', 'inactive'), ('disabled', 'active'), ('', '')]:
+            with self.subTest(enabled=enabled, active=active):
+                ok, detail = self.service_result(enabled, active)
+                self.assertFalse(ok)
+                self.assertNotIn('historical failures', detail)
+
+    def test_unknown_failure_never_suppressed(self):
+        self.assertFalse(self.service_result(failed='unknown.service')[0])
+
+
 if __name__ == '__main__':
     unittest.main()

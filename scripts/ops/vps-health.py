@@ -30,7 +30,13 @@ TO = 'connorgray@jeffbrownyachts.com'
 # Same pattern as scripts/seo/editorial_loop.py TOOL_FAILURE.
 TOOL_FAILURE = re.compile(r'(?:providers?|backends?) (?:is |are )?not configured|no [a-z ]{0,30}?(?:providers?|backends?) (?:is |are )?configured|(?:retrieval|fetch|extraction)\b[^.]{0,80}?\bfailed|search (?:fallback )?(?:is |was )?(?:also )?unavailable|web (?:tools?|access) (?:is |are |was |were )?unavailable', re.I)
 # Failing services that are not Gray Yachts automation; listed, but they do not mark the email ACTION NEEDED.
-OTHER_UNITS = ('graycapital-', 'simon-backup')
+OTHER_UNITS = ('graycapital-',)
+# Historical failures remain visible, but explain intentionally stopped jobs.
+STOPPED_UNITS = {
+    'simon-backup.service': 'retired; replaced by verified Marine Tech backup',
+    'graycapital-pnw-sync.service': 'paused pending Command Center D1 migration',
+    'graycapital-pnw-verify.service': 'paused pending Command Center D1 migration',
+}
 
 now = dt.datetime.now(LA)
 today = now.date().isoformat()
@@ -96,11 +102,20 @@ def codex_login():
 def services():
     names = subprocess.run(['systemctl', '--failed', '--plain', '--no-legend'], capture_output=True, text=True, timeout=30).stdout.split()
     failed = [n for n in names if n.endswith(('.service', '.timer'))]
-    ours = [n for n in failed if not n.startswith(OTHER_UNITS)]
-    other = [n for n in failed if n.startswith(OTHER_UNITS)]
+    stopped = []
+    for unit in failed:
+        if unit not in STOPPED_UNITS: continue
+        timer = unit.removesuffix('.service') + '.timer'
+        enabled = subprocess.run(['systemctl', 'is-enabled', timer], capture_output=True, text=True, timeout=15)
+        active = subprocess.run(['systemctl', 'is-active', timer], capture_output=True, text=True, timeout=15)
+        if enabled.stdout.strip() in ('disabled', 'masked') and active.stdout.strip() == 'inactive':
+            stopped.append(unit)
+    ours = [n for n in failed if n not in stopped and not n.startswith(OTHER_UNITS)]
+    other = [n for n in failed if n not in stopped and n.startswith(OTHER_UNITS)]
     disk = shutil.disk_usage('/')
     pct = disk.used * 100 // disk.total
     detail = f"failing Gray Yachts services: {', '.join(ours) or 'none'}; other failing services: {', '.join(other) or 'none'}; disk {pct}% used"
+    if stopped: detail += '; historical failures in stopped jobs: ' + '; '.join(f'{n} ({STOPPED_UNITS[n]})' for n in stopped)
     return not ours and pct < 85, detail
 
 # Unrecorded live changes (added 2026-10-22): on 2026-10-20 a config file was switched off and
@@ -296,6 +311,7 @@ def unrecorded():
         PENDING.unlink(missing_ok=True)
     return not missing, detail, commit
 
+# Use the same Worker origin as the VPS callers. The custom domain is browser-only Access.
 # Machine routes the VPS jobs call. Without a token each must reach the app and get its 401; anything else
 # (Access login redirect, Cloudflare bot block, 404, 5xx, a redirect) means the jobs cannot use it.
 # (route, method the job uses) — probing with the wrong method returns 405 even when healthy.
@@ -305,7 +321,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def probe(route, method):
     try:
-        r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://command.graycapital.org' + route, method=method, data=b'{}' if method == 'POST' else None, headers={'User-Agent': 'GrayYachts-Health/1.0', 'Content-Type': 'application/json'}), timeout=20)
+        r = urllib.request.build_opener(_NoRedirect).open(urllib.request.Request('https://claude-os.connorgray41.workers.dev' + route, method=method, data=b'{}' if method == 'POST' else None, headers={'User-Agent': 'GrayYachts-Health/1.0', 'Content-Type': 'application/json'}), timeout=20)
         return r.status, r.headers, r.read(400).decode(errors='ignore')
     except urllib.error.HTTPError as e:
         return e.code, e.headers, e.read(400).decode(errors='ignore')
