@@ -75,3 +75,10 @@ CREATE INDEX IF NOT EXISTS idx_seo_keywords_status ON public.seo_keywords(status
 CREATE INDEX IF NOT EXISTS idx_seo_performance_post_id ON public.seo_performance(post_id);
 CREATE INDEX IF NOT EXISTS idx_seo_performance_checked_at ON public.seo_performance(checked_at);
 CREATE INDEX IF NOT EXISTS idx_seo_strategy_log_type ON public.seo_strategy_log(entry_type);
+
+-- Explicit API privileges for fresh tables; row-level policies still restrict access.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.seo_keywords TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.seo_performance TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.seo_strategy_log TO service_role;
+GRANT SELECT ON TABLE public.seo_keywords TO anon, authenticated;
+GRANT SELECT ON TABLE public.seo_performance TO anon, authenticated;

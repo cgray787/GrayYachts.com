@@ -56,3 +56,6 @@ $$ language plpgsql;
 create trigger prospects_updated_at
   before update on public.prospects
   for each row execute function public.update_updated_at();
+
+-- Explicit API privileges for fresh tables; row-level policies still restrict access.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.prospects TO authenticated, service_role;
