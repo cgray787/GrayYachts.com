@@ -20,6 +20,13 @@ GRANT SELECT ON public.directory TO anon;''')
             path.write_text(path.read_text() + '\nGRANT SELECT, INSERT ON TABLE public.private_data TO authenticated, service_role;')
             self.assertEqual(check.missing_grants(directory), [])
 
+    def test_unsupported_declarations_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / '001.sql'
+            for declaration in ['CREATE TABLE hidden (id uuid);', 'CREATE TABLE public."Hidden" (id uuid);']:
+                path.write_text(declaration)
+                self.assertIn('unsupported table declaration', check.missing_grants(directory)[0])
+
     def test_no_schema_wide_grant_shortcut(self):
         with tempfile.TemporaryDirectory() as directory:
             (Path(directory) / '001.sql').write_text('CREATE TABLE IF NOT EXISTS public.private_data (id uuid); GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;')

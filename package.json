@@ -16,7 +16,7 @@
     "brochure": "tsx scripts/generate-brochure.ts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "ship": "npx opennextjs-cloudflare build && npx wrangler deploy && node scripts/verify-deploy.mjs",
-    "test": "vitest run",
+    "test": "vitest run && npm run check:migration-grants && npm run test:migration-grants",
     "check:migration-grants": "python3 scripts/check-migration-grants.py",
     "test:migration-grants": "python3 scripts/test-migration-grants.py && node --test scripts/test-data-api-grants.mjs"
   },

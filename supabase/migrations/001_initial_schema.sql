@@ -150,10 +150,15 @@ alter table public.activity_log enable row level security;
 create policy "Users can view own activity" on public.activity_log for select using (auth.uid() = user_id);
 
 -- Explicit API privileges for fresh tables; row-level policies still restrict access.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO service_role;
+GRANT SELECT, DELETE ON TABLE public.profiles TO authenticated;
+-- Never let a self-profile write change the authorization role.
+GRANT INSERT (id, email, full_name, company_name, phone, avatar_url) ON TABLE public.profiles TO authenticated;
+GRANT UPDATE (email, full_name, company_name, phone, avatar_url) ON TABLE public.profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.yachts TO authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.documents TO authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.maintenance_records TO authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.activity_log TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.activity_log TO service_role;
+GRANT SELECT, INSERT ON TABLE public.activity_log TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.service_providers TO authenticated, service_role;
 GRANT SELECT ON TABLE public.service_providers TO anon;

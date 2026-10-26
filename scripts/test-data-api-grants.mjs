@@ -23,7 +23,7 @@ async function database(includeGrants=true){
  for(const file of files){
   const sql=clean(source(file));
   for(const statement of sql.match(/\bcreate\s+table(?:\s+if\s+not\s+exists)?\s+[\w.]+\s*\([\s\S]*?\n\);/gi)||[])await db.exec(statement);
-  if(includeGrants)for(const statement of sql.match(/\bgrant\s+(?:select|insert|update|delete)[^;]*\bon\s+table\s+[^;]+;/gi)||[])await db.exec(statement);
+  if(includeGrants)for(const statement of sql.match(/\bgrant\s+(?:select|insert|update|delete)[^;]*\bon\s+(?:table\s+)?[^;]+;/gi)||[])await db.exec(statement);
  }
  return db;
 }
@@ -36,7 +36,8 @@ test('fresh tables grant exactly the intended role/operation matrix',async()=>{
   assert.equal(rows.length,11);
   for(const {name} of rows){
    for(const role of ['anon','authenticated','service_role'])for(const operation of ['SELECT','INSERT','UPDATE','DELETE']){
-    const expected=role==='service_role'||(role==='anon'?publicRead.has(name)&&operation==='SELECT':name!=='seo_strategy_log'&&(!readOnly.has(name)||operation==='SELECT'));
+    const userAllowed=name==='profiles'?['SELECT','DELETE'].includes(operation):name==='activity_log'?['SELECT','INSERT'].includes(operation):name!=='seo_strategy_log'&&(!readOnly.has(name)||operation==='SELECT');
+    const expected=role==='service_role'||(role==='anon'?publicRead.has(name)&&operation==='SELECT':userAllowed);
     const result=await db.query('select has_table_privilege($1,$2,$3) as allowed',[role,`public.${name}`,operation]);
     assert.equal(result.rows[0].allowed,expected,`${role} ${operation} ${name}`);
    }
@@ -57,7 +58,7 @@ test('real yacht owner policy still hides another owners records after grants',a
   insert into profiles(id,email) values ('${own}','one@example.invalid'),('${other}','two@example.invalid');
   insert into yachts(user_id,name) values ('${own}','mine'),('${other}','theirs');
   alter table yachts enable row level security;`);
-  await db.exec(source('001_initial_schema.sql').match(/create policy "Users can view own yachts"[^;]+;/i)[0]);
+  await db.exec(source('002_fix_rls_policies.sql').match(/create policy "Users can access own yachts"[^;]+;/i)[0]);
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[own]);
   await db.exec('set role authenticated');
   assert.deepEqual((await db.query('select name from yachts')).rows,[{name:'mine'}]);
@@ -69,5 +70,21 @@ test('negative control: omitting grants denies authenticated table access',async
  try{
   await db.exec('set role authenticated');
   await assert.rejects(db.query('select * from yachts'),/permission denied/);
+ }finally{await db.close();}
+});
+
+// Column privileges protect role even if a future RLS policy permits the row.
+test('self-profile writes cannot elevate role and activity history is not editable',async()=>{
+ const db=await database();
+ try{
+  const id='00000000-0000-4000-8000-000000000001';
+  await db.exec(`insert into auth.users values ('${id}'); set role authenticated;`);
+  await db.query('insert into profiles(id,email) values ($1,$2)',[id,'test@example.invalid']);
+  await db.query('update profiles set full_name=$1 where id=$2',['Updated',id]);
+  assert.equal((await db.query('select full_name,role from profiles')).rows[0].full_name,'Updated');
+  await assert.rejects(db.query("update profiles set role='admin' where id=$1",[id]),/permission denied/);
+  await assert.rejects(db.query("insert into profiles(id,email,role) values ($1,'test@example.invalid','admin')",[id]),/permission denied/);
+  await assert.rejects(db.query("update activity_log set action='rewritten'"),/permission denied/);
+  await assert.rejects(db.query('delete from activity_log'),/permission denied/);
  }finally{await db.close();}
 });
