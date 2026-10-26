@@ -148,3 +148,12 @@ create table public.activity_log (
 create index idx_activity_user_id on public.activity_log(user_id);
 alter table public.activity_log enable row level security;
 create policy "Users can view own activity" on public.activity_log for select using (auth.uid() = user_id);
+
+-- Explicit API privileges for fresh tables; row-level policies still restrict access.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.yachts TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.documents TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.maintenance_records TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.activity_log TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.service_providers TO authenticated, service_role;
+GRANT SELECT ON TABLE public.service_providers TO anon;

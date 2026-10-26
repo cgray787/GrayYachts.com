@@ -40,3 +40,6 @@ create policy "Admin full access to content_drafts"
 create trigger content_drafts_updated_at
   before update on public.content_drafts
   for each row execute function public.update_updated_at();
+
+-- Explicit API privileges for fresh tables; row-level policies still restrict access.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.content_drafts TO authenticated, service_role;
