@@ -22,7 +22,7 @@
 <link rel="canonical" href="https://grayyachts.com/sell">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:type" content="website">
-<link rel="preload" as="image" href="/sell/img/hero.jpg?v=2">
+<link rel="preload" as="image" href="/sell/img/hero.jpg" imagesrcset="/sell/img/hero.w640.webp 640w, /sell/img/hero.w960.webp 960w, /sell/img/hero.w1280.webp 1280w, /sell/img/hero.jpg 1600w" imagesizes="100vw" fetchpriority="high">
 <link rel="icon" href="/sell/img/logo-gy.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +53,9 @@
   /* ---------- HERO ---------- */
   .hero{position:relative;min-height:92vh;display:flex;flex-direction:column;justify-content:center;
     padding:56px 0 40px;overflow:hidden}
-  .hero-bg{position:absolute;inset:0;background:url('/sell/img/hero.jpg?v=2') center 40%/cover no-repeat;z-index:0}
+  .hero-bg{position:absolute;inset:0;z-index:0}
+  .hero-bg picture,.hero-bg img{display:block;width:100%;height:100%}
+  .hero-bg img{object-fit:cover;object-position:center 40%}
   .hero-bg::after{content:"";position:absolute;inset:0;
     background:linear-gradient(180deg,rgba(6,10,18,.72) 0%,rgba(6,10,18,.80) 45%,rgba(6,10,18,.97) 100%)}
   .hero-in{position:relative;z-index:1}
@@ -460,7 +462,7 @@ source: Client
 
 <!-- ══════════ HERO ══════════ -->
 <header class="hero">
-  <div class="hero-bg"></div>
+  <div class="hero-bg" aria-hidden="true"><picture><img src="/sell/img/hero.jpg" srcset="/sell/img/hero.w640.webp 640w, /sell/img/hero.w960.webp 960w, /sell/img/hero.w1280.webp 1280w, /sell/img/hero.jpg 1600w" sizes="100vw" width="1600" height="1062" alt="" fetchpriority="high"></picture></div>
   <a class="home-link" href="/" aria-label="Gray Yachts home" title="Back to grayyachts.com">
     <img src="/sell/img/logo-gy.png?v=3" alt="" width="72" height="72">
   </a>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
+import {relatedIssues} from '@/lib/newsletter/related';
 import {publishedIssue, publishedIssues} from '@/lib/newsletter/db';
 import {clip, withBrand} from '@/lib/editorial';
 import {breadcrumbSchema, faqSchema, searchMetadata} from '@/lib/search-metadata';
@@ -20,8 +21,8 @@ export default async function IssuePage({params}:Props) {
  const article=JSON.parse(issue.content) as Article;
  const images=JSON.parse(issue.images) as {url:string}[];
  const sources=JSON.parse(issue.sources) as {title:string;url:string}[];
- // Cross links: each crawled edition leads Google to three others (none were indexed, 2026-10-17).
- const more=(await publishedIssues()).filter(m=>m.slug!==slug).slice(0,3);
+ // Prefer the reader’s audience and related subjects; fill remaining slots with recent editions.
+ const more=relatedIssues(issue,await publishedIssues());
  const schema={'@context':'https://schema.org','@type':'Article',headline:issue.title,description:issue.excerpt,datePublished:issue.published_at,dateModified:issue.published_at,author:{'@type':'Organization','@id':`${SITE}/#organization`,name:'Gray Yachts',url:SITE},publisher:{'@type':'Organization','@id':`${SITE}/#organization`,name:'Gray Yachts',url:SITE},image:images.length?images.map(i=>`${SITE}${i.url}`):`${SITE}${issue.hero}`,mainEntityOfPage:`${SITE}/newsletter/${slug}`};
  return <main className="pt-32"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify([schema,breadcrumbSchema([{name:'Home',path:'/'},{name:'Newsletter',path:'/newsletter'},{name:issue.title,path:`/newsletter/${slug}`}]),faqSchema(article.questions??[])].filter(Boolean)).replace(/</g,'\\u003c')}}/><header className="mx-auto max-w-4xl px-6 pb-14"><Link href="/newsletter" className="text-xs uppercase tracking-[0.2em] text-gold">← The Gray Yachts newsletter</Link><p className="mt-10 text-xs uppercase tracking-widest text-slate-400">{issue.audience==='seller'?'For yacht sellers':'For yacht buyers'}</p><h1 className="mt-5 font-[family-name:var(--font-cormorant)] text-5xl md:text-7xl leading-[1.05]">{issue.title}</h1><p className="mt-7 text-sm text-slate-400">Gray Yachts · {new Date(issue.published_at!).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'})}</p></header>
 
