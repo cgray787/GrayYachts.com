@@ -137,7 +137,7 @@ export async function acceptHermesDraft(env: MediaEnv, payload: {slot:string;ori
  if(!isNewsletterDate(payload.slot,env.NEWSLETTER_START_DATE) || Date.parse(payload.slot)>Date.now()) throw new Error('Invalid newsletter date');
  if(payload.humanizerVersion!=='3.0.0' || payload.factCheck?.pass!==true)throw new Error('Humanizer editing and factual review are required');
  const original=validateArticle(payload.original, { wording: false });const article=validateArticle(payload.article);
- const resolved=await resolveImages(env,payload.images,article.sections.length);
+ const resolved=await resolveImages(env,payload.images,article.sections.length,{slot:payload.slot});
  if(!Array.isArray(payload.sources) || payload.sources.length<1 || payload.sources.length>12 || payload.sources.some(s=>typeof s.title!=='string'||s.title.length>200||typeof s.url!=='string'||!/^https:\/\//.test(s.url)||s.url.length>1000))throw new Error('Source references are required');
  const existing=await env.NEWSLETTER_DB.prepare('SELECT content,status FROM newsletter_issues WHERE slot=?').bind(payload.slot).first<{content:string|null;status:string}>();
  if(existing&&(existing.content||['published','rejected'].includes(existing.status)))return {state:'draft-already-stored'};
