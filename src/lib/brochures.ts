@@ -35,7 +35,7 @@ export const brochures: Record<string, BrochureContent> = {
       "R/V Poulsbo is a custom 38-foot welded-aluminum patrol and research vessel engineered for sampling, survey, and support work across Puget Sound. Her hull and propulsion package pair offshore strength with the shallow-water access demanded by nearshore field operations.",
       "Twin 550-horsepower gasoline engines drive waterjets for 1,100 total horsepower, a 40-knot cruise, and close-quarters control without exposed propellers. Five hundred gallons of fuel support an estimated 500-mile range, giving crews the speed and endurance to move between distant work sites in a single operating window.",
       "The stern working deck centers on a hydraulic A-frame and custom research winch rated for equipment deployments up to 2,000 pounds. The arrangement supports towed video and side-scan sonar, while dedicated bow and stern pole mounts are configured for multibeam and sub-bottom survey equipment. Three-phase power is available for vibracoring and ROV operations.",
-      "Inside, a full cabin provides protected work space, a dinette, crew berths, an enclosed head, and a survey-ready main helm. Radar, VHF, chartplotter, survey sonar, and a Trimble 461 RTK GPS system are joined by inverter and solar systems that provide clean power for sensitive electronics. Offered at $300,000 and available for inspection by appointment.",
+      "Inside, a full cabin provides protected work space, a dinette, crew berths, an enclosed head, and a survey-ready main helm. Radar, VHF, chartplotter, survey sonar, and a Trimble 461 RTK GPS system are joined by inverter and solar systems that provide clean power for sensitive electronics. Offered at $249,000 and available for inspection by appointment.",
     ],
     highlights: [
       "Custom welded-aluminum patrol / research vessel",
@@ -392,7 +392,7 @@ export const brochures: Record<string, BrochureContent> = {
       "Jimmie is a 1997 Rozema 50 — a custom welded-aluminum workboat built for the shellfish industry and still doing the job she was designed for. Rozema Boat Works of Mount Vernon has built aluminum commercial hulls for Pacific Northwest operators for decades, and this is one of their custom oyster boats: a long, flat, unobstructed working deck, shallow draft, and the kind of structure that shrugs off a working life on the tideflats.",
       "The layout is all business. A raised pilothouse sits well aft, leaving the entire foredeck clear for gear, totes and bulk product, with a deck davit for handling loads over the side. Welded aluminum means no core to rot and a hull that tolerates beach work and grid time that would end a fiberglass boat.",
       "Power is twin outboards on the transom — simple to service, straightforward to repower, and friendly to the shallow water this kind of work demands. The pilothouse is functional and uncluttered, with clear sightlines fore and aft for close-quarters deck handling, and the battery bank and systems sit in dry, accessible compartments.",
-      "Offered at $1,100,000. USCG documented. Survey, service history and sea trial available on request — serious inquries welcome.",
+      "Offered at $900,000. USCG documented. Survey, service history and sea trial available on request — serious inquries welcome.",
     ],
     highlights: [
       "1997 Rozema 50' — custom aluminum build",
@@ -535,7 +535,7 @@ export const brochures: Record<string, BrochureContent> = {
       "This 1996 Ocean Alexander 548 is the kind of boat the Pacific Northwest was made for. Ocean Alexander built their reputation on heavily-built, teak-joined pilothouse motoryachts that could run the Inside Passage in comfort, and the 548 sits right in the sweet spot of that lineage — big enough to live aboard for a season, small enough for a couple to run.",
       "The saloon is finished in warm teak with a large L-shaped settee, opposing armchairs and windows on three sides. Forward and up, a true pilothouse gives you a raised helm with a settee behind it — the place you will actually spend your time when the weather turns. The galley sits down and forward, laid out for real cooking rather than reheating.",
       "Accommodation is two staterooms and two heads: a full-beam master with a walkaround berth and en-suite, and a guest cabin with twin berths and its own head with separate shower stall. Below, a walk-in engine room houses twin diesels with standing access down the centreline and clean, labelled electrical distribution — the sort of engine space that says a boat has been maintained rather than merely used.",
-      "Topside, the flybridge carries Furuno radar, a second helm and generous seating, with a broad foredeck forward. A serious cruising platform, offered at $575,000. Survey, service history and sea trial available on request.",
+      "Topside, the flybridge carries Furuno radar, a second helm and generous seating, with a broad foredeck forward. A serious cruising platform, offered at $500,000. Survey, service history and sea trial available on request.",
     ],
     highlights: [
       "1996 Ocean Alexander 548",
