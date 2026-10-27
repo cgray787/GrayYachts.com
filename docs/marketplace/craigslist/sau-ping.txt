@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $380,000 vs YachtWorld $379,999 — confirm before posting
+
 TITLE: 2021 Sea Ray Sundancer 350 35'0" — Des Moines, WA
-PRICE: $379,999
+PRICE: $380,000
 CITY/AREA: Des Moines, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10246337/
 

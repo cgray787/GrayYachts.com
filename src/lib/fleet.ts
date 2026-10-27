@@ -52,7 +52,7 @@ export const vessels: Vessel[] = [
     make: "Custom Norsco Aluminum Patrol",
     length: "38'",
     location: "Fall City, WA",
-    price: "$249,000",
+    price: "$300,000",
     image: "/listings/poulsbo/hero.jpg",
     href: "/listings/poulsbo.pdf",
     gallery: [
@@ -73,7 +73,7 @@ export const vessels: Vessel[] = [
     make: "Hunter Passage",
     length: "42'",
     location: "Seattle, WA",
-    price: "$95,000",
+    price: "$110,000",
     image: "/listings/playa-linda/hero.jpg",
     href: "/listings/playa-linda.pdf",
     gallery: [
@@ -127,7 +127,7 @@ export const vessels: Vessel[] = [
     make: "Yamaha 252SE",
     length: "25'",
     location: "Renton, WA",
-    price: "$79,999",
+    price: "$100,000",
     href: "/listings/yamaha-252se.pdf",
     image: "/listings/yamaha-252se/hero.jpg",
     gallery: [
@@ -241,7 +241,7 @@ export const vessels: Vessel[] = [
     make: "Back Cove 30",
     length: "30'5\"",
     location: "Edmonds, WA",
-    price: "$299,000",
+    price: "$325,000",
     image: "/listings/miss-maggie-ii/hero.jpg",
     href: "/listings/miss-maggie-ii.pdf",
     gallery: [
@@ -271,7 +271,7 @@ export const vessels: Vessel[] = [
     make: "Rozema 50' Aluminum",
     length: "50'0\"",
     location: "Seabeck, WA",
-    price: "$900,000",
+    price: "$1,100,000",
     image: "/listings/jimmie/hero.jpg",
     href: "/listings/jimmie.pdf",
     gallery: [
@@ -301,7 +301,7 @@ export const vessels: Vessel[] = [
     make: "Sea Ray Sundancer 350",
     length: "35'0\"",
     location: "Des Moines, WA",
-    price: "$379,999",
+    price: "$380,000",
     image: "/listings/sau-ping/hero.jpg",
     href: "/listings/sau-ping.pdf",
     gallery: [
@@ -362,7 +362,7 @@ export const vessels: Vessel[] = [
     length: "35'4\"",
     location: "Madrona Marina, WA",
     // Reduced from $89,000 to $84,000 on Oct 17 2026 (Connor).
-    price: "$85,000",
+    price: "$84,000",
     image: "/listings/cobalt-343/hero.jpg",
     href: "/listings/cobalt-343.pdf",
     gallery: [
@@ -391,7 +391,7 @@ export const vessels: Vessel[] = [
     make: "Ocean Alexander 548",
     length: "54'",
     location: "Anacortes, WA",
-    price: "$500,000",
+    price: "$575,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
     gallery: [
@@ -428,7 +428,7 @@ export const vessels: Vessel[] = [
     make: "Trojan 10.8 Meter International",
     length: "35'5\"",
     location: "Anacortes, WA",
-    price: "$139,999",
+    price: "$150,000",
     image: "/listings/blue-pearl/hero.jpg",
     href: "/listings/blue-pearl.pdf",
     gallery: [

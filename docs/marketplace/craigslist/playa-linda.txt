@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $110,000 vs YachtWorld $95,000 — confirm before posting
+
 TITLE: 1994 Hunter Passage 42' — Seattle, WA
-PRICE: $95,000
+PRICE: $110,000
 CITY/AREA: Seattle, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10202717/
 

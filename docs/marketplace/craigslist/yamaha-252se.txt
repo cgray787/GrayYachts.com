@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $100,000 vs YachtWorld $79,999 — confirm before posting
+
 TITLE: 2022 Yamaha 252SE 25' — Renton, WA
-PRICE: $79,999
+PRICE: $100,000
 CITY/AREA: Renton, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10242450/
 

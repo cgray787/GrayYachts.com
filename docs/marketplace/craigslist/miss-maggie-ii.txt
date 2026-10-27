@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $325,000 vs YachtWorld $299,000 — confirm before posting
+
 TITLE: 2016 Back Cove 30 30'5" — Edmonds, WA
-PRICE: $299,000
+PRICE: $325,000
 CITY/AREA: Edmonds, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10282368/
 

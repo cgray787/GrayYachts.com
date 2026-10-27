@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $150,000 vs YachtWorld $139,999 — confirm before posting
+
 TITLE: 1987 Trojan 10.8 Meter International 35'5" — Anacortes, WA
-PRICE: $139,999
+PRICE: $150,000
 CITY/AREA: Anacortes, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10317092/
 

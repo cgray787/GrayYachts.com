@@ -1,7 +1,9 @@
 CRAIGSLIST — boats by dealer
 
+!! PRICE MISMATCH: website $84,000 vs YachtWorld $85,000 — confirm before posting
+
 TITLE: 2005 Cobalt 343 35'4" — Madrona Marina, WA
-PRICE: $85,000
+PRICE: $84,000
 CITY/AREA: Madrona Marina, WA
 YACHTWORLD: https://www.yachtworld.com/yacht/10246059/
 
