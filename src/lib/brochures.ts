@@ -593,6 +593,82 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Anacortes, WA",
   },
+  // Kudu: every figure is from the owner's Vessel Specification Sheet
+  // (Will Orlando folder). Year 2022 per YachtWorld — the sheet says 2021.
+  kudu: {
+    slug: "kudu",
+    tagline: {
+      lead: "An",
+      emphasis: "offshore-ready aluminum",
+      tail: "pilothouse with twin Mercury 300s and joystick docking.",
+    },
+    specStrip: [
+      { value: "35'1\"", label: "Length" },
+      { value: "10'", label: "Beam" },
+      { value: "Twin 300", label: "Mercury Outboards" },
+      { value: "~320", label: "Engine Hours" },
+      { value: "4", label: "Sleeps" },
+    ],
+    narrative: [
+      "Kudu is a KingFisher 3425 GFX Offshore lying in Seattle, Washington. KingFisher builds its welded-aluminum boats for the conditions the Pacific Northwest actually serves up, and the 3425 GFX Offshore is the fully enclosed, go-anywhere version: an enclosed pilothouse up front, a big self-draining cockpit aft, and an aluminum hull that shrugs off logs, docks and crab-pot season.",
+      "Power is a pair of Mercury 300hp outboards showing approximately 320 hours, with a 40hp Mercury kicker for trolling. Handling is Mercury's Optimus joystick system with Skyhook — the boat holds its position at the push of a button, which makes single-handed docking, waiting for a bridge, or working a drift dramatically easier.",
+      "Inside, the pilothouse is finished in warm wood with a forward helm, companion seating, a dinette, and a galley with a two-burner stovetop, microwave and bar fridge. Forward there is a berth and a day head with shower; the boat sleeps four comfortably. Navigation is a Garmin chartplotter with VHF, and there is a Bluetooth stereo for the long runs.",
+    ],
+    highlights: [
+      "KingFisher 3425 GFX Offshore — welded aluminum",
+      "Twin Mercury 300hp outboards — approx. 320 hours",
+      "40hp Mercury trolling motor",
+      "Optimus joystick drive with Skyhook",
+      "Garmin chartplotter & VHF radio",
+      "Bluetooth stereo system",
+      "Enclosed pilothouse with dinette",
+      "Galley: 2-burner stovetop, microwave, bar fridge",
+      "Day head & shower",
+      "Sleeps 4 comfortably",
+      "35'1\" LOA · 10' beam · GRT 8",
+      "Lying Seattle, WA",
+    ],
+    photoCredit: "Seattle, WA",
+  },
+  // Journey: hull/engine/systems from the 2016 Marine Consultants survey
+  // (P301216H); price, length and doc number from the Oct 7 2026 listing
+  // agreement. 2016 engine hours and electronics deliberately omitted.
+  journey: {
+    slug: "journey",
+    tagline: {
+      lead: "A",
+      emphasis: "twin-diesel pilothouse cruiser",
+      tail: "built for Northwest cruising — galley, two berths and a generator.",
+    },
+    specStrip: [
+      { value: "31'", label: "Length" },
+      { value: "10'6\"", label: "Beam" },
+      { value: "Twin Volvo", label: "D4-260 Diesel" },
+      { value: "2005", label: "Year Built" },
+      { value: "4,200W", label: "Generator" },
+    ],
+    narrative: [
+      "Journey is a 2005 SeaSport Voyager 3000 lying in Anacortes, Washington. The Voyager is a true Northwest-style pilothouse cruiser — a hard-chined fiberglass planing hull, a raised wheelhouse with a reverse-raked windshield, and a cockpit you can actually fish from.",
+      "She is powered by twin Volvo Penta D4-260 diesels, 260hp each, on Volvo duoprop outdrives — the efficient, reliable diesel package these boats are known for. An Entec 4,200-watt diesel generator in a sound shield, an 11-gallon water heater, and a Fireboy automatic fire-suppression system in the engine compartment round out the systems.",
+      "The layout runs from a double V-berth forward, with a head compartment to port and a second double berth tucked beneath the wheelhouse, up to a starboard helm with a pilot seat opposite. Aft is the main cabin with a starboard galley and a convertible dinette, then the cockpit with a transom door, a second control station, a stainless radar arch and a tilt davit at the stern.",
+    ],
+    highlights: [
+      "SeaSport Voyager 3000 pilothouse cruiser",
+      "Twin Volvo Penta D4-260 diesels, 260hp each",
+      "Volvo duoprop outdrives",
+      "Entec 4,200W diesel generator, sound shield",
+      "Fireboy automatic engine-room fire suppression",
+      "Two double berths + enclosed head",
+      "Galley & convertible dinette",
+      "Cockpit control station & transom door",
+      "Stainless radar arch & tilt davit",
+      "11-gallon water heater",
+      "31' LOA · 10'6\" beam · 33\" draft",
+      "Lying Anacortes, WA",
+    ],
+    documentation: { officialNo: "1275270" },
+    photoCredit: "Anacortes, WA",
+  },
 };
 
 export function getBrochure(slug: string): BrochureContent | undefined {

@@ -449,6 +449,64 @@ export const vessels: Vessel[] = [
     badge: "NEW LISTING",
     videoUrl: "/listings/blue-pearl/walkthrough.mp4",
   },
+  {
+    // JBY listing (owner Will Orlando), Connor listing broker; live on
+    // YachtWorld 10374232 at $550,000, Seattle. Specs from the owner's
+    // Vessel Specification Sheet. CONFLICT: that sheet says 2021, YachtWorld
+    // and the listing folder say 2022 — 2022 used here; confirm with Connor.
+    name: "M/V Kudu",
+    slug: "kudu",
+    year: 2022,
+    make: "KingFisher 3425 GFX Offshore",
+    length: "35'1\"",
+    location: "Seattle, WA",
+    price: "$550,000",
+    image: "/listings/kudu/hero.jpg",
+    href: "/listings/kudu.pdf",
+    gallery: [
+      { src: "/listings/kudu/hero.jpg", caption: "Bow Quarter" },
+      { src: "/listings/kudu/g1.jpg", caption: "Aft Cockpit" },
+      { src: "/listings/kudu/g2.jpg", caption: "Cockpit & Transom" },
+      { src: "/listings/kudu/g3.jpg", caption: "Twin Mercury 300s" },
+      { src: "/listings/kudu/g4.jpg", caption: "Dockside Profile" },
+      { src: "/listings/kudu/i1.jpg", caption: "Pilothouse", interior: true },
+      { src: "/listings/kudu/i2.jpg", caption: "Helm", interior: true },
+      { src: "/listings/kudu/i3.jpg", caption: "Dinette", interior: true },
+      { src: "/listings/kudu/i4.jpg", caption: "Galley", interior: true },
+      { src: "/listings/kudu/i5.jpg", caption: "Forward Berth", interior: true },
+      { src: "/listings/kudu/i6.jpg", caption: "Head & Shower", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
+  {
+    // JBY central listing (owner John Colvin), signed Oct 7 2026, 180 days,
+    // $299,999; Connor listing broker; live on YachtWorld 10364502.
+    // Engines/hull from the 2016 Marine Consultants survey (P301216H); its
+    // 2016 engine hours and electronics are out of date and are not used.
+    name: "M/V Journey",
+    slug: "journey",
+    year: 2005,
+    make: "SeaSport Voyager 3000",
+    length: "31'",
+    location: "Anacortes, WA",
+    price: "$299,999",
+    image: "/listings/journey/hero.jpg",
+    href: "/listings/journey.pdf",
+    gallery: [
+      { src: "/listings/journey/hero.jpg", caption: "At the Dock" },
+      { src: "/listings/journey/g1.jpg", caption: "Stern & Swim Step" },
+      { src: "/listings/journey/g2.jpg", caption: "Aft Cockpit" },
+      { src: "/listings/journey/g3.jpg", caption: "Foredeck & Windlass" },
+      { src: "/listings/journey/g4.jpg", caption: "Twin Volvo Diesels" },
+      { src: "/listings/journey/i1.jpg", caption: "Salon", interior: true },
+      { src: "/listings/journey/i2.jpg", caption: "Helm", interior: true },
+      { src: "/listings/journey/i3.jpg", caption: "Dinette", interior: true },
+      { src: "/listings/journey/i4.jpg", caption: "Galley", interior: true },
+      { src: "/listings/journey/i5.jpg", caption: "Forward Berth", interior: true },
+      { src: "/listings/journey/i6.jpg", caption: "Head", interior: true },
+    ],
+    badge: "NEW LISTING",
+  },
 ];
 
 export type GallerySlide = {
