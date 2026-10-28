@@ -41,8 +41,45 @@ comment on column public.valuation_lead_messages.created_at is
 
 -- Explicit API privileges: service role only; anon/authenticated get nothing.
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.valuation_lead_messages TO service_role;
+-- Strip any default privileges Supabase hands anon/authenticated on new tables.
+-- Idempotent: revoking privileges a role does not hold is a no-op.
+revoke all on table public.valuation_lead_messages from anon, authenticated;
 
 NOTIFY pgrst, 'reload schema';
+
+-- Verification (run manually after applying). "create table if not exists"
+-- silently keeps a pre-existing table of the same name, so confirm the shape:
+--
+-- -- Constraints: expect 1 p (id), 1 f (lead_id -> valuation_leads ON DELETE
+-- -- CASCADE, confdeltype = 'c'), 2 c (channel, direction), 1 u
+-- -- (provider, provider_message_id). Postgres 18+ also lists contype n
+-- -- (NOT NULL) rows; ignore those.
+-- select conname, contype, confdeltype, pg_get_constraintdef(oid) as def
+--   from pg_constraint
+--  where conrelid = 'public.valuation_lead_messages'::regclass
+--  order by contype, conname;
+--
+-- -- Index: expect "... USING btree (lead_id, created_at DESC)".
+-- select indexname, indexdef
+--   from pg_indexes
+--  where schemaname = 'public'
+--    and tablename = 'valuation_lead_messages';
+--
+-- -- Columns: expect 14, matching the create table above.
+-- select column_name, data_type, is_nullable, column_default
+--   from information_schema.columns
+--  where table_schema = 'public' and table_name = 'valuation_lead_messages'
+--  order by ordinal_position;
+--
+-- -- RLS on, and only service_role holds privileges: expect relrowsecurity = t,
+-- -- and grantee rows for service_role and the owner (postgres) only; no anon,
+-- -- no authenticated.
+-- select relrowsecurity from pg_class
+--  where oid = 'public.valuation_lead_messages'::regclass;
+-- select grantee, string_agg(privilege_type, ', ' order by privilege_type)
+--   from information_schema.role_table_grants
+--  where table_schema = 'public' and table_name = 'valuation_lead_messages'
+--  group by grantee order by grantee;
 
 -- Rollback (run manually only if this table must be removed; deletes all rows):
 -- drop table if exists public.valuation_lead_messages;
