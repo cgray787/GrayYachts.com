@@ -9,9 +9,12 @@ const source=name=>readFileSync(new URL(name,directory),'utf8');
 const clean=sql=>sql.replace(/--[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
 const publicRead=new Set(['service_providers','seo_keywords','seo_performance']);
 const readOnly=new Set(['seo_keywords','seo_performance']);
+const serviceOnly=new Set(['seo_strategy_log','valuation_lead_messages']);
+const stubs=['blog_posts','valuation_leads'];
 
 // Replay actual table DDL and grants, with no automatic table grants. External
-// shared blog_posts is a foreign-key stub, not a claim to replay all migrations.
+// shared blog_posts and dashboard-created valuation_leads are foreign-key stubs,
+// not a claim to replay all migrations.
 async function database(includeGrants=true){
  const db=new PGlite();
  await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
@@ -19,7 +22,8 @@ async function database(includeGrants=true){
  create function auth.uid() returns uuid language sql stable as
  $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  grant usage on schema auth,public to anon,authenticated,service_role;
- create table public.blog_posts(id uuid primary key);`);
+ create table public.blog_posts(id uuid primary key);
+ create table public.valuation_leads(id uuid primary key);`);
  for(const file of files){
   const sql=clean(source(file));
   for(const statement of sql.match(/\bcreate\s+table(?:\s+if\s+not\s+exists)?\s+[\w.]+\s*\([\s\S]*?\n\);/gi)||[])await db.exec(statement);
@@ -32,11 +36,11 @@ test('fresh tables grant exactly the intended role/operation matrix',async()=>{
  const db=await database();
  try{
   const {rows}=await db.query(`select relname as name from pg_class c join pg_namespace n on n.oid=c.relnamespace
-   where n.nspname='public' and c.relkind='r' and relname <> 'blog_posts' order by relname`);
-  assert.equal(rows.length,11);
+   where n.nspname='public' and c.relkind='r' and relname <> all($1) order by relname`,[stubs]);
+  assert.equal(rows.length,12);
   for(const {name} of rows){
    for(const role of ['anon','authenticated','service_role'])for(const operation of ['SELECT','INSERT','UPDATE','DELETE']){
-    const userAllowed=name==='profiles'?['SELECT','DELETE'].includes(operation):name==='activity_log'?['SELECT','INSERT'].includes(operation):name!=='seo_strategy_log'&&(!readOnly.has(name)||operation==='SELECT');
+    const userAllowed=name==='profiles'?['SELECT','DELETE'].includes(operation):name==='activity_log'?['SELECT','INSERT'].includes(operation):!serviceOnly.has(name)&&(!readOnly.has(name)||operation==='SELECT');
     const expected=role==='service_role'||(role==='anon'?publicRead.has(name)&&operation==='SELECT':userAllowed);
     const result=await db.query('select has_table_privilege($1,$2,$3) as allowed',[role,`public.${name}`,operation]);
     assert.equal(result.rows[0].allowed,expected,`${role} ${operation} ${name}`);
@@ -44,6 +48,7 @@ test('fresh tables grant exactly the intended role/operation matrix',async()=>{
   }
   await db.exec('set role authenticated');
   await assert.rejects(db.query('select * from public.seo_strategy_log'),/permission denied/);
+  await assert.rejects(db.query('select * from public.valuation_lead_messages'),/permission denied/);
   await db.exec('reset role; set role anon');
   await assert.rejects(db.query('select * from public.prospects'),/permission denied/);
   assert.equal((await db.query('select * from public.service_providers')).rows.length,0);
