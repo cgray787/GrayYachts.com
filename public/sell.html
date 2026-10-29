@@ -1093,22 +1093,29 @@ async function addFiles(list){
   if(!files.length) return;
   shotErr('');
 
-  const room = MAX_SHOTS - shots.length;
-  if(room <= 0){ shotErr('That is the maximum of ' + MAX_SHOTS + ' photos.'); return; }
-  if(files.length > room) shotErr('Only the first ' + room + ' were added — ' + MAX_SHOTS + ' photos maximum.');
+  if(shots.length >= MAX_SHOTS){ shotErr('That is the maximum of ' + MAX_SHOTS + ' photos.'); return; }
 
+  /* Fill free slots from the whole pick, so a file that fails to decode (a
+     HEIC on a browser without HEIC support, a PDF) does not cost a slot a
+     later photo could use. Collect every problem: one message overwriting
+     the last hid which files were dropped. */
+  const problems = [];
+  let skipped = 0;
   $('shotBusy').hidden = false;
-  for(const f of files.slice(0, room)){
-    if(!/^image\//.test(f.type)){ shotErr('“' + f.name + '” is not an image.'); continue; }
+  for(const f of files){
+    if(shots.length >= MAX_SHOTS){ skipped++; continue; }
+    if(!/^image\//.test(f.type)){ problems.push('“' + f.name + '” is not an image.'); continue; }
     try{
       const out = await shrink(f);
       /* Name the attachment by position so the inbox reads in order. */
       shots.push({ filename: 'yacht-' + (shots.length+1) + '.jpg', ...out });
     }catch{
-      shotErr('Could not read “' + f.name + '”. A JPEG or PNG works best.');
+      problems.push('Could not read “' + f.name + '”. A JPEG or PNG works best.');
     }
   }
+  if(skipped) problems.push(skipped + ' not added — ' + MAX_SHOTS + ' photos maximum.');
   $('shotBusy').hidden = true;
+  shotErr(problems.join(' '));
   renderShots();
 }
 
