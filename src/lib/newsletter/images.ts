@@ -67,7 +67,7 @@ export async function resolveImages(env:NewsletterEnv,value:unknown,sectionCount
 }
 // Replaces an edition's photos. A pending draft gets a new review email (its review link is
 // invalidated). A published edition is corrected in place: publication emails no subscriber
-// list, so the web page is the only copy. Migrations 0004-0005 move the reuse reservations.
+// list, so the web page is the only copy. Replaced photos stay reserved for good (migration 0006).
 export async function attachImages(env:MediaEnv,id:string,value:unknown,judge?:Judge) {
  const issue=await env.NEWSLETTER_DB.prepare("SELECT slot,content,status FROM newsletter_issues WHERE id=? AND status IN ('pending','published')").bind(id).first<{slot:string;content:string|null;status:string}>();
  if(!issue)throw new Error('Only pending or published editions can have their photos replaced');

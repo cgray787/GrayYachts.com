@@ -20,6 +20,7 @@ function database() {
  db.exec(readFileSync('migrations/newsletter/0003_section_images.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0004_media.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0005_published_image_corrections.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0006_never_reuse_images.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -149,9 +150,15 @@ describe('newsletter image policy',()=>{
   expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='b'").get()).toMatchObject({images:'[]'});
   expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(3);
   await attachImages(env,'b',photos(3));
-  // A pending draft may swap its photos before review; the old ones are released.
+  // A pending draft may swap its photos before review, but the old ones stay used for good.
   await attachImages(env,'b',photos(6));
-  expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(true);
+  expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(false);
+  expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(9);
+  // Another edition can never take them, even though 'b' no longer shows them.
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('c','2026-10-30','pending','2026-10-30')");
+  expect(()=>db.exec(`UPDATE newsletter_issues SET images='${JSON.stringify([{id:photos(3)[0].id},{id:photos(12)[0].id}])}' WHERE id='c'`)).toThrow('already used in another edition');
+  // Re-saving an edition with a photo it already holds is allowed.
+  await attachImages(env,'b',[photos(6)[0],photos(9)[0],photos(9)[1]]);
   db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id='b'");
   await expect(attachImages(env,'b',photos(9))).rejects.toThrow();db.close();
  });
@@ -162,8 +169,8 @@ describe('newsletter image policy',()=>{
   db.exec("UPDATE newsletter_issues SET status='published',published_at='2026-10-18' WHERE id='p'");
   expect(await attachImages(env,'p',photos(3))).toMatchObject({state:'published-images-corrected',count:3});
   expect(db.prepare("SELECT status,hero,review_revision,email_sent_at FROM newsletter_issues WHERE id='p'").get()).toMatchObject({status:'published',hero:oneEach[3].url,review_revision:1,email_sent_at:null});
-  // The replaced photos are released for future editions.
-  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(true);
+  // The replaced photos are never offered again (2026-10-24 reused a corrected edition's lead).
+  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(false);
   db.exec("UPDATE newsletter_issues SET status='failed' WHERE id='p'");
   await expect(attachImages(env,'p',photos(6))).rejects.toThrow('pending or published');
   db.close();
