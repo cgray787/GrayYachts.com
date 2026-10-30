@@ -8,6 +8,6 @@ The website also consumes shared tables created in other repositories, including
 
 Before committing schema changes, run `python3 scripts/check-migration-grants.py` and `python3 scripts/test-migration-grants.py`. The guard requires named-table grants beside every CREATE TABLE; it does not validate whether the selected roles or RLS policies are appropriate, which remains part of review.
 
-`npm run test:migration-grants` also replays actual table DDL and grants in isolated PGlite PostgreSQL. It verifies protected profile columns and all four operations for all three roles on the eleven owned tables, rejects private table reads, checks a real yacht-owner RLS policy, and proves omission of grants denies access. Shared blog_posts is a foreign-key stub; this is not a full historical migration-chain replay.
+`npm run test:migration-grants` also replays actual table DDL and grants in isolated PGlite PostgreSQL. It verifies protected profile columns and all four operations for all three roles on the twelve owned tables, rejects private table reads, checks a real yacht-owner RLS policy, and proves omission of grants denies access. Shared blog_posts and dashboard-created valuation_leads are foreign-key stubs; this is not a full historical migration-chain replay.
 
 The lightweight authoring guard deliberately fails closed on unqualified or quoted table declarations; use the repository public.unquoted_name convention or extend the parser and tests. PostgreSQL role/operation tests remain authoritative for actual privileges. Both checks are included in npm test.
