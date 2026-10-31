@@ -285,7 +285,8 @@ describe('server-side image relevance check',()=>{
  it('rejects a draft with a clearly mismatched photo, naming the image and section',async()=>{
   const {db,env,payload}=setup();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
   const sections:string[]=[];
-  const judge=vi.fn(async(_i:unknown,section:string)=>{sections.push(section);return section.startsWith('Planning your viewing: step 2')?{fits:false,reason:'The photo shows a cat, not a yacht viewing.'}:{fits:true,reason:'Shows a yacht.'};});
+  const roles:(string|undefined)[]=[];
+  const judge=vi.fn(async(_i:unknown,section:string,role?:string)=>{sections.push(section);roles.push(role);return section.startsWith('Planning your viewing: step 2')?{fits:false,reason:'The photo shows a cat, not a yacht viewing.'}:{fits:true,reason:'Shows a yacht.'};});
   const error=await acceptHermesDraft(env,payload,judge).catch(e=>e);
   expect(error).toBeInstanceOf(ImageMismatchError);expect(error.status).toBe(409);
   expect(error.message).toContain('images[2] (section "Planning your viewing: step 2"): The photo shows a cat');
@@ -293,6 +294,8 @@ describe('server-side image relevance check',()=>{
   expect(sections[0]).toMatch(/^Preparing for your next yacht viewing\n/);
   expect(sections.slice(1,5).map(s=>s.split('\n')[0])).toEqual([1,2,3,4].map(i=>`Planning your viewing: step ${i}`));
   expect(sections[5]).toMatch(/^Questions worth asking\nWhat should I bring/);
+  // The judge is told which slot it checks, so openings and questions are not judged as sections.
+  expect(roles).toEqual(['OPENING','SECTION','SECTION','SECTION','SECTION','QUESTIONS']);
   expect(db.prepare('SELECT COUNT(*) n FROM newsletter_issues WHERE content IS NOT NULL').get()?.n).toBe(0);
   expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(0);db.close();
  });
