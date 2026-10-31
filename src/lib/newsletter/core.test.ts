@@ -4,12 +4,15 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
 import catalog from './image-catalog.json';
-import {attachImages,availableImages,validateImages} from './images';
+import {attachImages,availableImages,validateImages,resolveImages,boatOf} from './images';
+import articleImages from '../../../content/seo/article-images.json';
 import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
 import {checkImages,ImageMismatchError,RELEVANCE_MODEL} from './relevance';
 import {imageSize} from './resize';
 
+const insightUrls=new Set(Object.values(articleImages).map(p=>p.url));
+const oneEach=catalog.filter((p,i,all)=>!insightUrls.has(p.url)&&all.findIndex(q=>(boatOf(q.url)??q.url)===(boatOf(p.url)??p.url))===i);
 function database() {
  const db=new DatabaseSync(':memory:');
  db.exec(readFileSync('migrations/newsletter/0001_newsletter.sql','utf8'));
@@ -17,6 +20,7 @@ function database() {
  db.exec(readFileSync('migrations/newsletter/0003_section_images.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0004_media.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0005_published_image_corrections.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0006_never_reuse_images.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
@@ -67,7 +71,7 @@ describe('scheduled draft and review delivery',()=>{
   const {db,env}=database();Object.assign(env,{NEWSLETTER_AI_PROVIDER:'hermes',NEWSLETTER_START_DATE:'2026-09-08',RESEND_API_KEY:'test',NEWSLETTER_REVIEW_TO:'test@example.com',NEWSLETTER_FROM:'test@example.com'});
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
   try {
-   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
+   const payload={slot:'2026-09-08',original:article(),article:article(),humanizerVersion:'3.0.0',factCheck:{pass:true},images:oneEach.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'})),sources:[{title:'Gray Yachts',url:'https://grayyachts.com'}]};
    await expect(acceptHermesDraft(env,{...payload,factCheck:{pass:false}})).rejects.toThrow('factual review');
    expect(await acceptHermesDraft(env,payload)).toMatchObject({state:'draft-stored'});
    expect(await acceptHermesDraft(env,{...payload,article:{...article(),title:'This must not replace the saved draft'}})).toMatchObject({state:'draft-already-stored'});
@@ -127,7 +131,7 @@ describe('private newsletter approval',()=>{
 });
 
 describe('newsletter image policy',()=>{
- const photos=(start=0)=>catalog.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
+ const photos=(start=0)=>oneEach.slice(start,start+3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
  it('requires unique catalog photos and complete new-edition section coverage',()=>{
   expect(()=>validateImages(photos().slice(0,1))).toThrow();
   expect(()=>validateImages(photos(),4)).toThrow('one photo per section');
@@ -146,9 +150,15 @@ describe('newsletter image policy',()=>{
   expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='b'").get()).toMatchObject({images:'[]'});
   expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(3);
   await attachImages(env,'b',photos(3));
-  // A pending draft may swap its photos before review; the old ones are released.
+  // A pending draft may swap its photos before review, but the old ones stay used for good.
   await attachImages(env,'b',photos(6));
-  expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(true);
+  expect((await availableImages(env)).some(i=>i.id===photos(3)[0].id)).toBe(false);
+  expect(db.prepare('SELECT COUNT(*) n FROM newsletter_image_uses').get()?.n).toBe(9);
+  // Another edition can never take them, even though 'b' no longer shows them.
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('c','2026-10-30','pending','2026-10-30')");
+  expect(()=>db.exec(`UPDATE newsletter_issues SET images='${JSON.stringify([{id:photos(3)[0].id},{id:photos(12)[0].id}])}' WHERE id='c'`)).toThrow('already used in another edition');
+  // Re-saving an edition with a photo it already holds is allowed.
+  await attachImages(env,'b',[photos(6)[0],photos(9)[0],photos(9)[1]]);
   db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id='b'");
   await expect(attachImages(env,'b',photos(9))).rejects.toThrow();db.close();
  });
@@ -158,11 +168,42 @@ describe('newsletter image policy',()=>{
   await attachImages(env,'p',photos());
   db.exec("UPDATE newsletter_issues SET status='published',published_at='2026-10-18' WHERE id='p'");
   expect(await attachImages(env,'p',photos(3))).toMatchObject({state:'published-images-corrected',count:3});
-  expect(db.prepare("SELECT status,hero,review_revision,email_sent_at FROM newsletter_issues WHERE id='p'").get()).toMatchObject({status:'published',hero:catalog[3].url,review_revision:1,email_sent_at:null});
-  // The replaced photos are released for future editions.
-  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(true);
+  expect(db.prepare("SELECT status,hero,review_revision,email_sent_at FROM newsletter_issues WHERE id='p'").get()).toMatchObject({status:'published',hero:oneEach[3].url,review_revision:1,email_sent_at:null});
+  // The replaced photos are never offered again (2026-10-24 reused a corrected edition's lead).
+  expect((await availableImages(env)).some(i=>i.id===photos()[0].id)).toBe(false);
   db.exec("UPDATE newsletter_issues SET status='failed' WHERE id='p'");
   await expect(attachImages(env,'p',photos(6))).rejects.toThrow('pending or published');
+  db.close();
+ });
+ it('treats another shot of the same boat as the same picture (Kingfisher 3225, 2026-10-24 and 2026-10-26)',async()=>{
+  const kingfisher=catalog.filter(p=>boatOf(p.url)==='kingfisher-3225').map(p=>({...photos()[0],id:p.id}));
+  expect(kingfisher.length).toBeGreaterThan(2);
+  expect(()=>validateImages([kingfisher[0],photos()[1],kingfisher[1]])).toThrow('images[2] shows kingfisher-3225 again');
+  const {db,env}=database();
+  const slots=['2026-10-18','2026-10-20','2026-10-22','2026-10-24','2026-10-26'];
+  db.exec(`INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES ${slots.map(s=>`('${s}','${s}','pending','${s}')`).join(',')}`);
+  await attachImages(env,'2026-10-18',[kingfisher[0],photos(3)[0]]);
+  // Its other shots are hidden from the agent and refused for the next 3 editions on either side.
+  expect((await availableImages(env)).some(i=>boatOf(i.url)==='kingfisher-3225')).toBe(false);
+  await expect(attachImages(env,'2026-10-24',[kingfisher[1],photos(6)[0]])).rejects.toThrow('images[0] shows kingfisher-3225');
+  expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='2026-10-24'").get()).toMatchObject({images:'[]'});
+  await attachImages(env,'2026-10-20',[photos(6)[0],photos(9)[0]]);
+  await attachImages(env,'2026-10-22',[photos(6)[1],photos(9)[1]]);
+  await attachImages(env,'2026-10-24',[photos(6)[2],photos(9)[2]]);
+  // Four editions later the boat is allowed again, and an edition never blocks its own boats.
+  expect(await attachImages(env,'2026-10-26',[kingfisher[1],photos(3)[1]])).toMatchObject({count:2});
+  expect(await attachImages(env,'2026-10-18',[kingfisher[2],photos(3)[2]])).toMatchObject({count:2});
+  // Rejected editions were never shown to readers and do not block a boat.
+  db.exec("UPDATE newsletter_issues SET status='rejected' WHERE id IN ('2026-10-18','2026-10-26')");
+  expect((await availableImages(env)).some(i=>boatOf(i.url)==='kingfisher-3225')).toBe(true);
+  db.close();
+ });
+ it('never uses a photo already shown on an insights article',async()=>{
+  const {db,env}=database();
+  const used=catalog.find(p=>insightUrls.has(p.url));
+  expect(used).toBeDefined();
+  expect((await availableImages(env)).some(i=>i.id===used!.id)).toBe(false);
+  await expect(resolveImages(env,[{...photos()[0],id:used!.id},photos()[1]],undefined,{slot:'2026-10-28'})).rejects.toThrow('insights article');
   db.close();
  });
  it('invalidates the older approval link when photos are added',async()=>{
@@ -196,7 +237,7 @@ describe('newsletter stall alert',()=>{
 });
 
 describe('per-edition licensed and generated media',()=>{
- const photos=()=>catalog.slice(0,3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
+ const photos=()=>oneEach.slice(0,3).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}));
  const jpeg=()=>new Response(new Uint8Array(40_000).fill(7),{headers:{'content-type':'image/jpeg'}});
  const store=()=>{const files=new Map<string,ArrayBuffer>();return {files,bucket:{get:async(k:string)=>files.has(k)?{arrayBuffer:async()=>files.get(k)!}:null,put:async(k:string,v:ArrayBuffer)=>{files.set(k,v);}}};};
  const ok={downloadUrl:'https://upload.wikimedia.org/wikipedia/commons/a/ab/Show.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:Show.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',credit:'Jane Photographer',title:'Boats at Port Vell during the show'};
@@ -232,7 +273,7 @@ describe('per-edition licensed and generated media',()=>{
 describe('server-side image relevance check',()=>{
  const paragraph='Before a viewing, write down how you plan to use the boat and what you need to ask the broker. Bring those questions with you. Service records can help you decide which details need a closer look with a qualified professional. Take notes so you can compare the boats after you leave.';
  const article=()=>({title:'Preparing for your next yacht viewing',excerpt:'Practical questions to bring to a yacht viewing, with space to compare your priorities and decide what to ask the broker next.',introduction:paragraph,sections:Array.from({length:4},(_,i)=>({heading:`Planning your viewing: step ${i+1}`,paragraphs:[paragraph,paragraph]})),questions:[{question:'What should I bring to a viewing?',answer:paragraph},{question:'How should I compare my notes?',answer:paragraph}]});
- const photos=()=>catalog.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'}));
+ const photos=()=>oneEach.slice(0,6).map(p=>({id:p.id,alt:'A yacht in the Gray Yachts photo library',caption:'Brokerage photography used as an example',relevance:'Shows the kind of brokerage boat the section discusses'}));
  // Smallest header imageSize reads: SOI, then a SOF0 segment for 1280x960.
  const jpeg=()=>new Uint8Array([0xff,0xd8,0xff,0xc0,0,17,8,0x03,0xc0,0x05,0x00,3,...new Array(40).fill(0)]).buffer;
  function setup() {
@@ -261,7 +302,7 @@ describe('server-side image relevance check',()=>{
   const images=JSON.parse((db.prepare('SELECT images FROM newsletter_issues').get() as {images:string}).images);
   expect(images).toHaveLength(6);
   expect(images[0]).toMatchObject({check:'passed',checkReason:'Shows a yacht at a viewing.',width:1280,height:960});
-  expect(fetched[0]).toBe(`https://grayyachts.com${catalog[0].url}`);db.close();
+  expect(fetched[0]).toBe(`https://grayyachts.com${oneEach[0].url}`);db.close();
  });
  it('fails open when the model errors, recording the skipped check',async()=>{
   const {db,env,payload}=setup();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-08T17:00:00Z'));
