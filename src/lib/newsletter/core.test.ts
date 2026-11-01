@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
 import catalog from './image-catalog.json';
-import {attachImages,availableImages,validateImages,resolveImages,boatOf} from './images';
+import {attachImages,availableImages,validateImages,resolveImages,boatOf,pictureKey} from './images';
 import articleImages from '../../../content/seo/article-images.json';
 import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
@@ -12,7 +12,9 @@ import {checkImages,ImageMismatchError,RELEVANCE_MODEL} from './relevance';
 import {imageSize} from './resize';
 
 const insightUrls=new Set(Object.values(articleImages).map(p=>p.url));
-const oneEach=catalog.filter((p,i,all)=>!insightUrls.has(p.url)&&all.findIndex(q=>(boatOf(q.url)??q.url)===(boatOf(p.url)??p.url))===i);
+const insightKeys=new Set(Object.values(articleImages).map(p=>pictureKey((p as {source?:string}).source)).filter(Boolean));
+const insightBoats=new Set(Object.values(articleImages).map(p=>boatOf(p.url)).filter(Boolean));
+const oneEach=catalog.filter((p,i,all)=>!insightUrls.has(p.url)&&!insightBoats.has(boatOf(p.url))&&!(pictureKey(p.source)&&insightKeys.has(pictureKey(p.source)!))&&all.findIndex(q=>(boatOf(q.url)??q.url)===(boatOf(p.url)??p.url))===i);
 function database() {
  const db=new DatabaseSync(':memory:');
  db.exec(readFileSync('migrations/newsletter/0001_newsletter.sql','utf8'));
@@ -204,6 +206,37 @@ describe('newsletter image policy',()=>{
   expect(used).toBeDefined();
   expect((await availableImages(env)).some(i=>i.id===used!.id)).toBe(false);
   await expect(resolveImages(env,[{...photos()[0],id:used!.id},photos()[1]],undefined,{slot:'2026-10-28'})).rejects.toThrow('insights article');
+  db.close();
+ });
+ it('identifies a licensed photo by its library page at any size (review 2026-11-01)',async()=>{
+  expect(pictureKey('https://commons.m.wikimedia.org/wiki/File:MYS 2022 2.jpg')).toBe(pictureKey('https://commons.wikimedia.org/wiki/File:MYS_2022_2.jpg'));
+  expect(pictureKey('https://grayyachts.com/fleet/blue-pearl')).toBeNull();
+  const {db,env}=database();
+  const media=(n:number)=>({id:String(n).repeat(64).slice(0,64),url:`/newsletter-media/${String(n).repeat(64).slice(0,64)}`});
+  const page='https://commons.wikimedia.org/wiki/File:Some_marina_2019.jpg';
+  for(const n of [1,2])db.prepare("INSERT INTO newsletter_media(id,url,kind,source,credit,license,license_url,title,prompt,created_at) VALUES(?,?,'licensed',?,'A photographer / Wikimedia Commons','CC BY 4.0','https://creativecommons.org/licenses/by/4.0',NULL,NULL,'2026-11-01')").run(media(n).id,media(n).url,n===1?page:page.replace('commons.','commons.m.'));
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08'),('b','2026-11-01','pending','2026-11-01')");
+  const item=(id:string)=>({...photos()[0],id});
+  // The same Commons file twice in one edition, at two sizes.
+  await expect(attachImages(env,'a',[item(media(1).id),item(media(2).id)])).rejects.toThrow('same licensed photo');
+  await attachImages(env,'a',[item(media(1).id),photos()[1]]);
+  // Re-imported at another size for a later edition: refused although its file and id are new.
+  await expect(attachImages(env,'b',[item(media(2).id),photos(3)[0]])).rejects.toThrow('already used by another edition');
+  // Re-saving the edition that holds it is allowed.
+  expect(await attachImages(env,'a',[item(media(2).id),photos()[1]])).toMatchObject({count:2});
+  db.close();
+ });
+ it('blocks catalog copies and boats of insights photos',async()=>{
+  const {db,env}=database();
+  const available=await availableImages(env);
+  const copy=catalog.find(p=>pictureKey(p.source)&&insightKeys.has(pictureKey(p.source)!));
+  expect(copy).toBeDefined();
+  expect(available.some(i=>i.id===copy!.id)).toBe(false);
+  await expect(resolveImages(env,[{...photos()[0],id:copy!.id},photos()[1]],undefined,{slot:'2026-11-03'})).rejects.toThrow('insights article');
+  const boatShot=catalog.find(p=>boatOf(p.url)&&insightBoats.has(boatOf(p.url))&&!insightUrls.has(p.url));
+  expect(boatShot).toBeDefined();
+  expect(available.some(i=>i.id===boatShot!.id)).toBe(false);
+  await expect(resolveImages(env,[{...photos()[0],id:boatShot!.id},photos()[1]],undefined,{slot:'2026-11-03'})).rejects.toThrow('insights article');
   db.close();
  });
  it('invalidates the older approval link when photos are added',async()=>{
