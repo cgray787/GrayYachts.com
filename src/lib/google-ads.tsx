@@ -10,7 +10,7 @@ export const PHONE_TAP_SEND_TO = "AW-18507545875/2xJRCJOLpKAdEJP6ivlE";
 export function GoogleAdsTag() {
   return (
     <>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`} strategy="afterInteractive" />
+      <Script src="/gymeasure/" strategy="afterInteractive" />
       <Script id="google-ads-tag" strategy="afterInteractive">
         {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}

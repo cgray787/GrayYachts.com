@@ -13,7 +13,7 @@ describe('Google Ads tag', () => {
   it('is in the static /sell page head, where ads land', () => {
     const html = readFileSync('public/sell.html', 'utf8');
     const head = html.slice(0, html.indexOf('</head>'));
-    expect(head).toContain('https://www.googletagmanager.com/gtag/js?id=AW-18507545875');
+    expect(head).toContain('<script async src="/gymeasure/"></script>');
     expect(head).toContain("gtag('config', 'AW-18507545875')");
   });
   it('reports taps on tel: links with the Website phone tap conversion', () => {
