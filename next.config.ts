@@ -56,6 +56,9 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/valuation", destination: "/sell", permanent: false },
+      // There is no /contact page; contact lives in the homepage #contact section.
+      // Typed URLs, ad sitelinks and old links to /contact landed on a 404.
+      { source: "/contact", destination: "/#contact", permanent: false },
       // Keep older Google/browser favicon references working after the move to icon.png.
       { source: "/favicon.ico", destination: "/icon.png", permanent: true },
     ];
