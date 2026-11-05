@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -21,10 +22,12 @@ export function ToolShell({
   title,
   description,
   maxWidth = "max-w-7xl",
+  children,
 }: {
   title: string;
   description: string;
   maxWidth?: string;
+  children?: ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -35,6 +38,7 @@ export function ToolShell({
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
           {description}
         </p>
+        {children}
         <div className="mt-16 flex items-center gap-3 text-sm text-text-secondary">
           <Loader2 className="h-4 w-4 animate-spin text-gold" />
           Loading your catalog&hellip;
