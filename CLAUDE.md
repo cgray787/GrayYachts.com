@@ -61,7 +61,7 @@ https://github.com/cgray787/GrayYachts.com.git
 - **URL:** `https://eorkwxzhtidstznpzlyg.supabase.co`
 - **Region:** US East (us-east-1)
 - **Admin email:** connorgray41@gmail.com
-- **Env vars:** `.env.local` (local) + `wrangler.jsonc` vars + wrangler secrets (`SUPABASE_SERVICE_ROLE_KEY`, `FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`)
+- **Env vars:** `wrangler.jsonc` vars (non-secret only) + Worker secrets. Secret values are kept in Infisical. For local dev, run `infisical run --projectId "$INFISICAL_PROJECT_ID" --env prod --path /ai --path /supabase --path /misc -- npm run dev`. The project ID comes from your environment and must never be committed. Don't keep secret values in `.env.local`.
 
 ## Project Structure
 
@@ -145,7 +145,7 @@ Scrapes yacht specifications from listing URLs. Multi-strategy pipeline:
 **Notes:**
 - NUXT parsing uses regex-based variable resolution (no `eval` — blocked by Cloudflare Workers).
 - Firecrawl and Anthropic both use native `fetch` (no SDK packages) for Cloudflare Workers compatibility.
-- Secrets (`FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) must be set via `npx wrangler secret put`, not `wrangler.jsonc` vars.
+- Secrets (`FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) must be set as Worker secrets, not `wrangler.jsonc` vars. Infisical is the source of truth: `infisical secrets get NAME --plain --silent ... | npx wrangler secret put NAME`. Never paste values into chat, docs or commits.
 - Compare-yachts localStorage key is `gy-compare-catalog-v5`; `loadCatalog()` auto-drops any `gy-compare-catalog-*` keys that don't match the current version, so bumping the key in code force-invalidates stale client caches on next page load.
 
 ## Authentication Flow
