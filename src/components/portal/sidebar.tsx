@@ -74,9 +74,6 @@ const navItems = [
     ],
   },
   {
-    // Flat entry on purpose — every item with subItems shares one `servicesOpen`
-    // state below, so giving this one children would toggle it in lockstep with
-    // Services and Content Review.
     label: "FB CRM",
     href: "/portal/leads",
     icon: Target,
@@ -103,17 +100,22 @@ function getInitials(name: string): string {
 
 export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname();
-  const [servicesOpen, setServicesOpen] = useState(
-    pathname.startsWith("/portal/services")
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(navItems
+      .filter(item => item.subItems && pathname.startsWith(item.href))
+      .map(item => [item.href, true]))
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Auto-close drawer + sync services accordion on navigation
+  // Close the drawer and open the current section on navigation.
   useEffect(() => {
     setDrawerOpen(false);
-    if (pathname.startsWith("/portal/services")) {
-      setServicesOpen(true);
-    }
+    setOpenSections(current => ({
+      ...current,
+      ...Object.fromEntries(navItems
+        .filter(item => item.subItems && pathname.startsWith(item.href))
+        .map(item => [item.href, true])),
+    }));
   }, [pathname]);
 
   // Scroll lock when drawer is open
@@ -136,13 +138,15 @@ export function Sidebar({ profile }: SidebarProps) {
           (item.subItems &&
             item.subItems.some((sub) => pathname === sub.href));
         const hasSubItems = !!item.subItems;
+        const sectionOpen = !!openSections[item.href];
 
         return (
           <li key={item.href}>
             {hasSubItems ? (
               <>
                 <button
-                  onClick={() => setServicesOpen(!servicesOpen)}
+                  onClick={() => setOpenSections(current => ({ ...current, [item.href]: !current[item.href] }))}
+                  aria-expanded={sectionOpen}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
@@ -157,13 +161,13 @@ export function Sidebar({ profile }: SidebarProps) {
                     )}
                   />
                   <span className="flex-1 text-left">{item.label}</span>
-                  {servicesOpen ? (
+                  {sectionOpen ? (
                     <ChevronDown className="h-4 w-4 text-text-secondary" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-text-secondary" />
                   )}
                 </button>
-                {servicesOpen && item.subItems && (
+                {sectionOpen && item.subItems && (
                   <ul className="mt-1 ml-[30px] space-y-0.5 border-l border-border pl-3">
                     {item.subItems.map((sub) => {
                       const isSubActive = pathname === sub.href;
@@ -171,6 +175,7 @@ export function Sidebar({ profile }: SidebarProps) {
                         <li key={sub.href}>
                           <Link
                             href={sub.href}
+                            prefetch={false}
                             onClick={onNavigate}
                             className={cn(
                               "block rounded-md px-3 py-2 text-[13px] transition-colors",
@@ -190,6 +195,7 @@ export function Sidebar({ profile }: SidebarProps) {
             ) : (
               <Link
                 href={item.href}
+                prefetch={item.href.startsWith("/portal") ? false : undefined}
                 onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
