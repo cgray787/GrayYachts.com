@@ -630,9 +630,11 @@ export const brochures: Record<string, BrochureContent> = {
     ],
     photoCredit: "Seattle, WA",
   },
-  // Journey: hull/engine/systems from the 2016 Marine Consultants survey
+  // Journey: hull and systems from the 2016 Marine Consultants survey
   // (P301216H); price, length and doc number from the Oct 7 2026 listing
-  // agreement. 2016 engine hours and electronics deliberately omitted.
+  // agreement. Engines are the 2023 Volvo Penta D4-300 repower (300hp each,
+  // Volvo duoprop, 853/853 hours). The survey's D4-260 and 2016 hours are
+  // not used; electronics from that survey stay omitted.
   journey: {
     slug: "journey",
     tagline: {
@@ -643,18 +645,18 @@ export const brochures: Record<string, BrochureContent> = {
     specStrip: [
       { value: "31'", label: "Length" },
       { value: "10'6\"", label: "Beam" },
-      { value: "Twin Volvo", label: "D4-260 Diesel" },
+      { value: "300hp ea", label: "Twin Volvo D4-300" },
+      { value: "853/853", label: "Hours · 2023 Repower" },
       { value: "2005", label: "Year Built" },
-      { value: "4,200W", label: "Generator" },
     ],
     narrative: [
       "Journey is a 2005 SeaSport Voyager 3000 lying in Anacortes, Washington. The Voyager is a true Northwest-style pilothouse cruiser — a hard-chined fiberglass planing hull, a raised wheelhouse with a reverse-raked windshield, and a cockpit you can actually fish from.",
-      "She is powered by twin Volvo Penta D4-260 diesels, 260hp each, on Volvo duoprop outdrives — the efficient, reliable diesel package these boats are known for. An Entec 4,200-watt diesel generator in a sound shield, an 11-gallon water heater, and a Fireboy automatic fire-suppression system in the engine compartment round out the systems.",
+      "She was repowered in 2023 with twin Volvo Penta D4-300 diesels, 300hp each, on Volvo duoprop outdrives, showing 853 hours on each engine. An Entec 4,200-watt diesel generator in a sound shield, an 11-gallon water heater, and a Fireboy automatic fire-suppression system in the engine compartment round out the systems.",
       "The layout runs from a double V-berth forward, with a head compartment to port and a second double berth tucked beneath the wheelhouse, up to a starboard helm with a pilot seat opposite. Aft is the main cabin with a starboard galley and a convertible dinette, then the cockpit with a transom door, a second control station, a stainless radar arch and a tilt davit at the stern.",
     ],
     highlights: [
       "SeaSport Voyager 3000 pilothouse cruiser",
-      "Twin Volvo Penta D4-260 diesels, 260hp each",
+      "Twin Volvo Penta D4-300 diesels, 300hp each — 2023 repower, 853/853 hours",
       "Volvo duoprop outdrives",
       "Entec 4,200W diesel generator, sound shield",
       "Fireboy automatic engine-room fire suppression",
