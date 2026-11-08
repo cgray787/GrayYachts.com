@@ -481,8 +481,9 @@ export const vessels: Vessel[] = [
   {
     // JBY central listing (owner John Colvin), signed Oct 7 2026, 180 days,
     // $299,999; Connor listing broker; live on YachtWorld 10364502.
-    // Engines/hull from the 2016 Marine Consultants survey (P301216H); its
-    // 2016 engine hours and electronics are out of date and are not used.
+    // Engines are the 2023 Volvo Penta D4-300 repower, 300hp each, on Volvo
+    // duoprop outdrives, 853 hours each. The 2016 Marine Consultants survey
+    // (P301216H) predates the repower; its D4-260 reading and hours are not used.
     name: "M/V Journey",
     slug: "journey",
     year: 2005,
@@ -497,7 +498,7 @@ export const vessels: Vessel[] = [
       { src: "/listings/journey/g1.jpg", caption: "Stern & Swim Step" },
       { src: "/listings/journey/g2.jpg", caption: "Aft Cockpit" },
       { src: "/listings/journey/g3.jpg", caption: "Foredeck & Windlass" },
-      { src: "/listings/journey/g4.jpg", caption: "Twin Volvo Diesels" },
+      { src: "/listings/journey/g4.jpg", caption: "Twin Volvo D4-300s" },
       { src: "/listings/journey/i1.jpg", caption: "Salon", interior: true },
       { src: "/listings/journey/i2.jpg", caption: "Helm", interior: true },
       { src: "/listings/journey/i3.jpg", caption: "Dinette", interior: true },
