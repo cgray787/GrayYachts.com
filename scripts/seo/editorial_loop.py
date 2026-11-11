@@ -10,12 +10,15 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from urllib.parse import urlparse
+import urllib.error
 import urllib.request
 from zoneinfo import ZoneInfo
 import jsonschema
@@ -25,10 +28,24 @@ CONTENT = ROOT / 'content/seo'
 STATE = Path(os.environ.get('GRAYYACHTS_SEO_STATE', str(Path.home() / 'Library/Application Support/GrayYachts/seo-editorial')))
 ZONE = ZoneInfo('America/Los_Angeles')
 LABEL = 'com.grayyachts.seo-editorial'
+# All of the following may be overridden via environment variables — see
+# scripts/seo/deploy/seo.env.example. Defaults match what has been running on the VPS.
 # Prompt v1.2.0 runs took 405s (v1.0.0: 165s). 600s left too little headroom; launchd itself has no limit.
-CLI_TIMEOUT_SECONDS = 900
-ALERT_TO = 'connorgray@jeffbrownyachts.com'
-ALERT_FROM = 'Gray Yachts SEO Agent <onboarding@resend.dev>'
+CLI_TIMEOUT_SECONDS = int(os.environ.get('GRAYYACHTS_SEO_CLI_TIMEOUT', '900'))
+AUTH_CHECK_TIMEOUT_SECONDS = 60
+ALERT_TO = os.environ.get('GRAYYACHTS_SEO_ALERT_TO', 'connorgray@jeffbrownyachts.com')
+# onboarding@resend.dev is Resend's shared sandbox sender: it only delivers to the Resend
+# account owner's own inbox. Move this to a verified sending domain before this alert
+# needs to reach anyone other than the account owner.
+ALERT_FROM = os.environ.get('GRAYYACHTS_SEO_ALERT_FROM', 'Gray Yachts SEO Agent <onboarding@resend.dev>')
+HERMES_BIN = os.environ.get('GRAYYACHTS_SEO_HERMES_BIN') or shutil.which('hermes') or '/usr/local/bin/hermes'
+HERMES_PROVIDER = os.environ.get('GRAYYACHTS_SEO_HERMES_PROVIDER', 'codex')
+MODEL = os.environ.get('GRAYYACHTS_SEO_MODEL') or None
+MAX_ALERT_ATTEMPTS = 3
+SLEEP = time.sleep  # tests patch this so retries do not actually sleep
+
+def claude_bin():
+    return shutil.which('claude') or str(Path.home()/'.local/bin/claude')
 
 def alert(subject, body):
     # VPS uses a protected environment file; macOS retains the existing Keychain fallback.
@@ -36,7 +53,23 @@ def alert(subject, body):
     if not key and sys.platform=='darwin':key=subprocess.run(['security','find-generic-password','-a','grayyachts-watchdog','-s','resend-api-key','-w'],capture_output=True,text=True).stdout.strip()
     if not key:raise RuntimeError('no Resend key configured')
     req=urllib.request.Request('https://api.resend.com/emails',method='POST',data=json.dumps({'from':ALERT_FROM,'to':[ALERT_TO],'subject':subject,'text':body}).encode(),headers={'Authorization':f'Bearer {key}','Content-Type':'application/json','User-Agent':'grayyachts-seo-editorial/1'})
-    with urllib.request.urlopen(req,timeout=25) as resp:resp.read()
+    attempt=0
+    while True:
+        attempt+=1
+        try:
+            with urllib.request.urlopen(req,timeout=25) as resp:resp.read()
+            return
+        except urllib.error.HTTPError as exc:
+            if (exc.code==429 or exc.code>=500) and attempt<MAX_ALERT_ATTEMPTS:
+                retry_after=None
+                if exc.headers and exc.headers.get('Retry-After'):
+                    try:retry_after=float(exc.headers.get('Retry-After'))
+                    except ValueError:retry_after=None
+                SLEEP(min(retry_after,30) if retry_after is not None else min(2**(attempt-1),30));continue
+            raise
+        except urllib.error.URLError:
+            if attempt<MAX_ALERT_ATTEMPTS:SLEEP(min(2**(attempt-1),30));continue
+            raise
 
 def notify(subject, body):
     # An alert that fails to send must never change the run's own outcome.
@@ -54,15 +87,19 @@ def cli_failure(proc):
     if (proc.stderr or '').strip():parts.append('stderr: '+proc.stderr.strip()[-400:])
     return ' | '.join(parts)
 
+# Both snapshot modes hand the model bounded, pre-fetched evidence instead of live web tools.
+NO_TOOLS_MODES=('official_sources','reputable_sources')
+
 def invoke_agent(prompt, schema):
     provider=os.environ.get('GRAYYACHTS_SEO_PROVIDER','claude').strip().lower()
-    if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE')=='official_sources' and provider!='hermes':raise ValueError('Official source snapshot mode requires the no-tools Hermes provider')
+    if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE') in NO_TOOLS_MODES and provider!='hermes':raise ValueError('Snapshot research modes require the no-tools Hermes provider')
     with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
         if provider=='hermes':
             hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
             # --ignore-rules, not --safe-mode: safe mode also drops ~/.hermes/config.yaml, which holds the web
             # search/extract backend, so every research fetch failed (2026-10-19). Tools stay limited by -t web.
-            command=[shutil.which('hermes') or '/usr/local/bin/hermes','chat','-Q','--ignore-rules','--provider','codex','--max-turns','12','--source','tool','-t',('none' if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE')=='official_sources' else 'web'),'-q',hermes_prompt]
+            command=[HERMES_BIN,'chat','-Q','--ignore-rules','--provider',HERMES_PROVIDER,'--max-turns','12','--source','tool','-t',('none' if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE') in NO_TOOLS_MODES else 'web'),'-q',hermes_prompt]
+            if MODEL:command+=['--model',MODEL]
             proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
             output=(proc.stdout or '').strip();result=None;last_error=None
@@ -78,7 +115,8 @@ def invoke_agent(prompt, schema):
                 result=candidate  # the last schema-valid object is the final answer
             if result is None:raise ValueError('Hermes did not return schema-valid JSON: '+str(last_error or 'no object'))
         elif provider=='claude':
-            command=[shutil.which('claude') or str(Path.home()/'.local/bin/claude'),'-p','--output-format','json','--json-schema',json.dumps(schema),'--max-budget-usd',str(read(CONTENT/'program.json')['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
+            command=[claude_bin(),'-p','--output-format','json','--json-schema',json.dumps(schema),'--max-budget-usd',str(read(CONTENT/'program.json')['dailyBudgetUsd']),'--tools','WebSearch,WebFetch','--allowedTools','WebSearch,WebFetch','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--settings','{"disableAllHooks":true}','--disable-slash-commands','--no-session-persistence']
+            if MODEL:command+=['--model',MODEL]
             proc=subprocess.run(command,input=prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
             payload=json.loads(proc.stdout)
@@ -89,6 +127,29 @@ def invoke_agent(prompt, schema):
     try:jsonschema.validate(result,schema)
     except jsonschema.ValidationError as exc:raise ValueError('Agent output failed JSON Schema validation: '+exc.message) from exc
     return result
+
+def default_auth_check_command(provider):
+    if provider=='hermes':return [HERMES_BIN,'auth','status','openai-codex']
+    if provider=='claude':return [claude_bin(),'auth','status']
+    raise ValueError(f'Unknown SEO provider: {provider}')
+
+def auth_check_command(provider):
+    override=os.environ.get('GRAYYACHTS_SEO_AUTH_CHECK')
+    return shlex.split(override) if override else default_auth_check_command(provider)
+
+def check_auth(provider=None):
+    """Fail fast if the CLI's login/OAuth session has expired, before spending a run on it."""
+    provider=(provider or os.environ.get('GRAYYACHTS_SEO_PROVIDER','claude')).strip().lower()
+    command=auth_check_command(provider)
+    proc=subprocess.run(command,text=True,capture_output=True,timeout=AUTH_CHECK_TIMEOUT_SECONDS)
+    out=((proc.stdout or '')+(proc.stderr or '')).strip()
+    if provider=='hermes':
+        lowered=out.lower()
+        ok=proc.returncode==0 and 'logged in' in lowered and 'not logged in' not in lowered
+    else:
+        ok=proc.returncode==0
+    if not ok:raise RuntimeError(f'Pre-run login check failed: exit {proc.returncode}; {out[-400:]}')
+    return {'provider':provider,'command':command,'output':out[-400:]}
 
 def read(path, default=None):
     return json.loads(path.read_text()) if path.exists() else default
@@ -124,7 +185,24 @@ def atomic_text(path, text):
     finally:
         temporary.unlink(missing_ok=True)
 
-def finalize_run(result, state, lessons, key):
+def track_no_draft(result, state, key, may_draft):
+    """Alert when a scheduled draft day produces no draft; never double count a recovered run for the same date."""
+    if result.get('draft'):
+        state['eligibleWithoutDraft']=0
+        return
+    if not (may_draft and result.get('qualityGate',{}).get('status')=='research_only'):return
+    if state.get('lastNoDraftAlertDate')==key:return
+    state['eligibleWithoutDraft']=state.get('eligibleWithoutDraft',0)+1
+    state['lastNoDraftAlertDate']=key
+    findings=(result.get('critique') or {}).get('findings') or []
+    reason='; '.join(findings[:2])[:500] or 'The model gave no critique findings explaining the gap.'
+    notify(f'Gray Yachts SEO agent: no draft today ({key})',
+           f"Research mode: {result.get('researchMode')}\n"
+           f"Consecutive eligible days without a draft: {state['eligibleWithoutDraft']}\n"
+           f"Model's stated reason: {reason}\n\n"
+           f"Review: {STATE/'runs'/f'{key}.md'}")
+
+def finalize_run(result, state, lessons, key, may_draft):
     # JSON is the durable recovery record if rendering or the final state write fails.
     previous=read(STATE/'runs'/f'{key}.json')
     if previous and previous!=result:
@@ -137,6 +215,7 @@ def finalize_run(result, state, lessons, key):
         lessons.append({'date':key,'kind':'editorial_observation','lesson':result['critique']['lesson'],'notRankingEvidence':True})
         write(STATE/'lessons.json',lessons[-30:])
     state.update(lastSuccess=key,failures=0,blocked=False,lastError=None)
+    track_no_draft(result,state,key,may_draft)
     write(STATE/'state.json',state)
 
 def timestamp(): return dt.datetime.now(ZONE).isoformat()
@@ -337,22 +416,24 @@ def run(args):
         mode=os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE','web')
         prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         if args.dry_run:
-            print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':([] if mode=='official_sources' else ['WebSearch','WebFetch']),'researchMode':mode,'publishing':False,'stateDirectory':str(STATE)},indent=2));return
+            print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':([] if mode in NO_TOOLS_MODES else ['WebSearch','WebFetch']),'researchMode':mode,'publishing':False,'stateDirectory':str(STATE)},indent=2));return
         attempt=None
         try:
-            if mode not in ('web','official_sources'):raise ValueError('Unknown research mode')
+            check_auth()
+            if mode not in ('web',)+NO_TOOLS_MODES:raise ValueError('Unknown research mode')
             cached=read(STATE/'runs'/f'{key}.json',{})
             if cached.get('date')==key and cached.get('qualityGate'):
                 try:research_health(cached,[t['id'] for t in context['topics']])
                 except (ValueError,RuntimeError,KeyError):pass
                 else:
-                    finalize_run(cached,state,lessons,key)
+                    finalize_run(cached,state,lessons,key,may_draft)
                     print(json.dumps({'status':'recovered','draft':(cached.get('draft')or{}).get('slug')}));return
-            if mode=='official_sources':
+            if mode in NO_TOOLS_MODES:
                 import public_sources
                 context['officialSourceSnapshots']=public_sources.snapshots(context['topics'])
+                if mode=='reputable_sources':context['reputableSourceSnapshots']=public_sources.reputable_snapshots(day)
                 snapshot_file=STATE/'sources'/key/(uuid.uuid4().hex+'.json')
-                write(snapshot_file,context['officialSourceSnapshots'])
+                write(snapshot_file,context['officialSourceSnapshots']+context.get('reputableSourceSnapshots',[]))
                 prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             result=invoke_agent(prompt,article_schema())
@@ -364,15 +445,18 @@ def run(args):
                 if update['topicId'] not in known_ids or not valid_url(update['sourceUrl']):raise ValueError('Unknown topic or invalid research source')
                 if update.get('sourcePublishedAt') and dt.date.fromisoformat(update['sourcePublishedAt'][:10])>day:raise ValueError('Future source date')
             research_health(result,known_ids)
-            if mode=='official_sources':
+            if mode in NO_TOOLS_MODES:
+                # Topic research is still checked only against each topic's own official snapshot.
                 checks={item['topicId']:item for item in context['officialSourceSnapshots']}
                 for update in result['updates']:
                     source=checks[update['topicId']]
                     if update['changeType']!='unverified' and (source['status']!='retrieved' or update['sourceUrl'] not in [source['url'],source['requestedUrl']]):raise ValueError('Research claim lacks a retrieved official snapshot')
-                result['sourceChecks']=[{k:v for k,v in item.items() if k!='text'} for item in context['officialSourceSnapshots']]
+                all_snapshots=context['officialSourceSnapshots']+context.get('reputableSourceSnapshots',[])
+                result['sourceChecks']=[{k:v for k,v in item.items() if k!='text'} for item in all_snapshots]
                 result['researchMode']=mode
                 result['sourceSnapshotFile']=str(snapshot_file.relative_to(STATE))
-                retrieved={url for item in context['officialSourceSnapshots'] if item['status']=='retrieved' for url in [item['url'],item['requestedUrl']]}
+                # A draft may cite any successfully retrieved snapshot, official or reputable.
+                retrieved={url for item in all_snapshots if item['status']=='retrieved' for url in [item['url'],item['requestedUrl']]}
                 cited=((result.get('draft') or {}).get('sources',[])+(result.get('revisionProposal') or {}).get('sources',[]))
                 if any(item['url'] not in retrieved for item in cited):raise ValueError('Draft citation was not read in official-source mode')
             a=result.get('draft')
@@ -399,7 +483,7 @@ def run(args):
                 result['revisionGate']={'issues':sorted(set(rissues)),'status':'needs_revision' if rissues else 'needs_human_review'}
             result.update(date=key,generatedAt=timestamp(),promptVersion=program['version'],promptSha256=hashlib.sha256((ROOT/'scripts/seo/research-prompt.md').read_bytes()).hexdigest(),researchMode=mode,performanceStatus=context['performance']['status'])
             write(attempt.with_name(attempt.stem+'-outcome.json'),{'status':'validated','date':key})
-            finalize_run(result,state,lessons,key)
+            finalize_run(result,state,lessons,key,may_draft)
             print(json.dumps({'status':'completed','researchUpdates':len(result['updates']),'draft':a['title'] if a else None,'review':str(STATE/'runs'/f'{key}.md'),'qualityGate':result['qualityGate']}))
         except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired,KeyError,TypeError,IndexError) as exc:
             if attempt is not None:
@@ -427,7 +511,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='command',required=True)
     p=sub.add_parser('run');p.add_argument('--dry-run',action='store_true')
-    sub.add_parser('report');sub.add_parser('check');sub.add_parser('install');sub.add_parser('resume')
+    sub.add_parser('report');sub.add_parser('check');sub.add_parser('install');sub.add_parser('resume');sub.add_parser('check-auth')
     p=sub.add_parser('import-gsc');p.add_argument('file');p.add_argument('--start',required=True);p.add_argument('--end',required=True);p.add_argument('--page')
     args=parser.parse_args()
     if args.command=='run':run(args)
@@ -439,4 +523,8 @@ def main():
     elif args.command=='check':
         checks=[{'slug':a['slug'],'issues':validate_article(a,jby_brands=jby_brands())} for a in read(CONTENT/'articles.json',[])]
         print(json.dumps(checks,indent=2));sys.exit(int(any(r['issues'] for r in checks)))
+    elif args.command=='check-auth':
+        try:result=check_auth()
+        except RuntimeError as exc:print(json.dumps({'ok':False,'error':str(exc)}));sys.exit(1)
+        else:print(json.dumps({'ok':True,**result}))
 if __name__=='__main__':main()

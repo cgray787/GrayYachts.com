@@ -36,11 +36,12 @@ class FailureVisibilityTests(unittest.TestCase):
  def setUp(self):
   import tempfile,argparse
   self.tmp=tempfile.TemporaryDirectory();self.state=Path(self.tmp.name)
-  self.saved=(loop.STATE,loop.alert,loop.subprocess.run);loop.STATE=self.state
+  self.saved=(loop.STATE,loop.alert,loop.subprocess.run,loop.check_auth);loop.STATE=self.state
   self.alerts=[];loop.alert=lambda subject,body:self.alerts.append((subject,body))
+  loop.check_auth=lambda *a,**k:{'provider':'test','command':[],'output':'logged in'}
   self.args=argparse.Namespace(dry_run=False)
  def tearDown(self):
-  loop.STATE,loop.alert,loop.subprocess.run=self.saved;self.tmp.cleanup()
+  loop.STATE,loop.alert,loop.subprocess.run,loop.check_auth=self.saved;self.tmp.cleanup()
  def fake_cli(self,code,stdout,stderr=''):
   import types
   loop.subprocess.run=lambda *a,**k:types.SimpleNamespace(returncode=code,stdout=stdout,stderr=stderr)
@@ -191,6 +192,7 @@ class KeywordTargetTests(unittest.TestCase):
    loop.STATE=Path(d);loop.alert=lambda s,b:None;loop.today=lambda:dt.date(2026,10,10)
    seen={}
    def fake(cmd,**kw):
+    if 'input' not in kw:return types.SimpleNamespace(returncode=0,stdout='',stderr='')  # the pre-run auth check
     seen['input']=kw.get('input','')
     ctx=json.loads(seen['input'].split('Current context:\n',1)[1])
     updates=[{'topicId':t['id'],'changeType':'unchanged','summary':'No verified change.','sourceUrl':t['sourceUrl'],'sourcePublishedAt':None} for t in ctx['topics']]
