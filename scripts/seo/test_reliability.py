@@ -20,6 +20,7 @@ class ReliabilityTests(unittest.TestCase):
   self.stack.enter_context(patch.object(loop,'STATE',self.state))
   self.stack.enter_context(patch.object(loop,'today',lambda:dt.date(2026,10,12)))
   self.stack.enter_context(patch.object(loop,'notify',lambda *a:None))
+  self.stack.enter_context(patch.object(loop,'check_auth',lambda *a,**k:{'provider':'test','command':[],'output':'logged in'}))
   self.stack.enter_context(patch.dict(loop.os.environ,{'GRAYYACHTS_SEO_RESEARCH_MODE':'web'}))
  def tearDown(self):self.stack.close();self.tmp.cleanup()
  def result(self,draft=None):

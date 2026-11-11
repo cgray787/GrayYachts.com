@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "maxSnapshots": 8,
+  "note": "Reachability, robots.txt allowances and exact current URL paths for every source below are UNVERIFIED. Review this list with Connor before relying on it; a page that is blocked, moved or removed simply shows up as an unverified snapshot rather than failing the run. Seed URLs were fetched from a box on 2026-11-11 (~9:40 AM PST) and returned HTTP 200 (after fixing three 404s and four redirects); robots.txt allowances and whether the pages contain dated articles rather than just headlines remain UNVERIFIED.",
+  "sources": [
+    {
+      "id": "boat-international",
+      "name": "Boat International",
+      "domain": "boatinternational.com",
+      "urls": [
+        "https://www.boatinternational.com/yachts/news"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "superyacht-times",
+      "name": "Superyacht Times",
+      "domain": "superyachttimes.com",
+      "urls": [
+        "https://www.superyachttimes.com/news"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "soundings-trade-only",
+      "name": "Soundings Trade Only",
+      "domain": "tradeonlytoday.com",
+      "urls": [
+        "https://tradeonlytoday.com/"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "nmma",
+      "name": "National Marine Manufacturers Association",
+      "domain": "nmma.org",
+      "urls": [
+        "https://www.nmma.org/press/latest-news"
+      ],
+      "kind": "association"
+    },
+    {
+      "id": "power-motoryacht",
+      "name": "Power & Motoryacht",
+      "domain": "powerandmotoryacht.com",
+      "urls": [
+        "https://powerandmotoryacht.com/"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "yachting-magazine",
+      "name": "Yachting Magazine",
+      "domain": "yachtingmagazine.com",
+      "urls": [
+        "https://www.yachtingmagazine.com/"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "passagemaker",
+      "name": "PassageMaker",
+      "domain": "passagemaker.com",
+      "urls": [
+        "https://passagemaker.com/"
+      ],
+      "kind": "trade press"
+    },
+    {
+      "id": "boatus",
+      "name": "BoatUS",
+      "domain": "boatus.com",
+      "urls": [
+        "https://www.boatus.com/news-room"
+      ],
+      "kind": "association"
+    },
+    {
+      "id": "uscg-boating-safety",
+      "name": "U.S. Coast Guard Office of Boating Safety",
+      "domain": "uscgboating.org",
+      "urls": [
+        "https://uscgboating.org/"
+      ],
+      "kind": "regulator"
+    },
+    {
+      "id": "noaa",
+      "name": "NOAA",
+      "domain": "noaa.gov",
+      "urls": [
+        "https://www.noaa.gov/news"
+      ],
+      "kind": "regulator"
+    }
+  ]
+}
