@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from zoneinfo import ZoneInfo
@@ -17,14 +18,30 @@ WORK = HOME / '.hermes/workspaces/grayyachts-newsletter'
 SECRET = HOME / '.config/grayyachts/newsletter-automation-secret'
 START = dt.date(2026, 9, 8)
 SITE = 'https://grayyachts.com'
+OWNER_LOW_WATER = 10  # matches server-side OWNER_LOW_WATER for Connor's own unused photos
+
+SLEEP = time.sleep  # module-level so tests can patch out the real delay
+RETRY_DELAYS = (2, 4)  # seconds before the 2nd and 3rd attempt (3 attempts total)
+MAX_RETRY_AFTER = 60
 
 def request(path, payload=None):
     req = urllib.request.Request(SITE + path, data=None if payload is None else json.dumps(payload).encode(), headers={'Authorization': 'Bearer ' + SECRET.read_text().strip(), 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Hermes-Newsletter/1.0'})
-    try:
-        with urllib.request.urlopen(req, timeout=90) as response:
-            return json.load(response)
-    except urllib.error.HTTPError as error:
-        raise RuntimeError(f'Newsletter HTTP {error.code}: {error.read(2000).decode()}') from None
+    for attempt in range(len(RETRY_DELAYS) + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=90) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            body = error.read(2000).decode()
+            retryable = error.code == 429 or error.code >= 500
+            if not retryable or attempt == len(RETRY_DELAYS):
+                raise RuntimeError(f'Newsletter HTTP {error.code}: {body}') from None
+            retry_after = error.headers.get('Retry-After') if error.headers else None
+            delay = min(int(retry_after), MAX_RETRY_AFTER) if retry_after and retry_after.strip().isdigit() else RETRY_DELAYS[attempt]
+            SLEEP(delay)
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == len(RETRY_DELAYS):
+                raise
+            SLEEP(RETRY_DELAYS[attempt])
 
 # Failure alert (added 2026-10-19): Codex OAuth expired and every run failed from 2026-10-02 to 10-18
 # while the cron delivered output only to a local file. One email per edition slot.
@@ -81,6 +98,14 @@ def context():
 
 ARG_LIMIT = 120_000  # Linux caps one argument at 131072 bytes (MAX_ARG_STRLEN)
 
+def codex_logged_in():
+    """(ok, status_text) for the Hermes Codex login, shared by run()'s pre-run check and preflight()."""
+    auth = subprocess.run(['hermes', 'auth', 'status', 'openai-codex'], capture_output=True, text=True, timeout=60)
+    status_text = (auth.stdout or auth.stderr).strip()
+    lowered = status_text.lower()
+    ok = auth.returncode == 0 and 'logged in' in lowered and 'not logged in' not in lowered
+    return ok, status_text
+
 def agent(ctx):
     prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
     if len(prompt.encode()) > ARG_LIMIT:
@@ -108,6 +133,17 @@ def run():
             if not ctx['due']:
                 return
             slot = ctx['slot']
+            # Checked before the attempt counter is touched: a dead Codex login should not burn one
+            # of the 3 attempts for this slot, so re-logging in lets the next hourly run proceed.
+            logged_in, auth_status = codex_logged_in()
+            if not logged_in:
+                alert(slot, f'Hermes Codex login not active: {auth_status[:200] or "no output"}')
+                return
+            owner_unused = ctx['image_library'].get('owner', {}).get('unused', 0)
+            owner_low_marker = WORK / (slot + '.owner-low.alerted')
+            if owner_unused < OWNER_LOW_WATER and not owner_low_marker.exists():
+                alert(slot, f'fewer than {OWNER_LOW_WATER} unused Connor photos ({owner_unused} left)')
+                owner_low_marker.write_text(dt.datetime.now().isoformat())
             attempt_path = WORK / (slot + '.attempts')
             attempts = int(attempt_path.read_text()) if attempt_path.exists() else 0
             if attempts >= 3:
@@ -133,12 +169,15 @@ def preflight():
     """End-to-end check after any change: build the real prompt from live data and check Hermes's login."""
     ctx = context()
     prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
-    auth = subprocess.run(['hermes', 'auth', 'status', 'openai-codex'], capture_output=True, text=True, timeout=60)
+    logged_in, auth_status = codex_logged_in()
+    owner_unused = ctx['image_library'].get('owner', {}).get('unused', 0)
     result = {'slot': ctx['slot'], 'due': ctx['due'], 'prompt_bytes': len(prompt.encode()), 'inline': len(prompt.encode()) <= ARG_LIMIT,
-              'images_available': len(ctx['image_library'].get('available', [])), 'hermes_auth': (auth.stdout or auth.stderr).strip()[:120]}
+              'images_available': len(ctx['image_library'].get('available', [])), 'owner_unused': ctx['image_library'].get('owner', {}).get('unused'),
+              'hermes_auth': auth_status[:120]}
     problems = [p for p, bad in (('prompt over the inline limit (file fallback will be used)', not result['inline']),
                                  ('fewer than 9 unused images', result['images_available'] < 9),
-                                 ('Hermes Codex login not active', 'logged in' not in result['hermes_auth'])) if bad]
+                                 ('fewer than 10 unused Connor photos', owner_unused < OWNER_LOW_WATER),
+                                 ('Hermes Codex login not active', not logged_in)) if bad]
     result['problems'] = problems
     print(json.dumps(result, indent=2))
     return result

@@ -1,10 +1,11 @@
 import {newsletterEnv} from '@/lib/newsletter/db';
 import {availableImages,attachImages,IMAGE_RULE} from '@/lib/newsletter/images';
+import {ownerHealth} from '@/lib/newsletter/owner-photos';
 import {deliverHermesReview} from '@/lib/newsletter/generate';
 export async function GET(request:Request) {
  const env=await newsletterEnv();
  if(!env.NEWSLETTER_AUTOMATION_SECRET||request.headers.get('authorization')!==`Bearer ${env.NEWSLETTER_AUTOMATION_SECRET}`)return Response.json({error:'Unauthorized'},{status:401});
- return Response.json({rule:IMAGE_RULE,available:await availableImages(env)},{headers:{'cache-control':'no-store'}});
+ return Response.json({rule:IMAGE_RULE,available:await availableImages(env),owner:await ownerHealth(env)},{headers:{'cache-control':'no-store'}});
 }
 export async function POST(request:Request) {
  const env=await newsletterEnv();
