@@ -38,6 +38,11 @@ export function sectionFor(a: Article, count: number, i: number) {
 const label = (a: Article, count: number, i: number) => i === 0 ? 'lead' : count === a.sections.length + 2 && i > a.sections.length ? 'questions' : `section "${sectionFor(a, count, i).split('\n')[0]}"`;
 
 async function load(env: MediaEnv, image: NewsletterImage) {
+ if (image.kind === 'owner') {
+  const object = await env.YACHT_PHOTOS?.get(`owner-photos/${image.id}.jpg`);
+  if (!object) throw new Error('Owner photo bytes not found in R2');
+  return { bytes: await object.arrayBuffer(), contentType: object.httpMetadata?.contentType || 'image/jpeg' };
+ }
  if (image.url.startsWith('/newsletter-media/')) {
   const object = await env.YACHT_PHOTOS?.get(`newsletter-media/${image.id}`);
   if (!object) throw new Error('Image bytes not found in R2');

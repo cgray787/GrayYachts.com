@@ -62,4 +62,12 @@ export function relatedLinks(a: Article) {
 }
 export function jsonLd(value: unknown) { return JSON.stringify(value).replace(/</g, '\\u003c'); }
 
-export function articlePhoto(slug:string):EditorialPhoto { return (articleImages as Record<string,EditorialPhoto>)[slug] || {url:'/sell/img/hero.jpg',alt:'Gray Yachts brokerage photography',credit:'Gray Yachts'}; }
+// An entry is either one photo (legacy shape) or {images:[...]} with the lead photo first
+// (fresh-photo-mix hard rule, 2026-11-11).
+export function articlePhoto(slug:string):EditorialPhoto {
+  const entry=(articleImages as Record<string,unknown>)[slug];
+  const fallback:EditorialPhoto={url:'/sell/img/hero.jpg',alt:'Gray Yachts brokerage photography',credit:'Gray Yachts'};
+  if(!entry)return fallback;
+  const images=Array.isArray((entry as {images?:unknown}).images)?(entry as {images:EditorialPhoto[]}).images:[entry as EditorialPhoto];
+  return images[0]||fallback;
+}

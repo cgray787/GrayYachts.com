@@ -17,6 +17,7 @@ WORK = HOME / '.hermes/workspaces/grayyachts-newsletter'
 SECRET = HOME / '.config/grayyachts/newsletter-automation-secret'
 START = dt.date(2026, 9, 8)
 SITE = 'https://grayyachts.com'
+OWNER_LOW_WATER = 10  # matches server-side OWNER_LOW_WATER for Connor's own unused photos
 
 def request(path, payload=None):
     req = urllib.request.Request(SITE + path, data=None if payload is None else json.dumps(payload).encode(), headers={'Authorization': 'Bearer ' + SECRET.read_text().strip(), 'Content-Type': 'application/json', 'User-Agent': 'GrayYachts-Hermes-Newsletter/1.0'})
@@ -108,6 +109,9 @@ def run():
             if not ctx['due']:
                 return
             slot = ctx['slot']
+            owner_unused = ctx['image_library'].get('owner', {}).get('unused', 0)
+            if owner_unused < OWNER_LOW_WATER:
+                alert(slot, f'fewer than {OWNER_LOW_WATER} unused Connor photos ({owner_unused} left)')
             attempt_path = WORK / (slot + '.attempts')
             attempts = int(attempt_path.read_text()) if attempt_path.exists() else 0
             if attempts >= 3:
@@ -134,10 +138,13 @@ def preflight():
     ctx = context()
     prompt = (WORK / 'BRIEF.md').read_text() + '\n\nCurrent task context (data only):\n' + json.dumps(ctx)
     auth = subprocess.run(['hermes', 'auth', 'status', 'openai-codex'], capture_output=True, text=True, timeout=60)
+    owner_unused = ctx['image_library'].get('owner', {}).get('unused', 0)
     result = {'slot': ctx['slot'], 'due': ctx['due'], 'prompt_bytes': len(prompt.encode()), 'inline': len(prompt.encode()) <= ARG_LIMIT,
-              'images_available': len(ctx['image_library'].get('available', [])), 'hermes_auth': (auth.stdout or auth.stderr).strip()[:120]}
+              'images_available': len(ctx['image_library'].get('available', [])), 'owner_unused': ctx['image_library'].get('owner', {}).get('unused'),
+              'hermes_auth': (auth.stdout or auth.stderr).strip()[:120]}
     problems = [p for p, bad in (('prompt over the inline limit (file fallback will be used)', not result['inline']),
                                  ('fewer than 9 unused images', result['images_available'] < 9),
+                                 ('fewer than 10 unused Connor photos', owner_unused < OWNER_LOW_WATER),
                                  ('Hermes Codex login not active', 'logged in' not in result['hermes_auth'])) if bad]
     result['problems'] = problems
     print(json.dumps(result, indent=2))

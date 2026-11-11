@@ -4,12 +4,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {decide,reviewToken,validToken,scheduleSlot,validateArticle,type NewsletterEnv,type Statement} from './core';
 import catalog from './image-catalog.json';
-import {attachImages,availableImages,validateImages,resolveImages,boatOf,pictureKey} from './images';
+import {attachImages,availableImages,validateImages,resolveImages,boatOf,pictureKey,checkFreshMix} from './images';
 import articleImages from '../../../content/seo/article-images.json';
 import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
 import {checkImages,ImageMismatchError,RELEVANCE_MODEL} from './relevance';
 import {imageSize} from './resize';
+import {storeOwnerPhoto,ownerPhotosById,availableOwnerPhotos,ownerPhotosUnusedCount,ownerHealth,ownerHashes,hamming,OWNER_CREDIT,OWNER_LOW_WATER} from './owner-photos';
+import {reserveInsightsImages,ConflictError} from './insights-ledger';
 
 const insightUrls=new Set(Object.values(articleImages).map(p=>p.url));
 const insightKeys=new Set(Object.values(articleImages).map(p=>pictureKey((p as {source?:string}).source)).filter(Boolean));
@@ -23,11 +25,16 @@ function database() {
  db.exec(readFileSync('migrations/newsletter/0004_media.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0005_published_image_corrections.sql','utf8'));
  db.exec(readFileSync('migrations/newsletter/0006_never_reuse_images.sql','utf8'));
+ db.exec(readFileSync('migrations/newsletter/0007_owner_photos_fresh_rule.sql','utf8'));
  const prepare=(sql:string):Statement=>{
   let values: (string|number|null)[]=[];
   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
  };
- return {db,env:{NEWSLETTER_DB:{prepare},NEWSLETTER_AUTOMATION_SECRET:'test-signing-secret-with-at-least-32-characters'} as NewsletterEnv};
+ // Fresh-photo-mix hard rule (2026-11-11): these fixtures predate the rule and submit only
+ // catalog photos, so the "new picture" requirement would reject every one of them. Default the
+ // shared test harness to the emergency 'warn' switch; the rule itself is unit-tested directly
+ // and integration-tested with compliant fixtures below, with the switch turned back off.
+ return {db,env:{NEWSLETTER_DB:{prepare},NEWSLETTER_AUTOMATION_SECRET:'test-signing-secret-with-at-least-32-characters',NEWSLETTER_FRESH_PHOTO_RULE:'warn'} as NewsletterEnv};
 }
 describe('every-other-day schedule in Pacific time',()=>{
  it('starts at 9am and does not run on the intervening day',()=>{
@@ -374,5 +381,166 @@ describe('server-side image relevance check',()=>{
   const webp=new Uint8Array(32);webp.set([...'RIFF'].map(c=>c.charCodeAt(0)));webp.set([...'WEBPVP8X'].map(c=>c.charCodeAt(0)),8);webp.set([0x7f,0x02,0,0xff,0x01,0],24);
   expect(imageSize(webp.buffer)).toEqual({width:640,height:512});
   expect(imageSize(new Uint8Array(40).buffer)).toBeNull();
+ });
+});
+
+describe('fresh photo mix hard rule (Connor, 2026-11-11)',()=>{
+ const owner=(i=0)=>({kind:'owner' as const});
+ const licensed=(i=0)=>({kind:'licensed' as const});
+ const generated=(i=0)=>({kind:'generated' as const});
+ const catalogKind=()=>({kind:'catalog' as const});
+ it('requires at least one new (licensed or generated) picture, regardless of the owner library',()=>{
+  expect(()=>checkFreshMix([owner(),catalogKind()],{ownerLibraryEmpty:false})).toThrow('new picture');
+  expect(()=>checkFreshMix([owner(),catalogKind()],{ownerLibraryEmpty:true})).toThrow('new picture');
+  expect(checkFreshMix([owner(),licensed()],{ownerLibraryEmpty:false})).toEqual([]);
+  expect(checkFreshMix([owner(),generated()],{ownerLibraryEmpty:false})).toEqual([]);
+ });
+ it('never allows an AI-generated lead image',()=>{
+  expect(()=>checkFreshMix([generated(),owner(),licensed()],{ownerLibraryEmpty:false})).toThrow('lead image must never be AI-generated');
+  expect(checkFreshMix([licensed(),owner(),generated()],{ownerLibraryEmpty:false})).toEqual([]);
+ });
+ it('downgrades the owner requirement to a warning only while the owner library is empty',()=>{
+  expect(()=>checkFreshMix([catalogKind(),licensed()],{ownerLibraryEmpty:false})).toThrow("Connor's own photos");
+  expect(checkFreshMix([catalogKind(),licensed()],{ownerLibraryEmpty:true})).toEqual(["Every edition needs at least one of Connor's own photos (kind 'owner')"]);
+ });
+ it('the emergency NEWSLETTER_FRESH_PHOTO_RULE=warn switch downgrades every violation',()=>{
+  // A generated lead already satisfies "has a new picture", so this trips both other rules at once.
+  const problems=checkFreshMix([generated(),catalogKind()],{ownerLibraryEmpty:false,mode:'warn'});
+  expect(problems).toHaveLength(2);
+  const error=checkFreshMix.bind(null,[generated(),catalogKind()],{ownerLibraryEmpty:false});
+  expect(error).toThrow("Connor's own photos");
+  expect(error).toThrow('AI-generated');
+ });
+ it('enforces the rule inside resolveImages/attachImages, downgrading only the owner part while the library is empty',async()=>{
+  const {db,env}=database();Object.assign(env,{NEWSLETTER_FRESH_PHOTO_RULE:undefined});
+  const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08')");
+  const media=await importMedia(env,{downloadUrl:'https://upload.wikimedia.org/wikipedia/commons/a/ab/Dock.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:Dock.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',credit:'Jane Photographer',title:'A dock'},async()=>new Response(new Uint8Array(40_000).fill(3),{headers:{'content-type':'image/jpeg'}}));
+  const warn=vi.spyOn(console,'warn').mockImplementation(()=>{});
+  const image=(id:string)=>({id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'});
+  await expect(attachImages(env,'a',[image(oneEach[0].id),image(oneEach[1].id)])).rejects.toThrow('new picture');
+  expect(await attachImages(env,'a',[image(oneEach[0].id),image(media.id)])).toMatchObject({count:2});
+  expect(warn).toHaveBeenCalled();warn.mockRestore();db.close();
+ });
+ it('fully enforces the rule once the owner library is populated',async()=>{
+  const {db,env}=database();Object.assign(env,{NEWSLETTER_FRESH_PHOTO_RULE:undefined});
+  const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08')");
+  const photo=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000001'});
+  const media=await importMedia(env,{downloadUrl:'https://upload.wikimedia.org/wikipedia/commons/a/ab/Dock2.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:Dock2.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',credit:'Jane Photographer',title:'Another dock'},async()=>new Response(new Uint8Array(40_000).fill(4),{headers:{'content-type':'image/jpeg'}}));
+  const image=(id:string)=>({id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'});
+  // No owner photo now rejects outright: the rollout downgrade only applies while the library is empty.
+  await expect(attachImages(env,'a',[image(oneEach[0].id),image(media.id)])).rejects.toThrow("Connor's own photos");
+  expect(await attachImages(env,'a',[image(photo.id),image(media.id)])).toMatchObject({count:2});
+  db.close();
+ });
+});
+
+// A 25 KB buffer with valid JPEG magic bytes; distinct per call so each has its own sha256 id.
+// storeOwnerPhoto trusts the caller's phash (computed on the VPS before upload), so tests pick it directly.
+function jpegBytes(tag:number,size=25_000):ArrayBuffer {
+ const b=new Uint8Array(size);b[0]=0xff;b[1]=0xd8;b[2]=0xff;b[3]=0xe0;b[10]=tag%256;b[11]=Math.floor(tag/256)%256;
+ return b.buffer;
+}
+function bucketStore() {
+ const files=new Map<string,ArrayBuffer>();
+ return {files,bucket:{get:async(k:string)=>files.has(k)?{arrayBuffer:async()=>files.get(k)!,httpMetadata:{contentType:'image/jpeg'}}:null,put:async(k:string,v:ArrayBuffer)=>{files.set(k,v);}}};
+}
+
+describe("Connor's private photo library (owner photos)",()=>{
+ it('validates JPEG magic bytes, size bounds, and the phash format',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  await expect(storeOwnerPhoto(env,new Uint8Array([1,2,3,4,5]).buffer,{phash:'0000000000000001'})).rejects.toThrow('JPEG');
+  await expect(storeOwnerPhoto(env,jpegBytes(1,100),{phash:'0000000000000001'})).rejects.toThrow('20 KB and 15 MB');
+  await expect(storeOwnerPhoto(env,jpegBytes(1),{phash:'not-hex'})).rejects.toThrow('phash');
+  await expect(storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000001',takenOn:'2026/01/01'})).rejects.toThrow('YYYY-MM-DD');
+  db.close();
+ });
+ it('rejects an exact duplicate and a near-duplicate (Hamming <= 6), storing a fresh photo otherwise',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const first=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000',width:2400,height:1600,takenOn:'2026-07-04'});
+  expect(first.url).toBe(`/newsletter-media/${first.id}`);
+  expect(s.files.has(`owner-photos/${first.id}.jpg`)).toBe(true);
+  await expect(storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'})).rejects.toThrow('already been uploaded');
+  // Hamming distance from 0000000000000000 to 0000000000000007 is 3 (bits 0,1,2 set) <= 6.
+  await expect(storeOwnerPhoto(env,jpegBytes(2),{phash:'0000000000000007'})).rejects.toThrow('Too similar');
+  const distinct=await storeOwnerPhoto(env,jpegBytes(3),{phash:'ffffffffffffffff'});
+  expect(distinct.id).not.toBe(first.id);
+  db.close();
+ });
+ it('fills in a best-effort description from Workers AI, leaving it null on failure',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket,AI:{run:async()=>({choices:[{message:{content:'A sailboat at a marina dock.'}}]})}});
+  const ok=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
+  expect(ok.description).toBe('A sailboat at a marina dock.');
+  Object.assign(env,{AI:{run:async()=>{throw new Error('capacity exceeded');}}});
+  const failed=await storeOwnerPhoto(env,jpegBytes(2),{phash:'00000000000000ff'});
+  expect(failed.description).toBeNull();
+  db.close();
+ });
+ it('lists only approved, unused, non-near-duplicate photos as available, and tracks the unused count',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const a=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
+  const b=await storeOwnerPhoto(env,jpegBytes(2),{phash:'ffffffffffffffff'});
+  expect((await availableOwnerPhotos(env)).map(p=>p.id).sort()).toEqual([a.id,b.id].sort());
+  expect(await ownerPhotosUnusedCount(env)).toBe(2);
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('x','2026-09-08','published','2026-09-08')");
+  db.exec(`INSERT INTO newsletter_image_uses(image_id,issue_id,used_at) VALUES('${a.id}','x','2026-09-08')`);
+  expect(await ownerPhotosUnusedCount(env)).toBe(1);
+  expect((await availableOwnerPhotos(env)).map(p=>p.id)).toEqual([b.id]);
+  const health=await ownerHealth(env);
+  expect(health.unused).toBe(1);expect(health.warning).toContain(`below the ${OWNER_LOW_WATER}-photo low-water mark`);
+  db.close();
+ });
+ it('ownerPhotosById only returns approved rows that match the sha256 id pattern',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const a=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
+  const map=await ownerPhotosById(env,[a.id,'not-a-sha256','0'.repeat(64)]);
+  expect(map.has(a.id)).toBe(true);expect(map.size).toBe(1);
+  db.close();
+ });
+ it('ownerHashes lists every uploaded photo for the ingest script, used or not',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
+  await storeOwnerPhoto(env,jpegBytes(2),{phash:'ffffffffffffffff'});
+  expect(await ownerHashes(env)).toHaveLength(2);
+  db.close();
+ });
+ it('computes the Hamming distance between two dHash strings and rejects malformed input',()=>{
+  expect(hamming('0000000000000000','0000000000000000')).toBe(0);
+  expect(hamming('0000000000000000','ffffffffffffffff')).toBe(64);
+  expect(hamming('0000000000000000','0000000000000007')).toBe(3);
+  expect(()=>hamming('0000000000000000','not-hex')).toThrow();
+ });
+ it('defaults every owner photo credit to "Photo: Connor Gray"',async()=>{
+  const {db,env}=database();const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const a=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
+  const [img]=validateImages([{id:a.id,alt:'Connor at the helm',caption:'Connor Gray aboard a brokerage listing',relevance:'Shows Connor, establishing the owner photo library'},...oneEach.slice(0,1).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}))],undefined,new Map(),await ownerPhotosById(env,[a.id]));
+  expect(img.credit).toBe(OWNER_CREDIT);expect(img.kind).toBe('owner');
+  db.close();
+ });
+});
+
+describe('insights image ledger',()=>{
+ it('reserves images for a slug, atomically rejecting any id already used elsewhere',async()=>{
+  const {db,env}=database();
+  await expect(reserveInsightsImages(env,'my-article',[oneEach[0].id])).resolves.toMatchObject({slug:'my-article',reserved:[oneEach[0].id]});
+  // Re-reserving the same id for the same article is idempotent.
+  await expect(reserveInsightsImages(env,'my-article',[oneEach[0].id])).resolves.toMatchObject({slug:'my-article'});
+  await expect(reserveInsightsImages(env,'another-article',[oneEach[0].id])).rejects.toBeInstanceOf(ConflictError);
+  db.close();
+ });
+ it('rejects an id a newsletter edition already used',async()=>{
+  const {db,env}=database();
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('issue-1','2026-09-08','published','2026-09-08')");
+  db.exec(`INSERT INTO newsletter_image_uses(image_id,issue_id,used_at) VALUES('${oneEach[0].id}','issue-1','2026-09-08')`);
+  await expect(reserveInsightsImages(env,'my-article',[oneEach[0].id])).rejects.toBeInstanceOf(ConflictError);
+  db.close();
+ });
+ it('validates its input shape',async()=>{
+  const {db,env}=database();
+  await expect(reserveInsightsImages(env,'',[oneEach[0].id])).rejects.toThrow('slug');
+  await expect(reserveInsightsImages(env,'a',[])).rejects.toThrow('imageIds');
+  await expect(reserveInsightsImages(env,'a',[oneEach[0].id,oneEach[0].id])).rejects.toThrow('repeat');
+  db.close();
  });
 });

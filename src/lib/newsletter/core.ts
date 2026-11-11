@@ -17,6 +17,9 @@ export type NewsletterEnv = {
  NEWSLETTER_START_DATE: string;
  // Worker KV (binding RATE_LIMIT in wrangler.jsonc); used to send the stall alert at most every 3 days.
  RATE_LIMIT?: { get(key: string): Promise<string | null>; put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void> };
+ // Fresh-photo-mix hard rule (2026-11-11) emergency switch: 'warn' downgrades every violation to a
+ // logged warning instead of rejecting the edition. Default (unset) is 'enforce'.
+ NEWSLETTER_FRESH_PHOTO_RULE?: string;
 };
 export type Article = {
  title: string; excerpt: string; introduction: string;
