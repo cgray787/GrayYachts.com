@@ -17,9 +17,10 @@
     "brochure": "tsx scripts/generate-brochure.ts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "ship": "npx opennextjs-cloudflare build && npx wrangler deploy && node scripts/verify-deploy.mjs",
-    "test": "vitest run && npm run check:migration-grants && npm run test:migration-grants",
+    "test": "vitest run && npm run check:migration-grants && npm run test:migration-grants && npm run test:content-review-access",
     "check:migration-grants": "python3 scripts/check-migration-grants.py",
-    "test:migration-grants": "python3 scripts/test-migration-grants.py && node --test scripts/test-data-api-grants.mjs"
+    "test:migration-grants": "python3 scripts/test-migration-grants.py && node --test scripts/test-data-api-grants.mjs",
+    "test:content-review-access": "node --test scripts/test-content-review-access.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.6",
