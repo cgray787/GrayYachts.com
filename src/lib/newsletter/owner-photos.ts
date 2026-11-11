@@ -13,9 +13,16 @@ export type OwnerPhoto = {
 };
 export const OWNER_CREDIT = 'Photo: Connor Gray';
 export const OWNER_LOW_WATER = 10;
+export const NEAR_DUP_DISTANCE = 6;
 const MAX_BYTES = 15 * 1024 * 1024;
 const MIN_BYTES = 20 * 1024;
-const NEAR_DUP_DISTANCE = 6;
+
+// Migration 0007 (newsletter_owner_photos, insights_image_uses) may not be applied yet when a
+// Worker build that references it ships, so every owner-photo query must survive a deploy that
+// runs ahead of its migration (see docs/owner-photos.md). Other errors still propagate.
+export function isMissingTableError(error: unknown): boolean {
+  return error instanceof Error && /no such table/i.test(error.message);
+}
 
 function bucket(env: MediaEnv) {
   if (!env.YACHT_PHOTOS) throw new Error('Newsletter media storage is not configured');
@@ -46,35 +53,78 @@ export function hamming(a: string, b: string): number {
 }
 
 async function usedOwnerIds(env: NewsletterEnv): Promise<Set<string>> {
-  const newsletter = (await env.NEWSLETTER_DB.prepare('SELECT image_id FROM newsletter_image_uses').all<{ image_id: string }>()).results;
-  const insights = (await env.NEWSLETTER_DB.prepare('SELECT image_id FROM insights_image_uses').all<{ image_id: string }>()).results;
-  return new Set([...newsletter.map(r => r.image_id), ...insights.map(r => r.image_id)]);
+  try {
+    const newsletter = (await env.NEWSLETTER_DB.prepare('SELECT image_id FROM newsletter_image_uses').all<{ image_id: string }>()).results;
+    const insights = (await env.NEWSLETTER_DB.prepare('SELECT image_id FROM insights_image_uses').all<{ image_id: string }>()).results;
+    return new Set([...newsletter.map(r => r.image_id), ...insights.map(r => r.image_id)]);
+  } catch (error) {
+    if (isMissingTableError(error)) return new Set();
+    throw error;
+  }
 }
 
 export async function ownerLibraryEmpty(env: NewsletterEnv): Promise<boolean> {
-  return !(await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_owner_photos WHERE approved=1 LIMIT 1').first());
+  try {
+    return !(await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_owner_photos WHERE approved=1 LIMIT 1').first());
+  } catch (error) {
+    if (isMissingTableError(error)) return true;
+    throw error;
+  }
 }
 export async function ownerPhotosUnusedCount(env: NewsletterEnv): Promise<number> {
-  const all = (await env.NEWSLETTER_DB.prepare('SELECT id FROM newsletter_owner_photos WHERE approved=1').all<{ id: string }>()).results;
-  const used = await usedOwnerIds(env);
-  return all.filter(o => !used.has(o.id)).length;
+  try {
+    const all = (await env.NEWSLETTER_DB.prepare('SELECT id FROM newsletter_owner_photos WHERE approved=1').all<{ id: string }>()).results;
+    const used = await usedOwnerIds(env);
+    return all.filter(o => !used.has(o.id)).length;
+  } catch (error) {
+    if (isMissingTableError(error)) return 0;
+    throw error;
+  }
 }
 export async function ownerPhotosById(env: NewsletterEnv, ids: string[]): Promise<Map<string, OwnerPhoto>> {
   const out = new Map<string, OwnerPhoto>();
   for (const id of ids) {
     if (!/^[a-f0-9]{64}$/.test(id)) continue;
-    const row = await env.NEWSLETTER_DB.prepare('SELECT * FROM newsletter_owner_photos WHERE id=? AND approved=1').bind(id).first<OwnerPhoto>();
-    if (row) out.set(id, row);
+    try {
+      const row = await env.NEWSLETTER_DB.prepare('SELECT * FROM newsletter_owner_photos WHERE id=? AND approved=1').bind(id).first<OwnerPhoto>();
+      if (row) out.set(id, row);
+    } catch (error) {
+      if (isMissingTableError(error)) return out;
+      throw error;
+    }
   }
   return out;
 }
 // Unused, approved, and not a near-duplicate of a photo already reserved elsewhere: what Hermes
 // or an insights author may actually pick next.
 export async function availableOwnerPhotos(env: NewsletterEnv): Promise<OwnerPhoto[]> {
-  const all = (await env.NEWSLETTER_DB.prepare('SELECT * FROM newsletter_owner_photos WHERE approved=1').all<OwnerPhoto>()).results;
-  const used = await usedOwnerIds(env);
-  const usedPhashes = all.filter(o => used.has(o.id)).map(o => o.phash);
-  return all.filter(o => !used.has(o.id) && !usedPhashes.some(h => hamming(h, o.phash) <= NEAR_DUP_DISTANCE));
+  try {
+    const all = (await env.NEWSLETTER_DB.prepare('SELECT * FROM newsletter_owner_photos WHERE approved=1').all<OwnerPhoto>()).results;
+    const used = await usedOwnerIds(env);
+    const usedPhashes = all.filter(o => used.has(o.id)).map(o => o.phash);
+    return all.filter(o => !used.has(o.id) && !usedPhashes.some(h => hamming(h, o.phash) <= NEAR_DUP_DISTANCE));
+  } catch (error) {
+    if (isMissingTableError(error)) return [];
+    throw error;
+  }
+}
+// Phashes of owner photos already reserved by another edition (newsletter_image_uses, excluding
+// `excludeIssueId`) or by an insights article (insights_image_uses): what resolveImages checks a
+// freshly submitted owner photo against so a near-duplicate of one already spent cannot slip in
+// under a new sha256 id.
+export async function reservedOwnerPhashes(env: NewsletterEnv, excludeIssueId?: string): Promise<string[]> {
+  try {
+    const newsletter = (await env.NEWSLETTER_DB.prepare(
+      `SELECT p.phash phash FROM newsletter_image_uses u JOIN newsletter_owner_photos p ON p.id=u.image_id${excludeIssueId ? ' WHERE u.issue_id<>?' : ''}`
+    ).bind(...(excludeIssueId ? [excludeIssueId] : [])).all<{ phash: string }>()).results;
+    const insights = (await env.NEWSLETTER_DB.prepare(
+      'SELECT p.phash phash FROM insights_image_uses u JOIN newsletter_owner_photos p ON p.id=u.image_id'
+    ).all<{ phash: string }>()).results;
+    return [...newsletter.map(r => r.phash), ...insights.map(r => r.phash)];
+  } catch (error) {
+    if (isMissingTableError(error)) return [];
+    throw error;
+  }
 }
 export async function ownerHealth(env: NewsletterEnv) {
   const available = await availableOwnerPhotos(env);

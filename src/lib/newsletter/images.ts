@@ -3,7 +3,7 @@ import articleImages from '../../../content/seo/article-images.json';
 import type {NewsletterEnv} from './core';
 import {mediaById,mediaUrl,type Media,type MediaEnv} from './media';
 import {checkImages,type Judge} from './relevance';
-import {ownerPhotosById,ownerLibraryEmpty,OWNER_CREDIT,type OwnerPhoto} from './owner-photos';
+import {ownerPhotosById,ownerLibraryEmpty,reservedOwnerPhashes,hamming,NEAR_DUP_DISTANCE,OWNER_CREDIT,type OwnerPhoto} from './owner-photos';
 export type NewsletterImage={id:string;url:string;alt:string;caption:string;credit:string;source:string;license?:string;licenseUrl?:string;kind?:'catalog'|'licensed'|'generated'|'owner';relevance?:string;width?:number;height?:number;check?:'passed'|'rejected'|'skipped';checkReason?:string};
 export const IMAGE_RULE='Every image must fit what its section is about. Prefer a freely licensed photo of the actual subject (the show, place, brand or model) imported with POST /api/newsletter/media/import from Wikimedia Commons, Pexels or Unsplash. Use a catalog photo only when it genuinely matches the section. When no real photo fits, generate an illustration with POST /api/newsletter/media/generate; it is captioned as an AI-generated illustration. Use sections.length + 2 unique images (lead, one per section in order, then questions), each with a relevance note. Never use the same picture twice: never reuse an image across editions or one already used on an insights article, and a licensed photo re-imported at another size is the same picture. Show each catalog boat once per edition, never a boat shown on an insights article, and never one from the 3 editions before or after (another shot of the same boat counts as the same picture). The server shows each image with its section to a vision model and rejects a clear mismatch (HTTP 409 naming images[i]); replace that image and resubmit. HARD RULE (Connor, 2026-11-11): Every newsletter edition and insights article uses only never-before-used images, including at least 1 of Connor\'s own photos (kind \'owner\', from the private Connor photo library) and at least 1 new picture (a freshly imported licensed photo or an AI illustration, kind \'licensed\' or \'generated\'). The lead image must never be AI-generated.';
 // Two shots of one boat from one shoot read as the same picture (2026-10-26 led with Kingfisher
@@ -112,12 +112,17 @@ export async function resolveImages(env:NewsletterEnv,value:unknown,sectionCount
  const [media,owner]=await Promise.all([mediaById(env,ids),ownerPhotosById(env,ids)]);
  const images=validateImages(value,sectionCount,media,owner);
  const boats=await nearbyBoats(env,edition.slot,edition.id);const used=await usedPictureKeys(env,edition);
+ const usedOwnerPhashes=await reservedOwnerPhashes(env,edition.id);
  images.forEach((image,i)=>{
   const key=pictureKey(image.source);
   if(key&&used.has(key))throw new Error(`images[${i}] is a photo already used by another edition or an insights article (same library page at any size); choose a different photo`);
   if(INSIGHT_URLS.has(image.url))throw new Error(`images[${i}] is already the photo of an insights article; choose another`);
   const boat=boatOf(image.url);
   if(boat&&boats.has(boat))throw new Error(`images[${i}] shows ${boat}, which appears in an insights article or one of the ${BOAT_GAP} editions before or after this one; choose a different boat`);
+  if(image.kind==='owner'){
+   const phash=owner.get(image.id)?.phash;
+   if(phash&&usedOwnerPhashes.some(h=>hamming(h,phash)<=NEAR_DUP_DISTANCE))throw new Error(`images[${i}] is a near-duplicate of one of Connor's own photos already used by another edition or an insights article; choose a different photo`);
+  }
  });
  // Fresh-photo-mix hard rule (Connor, 2026-11-11): see IMAGE_RULE. Downgraded to a logged warning
  // while Connor's photo library is empty (rollout) or NEWSLETTER_FRESH_PHOTO_RULE='warn' (switch).

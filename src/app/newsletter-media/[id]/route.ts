@@ -1,6 +1,7 @@
 import {newsletterEnv} from '@/lib/newsletter/db';
 import type {MediaEnv} from '@/lib/newsletter/media';
 import {resize,WIDTHS} from '@/lib/newsletter/resize';
+import {isMissingTableError} from '@/lib/newsletter/owner-photos';
 // Serves imported, generated and (once reserved) owner newsletter images from R2. Keys are
 // content hashes, so the bytes behind a URL never change and can be cached for a year.
 // ?w=640|960|1280 serves a WebP that size (&f=jpeg a JPEG, for email clients without WebP). Each
@@ -23,10 +24,16 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
  } else {
   // Not an imported/generated photo: it may be one of Connor's own, which stay private (404)
   // until reserved by an edition or an insights article (fresh-photo-mix rule, 2026-11-11).
-  const owner=await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_owner_photos WHERE id=?').bind(id).first();
-  if(!owner)return new Response(null,{status:404});
-  const reserved=await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_image_uses WHERE image_id=? UNION SELECT 1 FROM insights_image_uses WHERE image_id=?').bind(id,id).first();
-  if(!reserved)return new Response(null,{status:404});
+  // Migration 0007 may not be applied yet (docs/owner-photos.md); a missing table means no owner
+  // photo could possibly be reserved, so it is treated the same as "not found".
+  let owner:unknown=null;let reserved:unknown=null;
+  try {
+   owner=await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_owner_photos WHERE id=?').bind(id).first();
+   if(owner)reserved=await env.NEWSLETTER_DB.prepare('SELECT 1 FROM newsletter_image_uses WHERE image_id=? UNION SELECT 1 FROM insights_image_uses WHERE image_id=?').bind(id,id).first();
+  } catch(error) {
+   if(!isMissingTableError(error))throw error;
+  }
+  if(!owner||!reserved)return new Response(null,{status:404});
   baseKey=`owner-photos/${id}.jpg`;
   const object=await env.YACHT_PHOTOS?.get(baseKey);
   if(!object)return new Response(null,{status:404});

@@ -140,6 +140,28 @@ npx wrangler d1 migrations apply grayyachts-newsletter --remote
 Confirm this is still the project's actual deploy convention before running it — and get
 Connor's go-ahead first regardless.
 
+### Deploy order
+
+Migration 0007 should be applied **before, or together with,** the Worker deploy that ships this
+feature's code. That is still the correct order to aim for.
+
+That said, the code tolerates deploying ahead of the migration: every query against
+`newsletter_owner_photos` or `insights_image_uses` (`ownerLibraryEmpty`, `ownerPhotosById`,
+`ownerPhotosUnusedCount`, `availableOwnerPhotos`, `ownerHealth`, `reservedOwnerPhashes`, and the
+`newsletter-media/[id]` route's owner-photo lookup) catches a `no such table` error and treats it
+as "the owner library doesn't exist yet" instead of throwing. So a Worker deployed before the
+migration runs won't break draft submission or the image API — it just behaves exactly like an
+empty, not-yet-provisioned owner library until the migration catches up.
+
+One thing this does **not** soften: the other two parts of the fresh-photo-mix rule — "must
+include a freshly-licensed-or-generated photo" and "the lead photo is never AI-generated" — are
+hard requirements from the moment the new Worker code is live, regardless of the owner library or
+the migration (see §3 above; only the owner-photo part is downgraded while the library is empty).
+So the moment this deploys, any edition or insights article made up only of catalog photos will be
+rejected — Hermes (or whoever is submitting) must add at least one freshly imported licensed photo
+or an AI illustration to every edition from day one, even before the migration lands or Connor has
+uploaded a single photo of his own.
+
 ## 5. Health check / low-water warning
 
 `GET /api/newsletter/images` (bearer-authenticated, used internally by the Hermes automation)

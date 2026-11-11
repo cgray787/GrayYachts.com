@@ -10,7 +10,7 @@ import {importMedia,generateMedia,mediaById} from './media';
 import {runNewsletter,acceptHermesDraft} from './generate';
 import {checkImages,ImageMismatchError,RELEVANCE_MODEL} from './relevance';
 import {imageSize} from './resize';
-import {storeOwnerPhoto,ownerPhotosById,availableOwnerPhotos,ownerPhotosUnusedCount,ownerHealth,ownerHashes,hamming,OWNER_CREDIT,OWNER_LOW_WATER} from './owner-photos';
+import {storeOwnerPhoto,ownerPhotosById,availableOwnerPhotos,ownerPhotosUnusedCount,ownerHealth,ownerLibraryEmpty,ownerHashes,hamming,OWNER_CREDIT,OWNER_LOW_WATER} from './owner-photos';
 import {reserveInsightsImages,ConflictError} from './insights-ledger';
 
 const insightUrls=new Set(Object.values(articleImages).map(p=>p.url));
@@ -516,6 +516,73 @@ describe("Connor's private photo library (owner photos)",()=>{
   const a=await storeOwnerPhoto(env,jpegBytes(1),{phash:'0000000000000000'});
   const [img]=validateImages([{id:a.id,alt:'Connor at the helm',caption:'Connor Gray aboard a brokerage listing',relevance:'Shows Connor, establishing the owner photo library'},...oneEach.slice(0,1).map(p=>({id:p.id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'}))],undefined,new Map(),await ownerPhotosById(env,[a.id]));
   expect(img.credit).toBe(OWNER_CREDIT);expect(img.kind).toBe('owner');
+  db.close();
+ });
+});
+
+describe('owner photo near-duplicate rejection across editions and insights (2026-11-11)',()=>{
+ const owner=(id:string)=>({id,alt:'Connor at the helm',caption:'Connor Gray aboard a brokerage listing',relevance:'Shows Connor, establishing the owner photo library'});
+ const catalogPhoto=(i:number)=>({id:oneEach[i].id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'});
+ it('rejects a near-duplicate (Hamming <= 6) of an owner photo already used by another edition, but allows re-saving the edition that already holds the original',async()=>{
+  const {db,env}=database();
+  const idA='1'.repeat(64);const idB='2'.repeat(64);const idC='3'.repeat(64);
+  db.prepare('INSERT INTO newsletter_owner_photos(id,r2_key,phash,approved,created_at) VALUES(?,?,?,1,?)').run(idA,`owner-photos/${idA}.jpg`,'0000000000000000','2026-09-08');
+  db.prepare('INSERT INTO newsletter_owner_photos(id,r2_key,phash,approved,created_at) VALUES(?,?,?,1,?)').run(idB,`owner-photos/${idB}.jpg`,'0000000000000007','2026-09-08');
+  db.prepare('INSERT INTO newsletter_owner_photos(id,r2_key,phash,approved,created_at) VALUES(?,?,?,1,?)').run(idC,`owner-photos/${idC}.jpg`,'ffffffffffffffff','2026-09-08');
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08'),('b','2026-09-10','pending','2026-09-10')");
+  await attachImages(env,'a',[owner(idA),catalogPhoto(0)]);
+  // idB is within Hamming distance 6 of idA, which edition 'a' already holds.
+  await expect(attachImages(env,'b',[owner(idB),catalogPhoto(3)])).rejects.toThrow('near-duplicate');
+  expect(db.prepare("SELECT images FROM newsletter_issues WHERE id='b'").get()).toMatchObject({images:'[]'});
+  // idC is not a near-duplicate of anything reserved: allowed.
+  expect(await attachImages(env,'b',[owner(idC),catalogPhoto(3)])).toMatchObject({count:2});
+  // Re-saving 'a' with idB is allowed: idA's reservation belongs to 'a' itself and is excluded.
+  expect(await attachImages(env,'a',[owner(idB),catalogPhoto(6)])).toMatchObject({count:2});
+  db.close();
+ });
+ it('rejects a near-duplicate of an owner photo already used on an insights article',async()=>{
+  const {db,env}=database();
+  const idA='4'.repeat(64);const idB='5'.repeat(64);
+  db.prepare('INSERT INTO newsletter_owner_photos(id,r2_key,phash,approved,created_at) VALUES(?,?,?,1,?)').run(idA,`owner-photos/${idA}.jpg`,'0000000000000000','2026-09-08');
+  db.prepare('INSERT INTO newsletter_owner_photos(id,r2_key,phash,approved,created_at) VALUES(?,?,?,1,?)').run(idB,`owner-photos/${idB}.jpg`,'0000000000000007','2026-09-08');
+  await reserveInsightsImages(env,'some-article',[idA]);
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08')");
+  await expect(attachImages(env,'a',[owner(idB),catalogPhoto(0)])).rejects.toThrow('near-duplicate');
+  db.close();
+ });
+});
+
+describe('owner-photo queries tolerate migration 0007 not being applied yet (deploy-order safety)',()=>{
+ // Simulates a Worker deployed ahead of its D1 migration (docs/owner-photos.md): migrations
+ // 0001-0006 only, so newsletter_owner_photos and insights_image_uses genuinely do not exist, and
+ // the reuse trigger is still migration 0006's version, which never references either.
+ function databaseWithoutOwnerPhotoTables() {
+  const db=new DatabaseSync(':memory:');
+  for(const n of ['0001_newsletter','0002_images','0003_section_images','0004_media','0005_published_image_corrections','0006_never_reuse_images'])
+   db.exec(readFileSync(`migrations/newsletter/${n}.sql`,'utf8'));
+  const prepare=(sql:string):Statement=>{
+   let values: (string|number|null)[]=[];
+   return {bind(...args:unknown[]){values=args as typeof values;return this;},async first<T>(){return db.prepare(sql).get(...values) as T||null;},async all<T>(){return {results:db.prepare(sql).all(...values) as T[]};},async run(){return {meta:{changes:Number(db.prepare(sql).run(...values).changes)}};}};
+  };
+  return {db,env:{NEWSLETTER_DB:{prepare},NEWSLETTER_AUTOMATION_SECRET:'test-signing-secret-with-at-least-32-characters',NEWSLETTER_FRESH_PHOTO_RULE:'warn'} as NewsletterEnv};
+ }
+ it('treats the owner library as empty everywhere instead of throwing',async()=>{
+  const {db,env}=databaseWithoutOwnerPhotoTables();
+  await expect(ownerLibraryEmpty(env)).resolves.toBe(true);
+  await expect(ownerPhotosUnusedCount(env)).resolves.toBe(0);
+  await expect(availableOwnerPhotos(env)).resolves.toEqual([]);
+  await expect(ownerHealth(env)).resolves.toMatchObject({available:[],unused:0});
+  const id='6'.repeat(64);
+  await expect(ownerPhotosById(env,[id])).resolves.toEqual(new Map());
+  db.close();
+ });
+ it('still submits a draft made only of catalog and licensed/generated images (no owner photos required until the library exists)',async()=>{
+  const {db,env}=databaseWithoutOwnerPhotoTables();Object.assign(env,{NEWSLETTER_FRESH_PHOTO_RULE:undefined});
+  const s=bucketStore();Object.assign(env,{YACHT_PHOTOS:s.bucket});
+  const media=await importMedia(env,{downloadUrl:'https://upload.wikimedia.org/wikipedia/commons/a/ab/Dock3.jpg',sourceUrl:'https://commons.wikimedia.org/wiki/File:Dock3.jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/',credit:'Jane Photographer',title:'Yet another dock'},async()=>new Response(new Uint8Array(40_000).fill(5),{headers:{'content-type':'image/jpeg'}}));
+  db.exec("INSERT INTO newsletter_issues(id,slot,status,created_at) VALUES('a','2026-09-08','pending','2026-09-08')");
+  const image=(id:string)=>({id,alt:'A boat in the brokerage photo library',caption:'An example of brokerage listing photography',relevance:'Illustrates the listing presentation the section describes'});
+  expect(await attachImages(env,'a',[image(oneEach[0].id),image(media.id)])).toMatchObject({count:2});
   db.close();
  });
 });
