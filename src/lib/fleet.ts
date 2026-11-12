@@ -46,13 +46,15 @@ export const vessels: Vessel[] = [
     // Current brokerage record is authoritative for public advertising: 2023
     // Custom Norsco, 38'. A supplied WA registration shows a legacy 2007 DZP,
     // 32' record and is deliberately NOT used for year/builder/HIN claims here.
+    // 2026-11-12: Connor approved matching the public ask to live YachtWorld
+    // (10296777), $249,000 — was $300,000.
     name: "R/V Poulsbo",
     slug: "poulsbo",
     year: 2023,
     make: "Custom Norsco Aluminum Patrol",
     length: "38'",
     location: "Fall City, WA",
-    price: "$300,000",
+    price: "$249,000",
     image: "/listings/poulsbo/hero.jpg",
     href: "/listings/poulsbo.pdf",
     gallery: [
