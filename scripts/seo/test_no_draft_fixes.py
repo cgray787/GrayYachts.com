@@ -371,8 +371,7 @@ class EnvConfigOverrideTests(unittest.TestCase):
   seen={}
   fresh=fresh_loop({'GRAYYACHTS_SEO_MODEL':'claude-haiku-4-5','GRAYYACHTS_SEO_PROVIDER':'hermes'})
   def fake(cmd,**kw):seen['cmd']=cmd;return types.SimpleNamespace(returncode=0,stdout='{"ok":true}',stderr='')
-  with patch.dict(os.environ,{'GRAYYACHTS_SEO_PROVIDER':'hermes'}):
-   fresh.subprocess.run=fake
+  with patch.dict(os.environ,{'GRAYYACHTS_SEO_PROVIDER':'hermes'}),patch.object(fresh.subprocess,'run',fake):
    fresh.invoke_agent('x',{'type':'object','properties':{'ok':{'type':'boolean'}},'required':['ok'],'additionalProperties':False})
   self.assertIn('--model',seen['cmd']);self.assertEqual(seen['cmd'][seen['cmd'].index('--model')+1],'claude-haiku-4-5')
  def test_no_model_flag_when_unset(self):

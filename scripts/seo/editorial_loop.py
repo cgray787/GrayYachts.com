@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bounded local research/draft loop. Never publishes content. Its only outbound message is a failure alert emailed to Connor."""
 import argparse
+import copy
 import csv
 import datetime as dt
 import fcntl
@@ -40,8 +41,27 @@ ALERT_TO = os.environ.get('GRAYYACHTS_SEO_ALERT_TO', 'connorgray@jeffbrownyachts
 ALERT_FROM = os.environ.get('GRAYYACHTS_SEO_ALERT_FROM', 'Gray Yachts SEO Agent <onboarding@resend.dev>')
 HERMES_BIN = os.environ.get('GRAYYACHTS_SEO_HERMES_BIN') or shutil.which('hermes') or '/usr/local/bin/hermes'
 HERMES_PROVIDER = os.environ.get('GRAYYACHTS_SEO_HERMES_PROVIDER', 'codex')
+# The hermes wrapper script only accepts a query via `-q QUERY`, and execve caps a single argv
+# string at MAX_ARG_STRLEN (131072 bytes on Linux). Run the venv's own interpreter instead so the
+# prompt can go over stdin and be installed into sys.argv in-process, where there is no such limit.
+HERMES_PYTHON = os.environ.get('GRAYYACHTS_SEO_HERMES_PYTHON') or '/usr/local/lib/hermes-agent/venv/bin/python3'
+HERMES_STDIN_SHIM = '''\
+import os, sys
+query = sys.stdin.read()
+devnull = os.open(os.devnull, os.O_RDONLY)
+os.dup2(devnull, 0)
+os.close(devnull)
+sys.stdin = open(os.devnull)
+sys.argv = ['hermes', *sys.argv[1:], '-q', query]
+from hermes_cli.main import main
+sys.exit(main())
+'''
 MODEL = os.environ.get('GRAYYACHTS_SEO_MODEL') or None
 MAX_ALERT_ATTEMPTS = 3
+# Default matches the hardcoded argv-fallback safety threshold in invoke_agent(); both stay well
+# under MAX_ARG_STRLEN. Editorial context (snapshots, keyword lists, etc.) is trimmed to this size.
+MAX_PROMPT_BYTES = int(os.environ.get('GRAYYACHTS_SEO_MAX_PROMPT_BYTES', '100000'))
+SCHEMA_SUFFIX = '\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'
 SLEEP = time.sleep  # tests patch this so retries do not actually sleep
 
 def claude_bin():
@@ -95,12 +115,21 @@ def invoke_agent(prompt, schema):
     if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE') in NO_TOOLS_MODES and provider!='hermes':raise ValueError('Snapshot research modes require the no-tools Hermes provider')
     with tempfile.TemporaryDirectory(prefix='grayyachts-seo-') as cwd:
         if provider=='hermes':
-            hermes_prompt=(prompt+'\n\nReturn exactly one JSON object matching this JSON Schema. Do not use markdown or add commentary.\n'+json.dumps(schema,separators=(',',':')))
+            hermes_prompt=(prompt+SCHEMA_SUFFIX+json.dumps(schema,separators=(',',':')))
             # --ignore-rules, not --safe-mode: safe mode also drops ~/.hermes/config.yaml, which holds the web
             # search/extract backend, so every research fetch failed (2026-10-19). Tools stay limited by -t web.
-            command=[HERMES_BIN,'chat','-Q','--ignore-rules','--provider',HERMES_PROVIDER,'--max-turns','12','--source','tool','-t',('none' if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE') in NO_TOOLS_MODES else 'web'),'-q',hermes_prompt]
-            if MODEL:command+=['--model',MODEL]
-            proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
+            hermes_args=['chat','-Q','--ignore-rules','--provider',HERMES_PROVIDER,'--max-turns','12','--source','tool','-t',('none' if os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE') in NO_TOOLS_MODES else 'web')]
+            if MODEL:hermes_args+=['--model',MODEL]
+            if os.path.isfile(HERMES_PYTHON) and os.access(HERMES_PYTHON,os.X_OK):
+                # In-process argv (set by the shim) has no kernel length limit; the prompt travels over stdin instead.
+                env={k:v for k,v in os.environ.items() if k not in ('PYTHONPATH','PYTHONHOME')}
+                command=[HERMES_PYTHON,'-c',HERMES_STDIN_SHIM,*hermes_args]
+                proc=subprocess.run(command,input=hermes_prompt,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS,env=env)
+            else:
+                prompt_bytes=len(hermes_prompt.encode('utf-8'))
+                if prompt_bytes>=100_000:raise RuntimeError(f'Hermes prompt is {prompt_bytes} bytes, too large to pass as a single argv string, and no Hermes python executable was found at {HERMES_PYTHON}. Set GRAYYACHTS_SEO_HERMES_PYTHON to the Hermes venv interpreter.')
+                command=[HERMES_BIN,*hermes_args,'-q',hermes_prompt]
+                proc=subprocess.run(command,text=True,capture_output=True,cwd=cwd,timeout=CLI_TIMEOUT_SECONDS)
             if proc.returncode:raise RuntimeError(cli_failure(proc))
             output=(proc.stdout or '').strip();result=None;last_error=None
             decoder=json.JSONDecoder();index=0
@@ -159,6 +188,57 @@ def write(path, value):
     tmp = path.with_suffix(path.suffix + '.tmp')
     tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
     tmp.replace(path)
+
+PROMPT_TRIM_MARKER='\n[Trimmed to fit prompt budget]\n'
+SNAPSHOT_TRIM_FLOOR=1_500
+SNAPSHOT_TRIM_FLOOR_FINAL=300
+
+def _trim_text_to(text, limit):
+    if len(text)<=limit:return text
+    remaining=max(0,limit-len(PROMPT_TRIM_MARKER))
+    head=remaining-remaining//2;tail=remaining//2
+    return text[:head]+PROMPT_TRIM_MARKER+(text[-tail:] if tail else '')
+
+def _trim_snapshots(snapshots, limit):
+    changed=False
+    for item in snapshots or []:
+        text=item.get('text')
+        if isinstance(text,str) and len(text)>limit:
+            item['text']=_trim_text_to(text,limit);item['trimmedForPrompt']=True;changed=True
+    return changed
+
+def _keep_latest(ctx, key, n):
+    values=ctx.get(key)
+    if isinstance(values,list) and len(values)>n:ctx[key]=values[-n:];return True
+    return False
+
+def _keep_first(ctx, key, n):
+    values=ctx.get(key)
+    if isinstance(values,list) and len(values)>n:ctx[key]=values[:n];return True
+    return False
+
+def build_prompt(template, context, schema=None):
+    """Context, never the caller's: trims a deep copy so snapshots/alreadyWritten etc. stay intact for validation."""
+    ctx=copy.deepcopy(context)
+    reserved=len((SCHEMA_SUFFIX+json.dumps(schema,separators=(',',':'))).encode('utf-8')) if schema is not None else 0
+    budget=MAX_PROMPT_BYTES-reserved
+    def render():return template+'\n\nCurrent context:\n'+json.dumps(ctx,ensure_ascii=False)
+    prompt=render();trimmed=False
+    steps=[lambda:_trim_snapshots(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR),
+           lambda:_trim_snapshots(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR),
+           lambda:_keep_latest(ctx,'recentResearch',1),
+           lambda:_keep_first(ctx,'keywordTargets',40),
+           lambda:_keep_latest(ctx,'alreadyWritten',150),
+           lambda:_trim_snapshots(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL),
+           lambda:_trim_snapshots(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL)]
+    for step in steps:
+        if len(prompt.encode('utf-8'))<=budget:break
+        if step():trimmed=True
+        prompt=render()
+    size=len(prompt.encode('utf-8'))
+    if size>budget:raise ValueError(f'Prompt exceeds budget: {size} bytes for a {budget} byte budget ({MAX_PROMPT_BYTES} minus {reserved} reserved for the schema suffix)')
+    print(f'seo_editorial prompt_bytes={size} trimmed={int(trimmed)}')
+    return prompt
 
 def today(): return dt.datetime.now(ZONE).date()
 TOOL_FAILURE=re.compile(r'(?:providers?|backends?) (?:is |are )?not configured|no [a-z ]{0,30}?(?:providers?|backends?) (?:is |are )?configured|(?:retrieval|fetch|extraction)\b[^.]{0,80}?\bfailed|search (?:fallback )?(?:is |was )?(?:also )?unavailable|web (?:tools?|access) (?:is |are |was |were )?unavailable',re.I)
@@ -414,9 +494,9 @@ def run(args):
         may_draft=day.weekday() in [0,2,4] and count<program['cadence']['draftsPerWeek']
         context={'today':key,'topics':choose_topics(day),'alreadyWritten':[{'slug':a['slug'],'title':a['title']} for a in existing]+[{'slug':r['draft']['slug'],'title':r['draft']['title']} for r in drafted], 'recentResearch':[r.get('updates',[]) for r in prior[-3:]],'lessons':lessons[-8:],'performance':report(),'mayWriteOneDraft':may_draft,'primaryGoal':program['primaryGoal'],'keywordTargets':program.get('keywordTargets',[]),'siteLinks':site_paths(),'materialConnections':[{'brand':b,'relationship':'Jeff Brown Yachts brand; territory and model availability unconfirmed'} for b in jby_brands()],'refreshCandidate':({k:candidate[k] for k in ['slug','title','publishedAt','updatedAt','sections','faq','sources']} if candidate else None)}
         mode=os.environ.get('GRAYYACHTS_SEO_RESEARCH_MODE','web')
-        prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
         if args.dry_run:
             print(json.dumps({'mode':'dry_run','topics':[s['id'] for s in context['topics']],'mayWriteOneDraft':may_draft,'maxBudgetUsd':program['dailyBudgetUsd'],'tools':([] if mode in NO_TOOLS_MODES else ['WebSearch','WebFetch']),'researchMode':mode,'publishing':False,'stateDirectory':str(STATE)},indent=2));return
+        prompt=build_prompt((ROOT/'scripts/seo/research-prompt.md').read_text(),context,article_schema())
         attempt=None
         try:
             check_auth()
@@ -434,7 +514,7 @@ def run(args):
                 if mode=='reputable_sources':context['reputableSourceSnapshots']=public_sources.reputable_snapshots(day)
                 snapshot_file=STATE/'sources'/key/(uuid.uuid4().hex+'.json')
                 write(snapshot_file,context['officialSourceSnapshots']+context.get('reputableSourceSnapshots',[]))
-                prompt=(ROOT/'scripts/seo/research-prompt.md').read_text()+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)
+                prompt=build_prompt((ROOT/'scripts/seo/research-prompt.md').read_text(),context,article_schema())
             # A clean cwd avoids project hooks/instructions and gives the model no file tools.
             result=invoke_agent(prompt,article_schema())
             # Retain the exact schema-valid response before any semantic gate can reject it.
