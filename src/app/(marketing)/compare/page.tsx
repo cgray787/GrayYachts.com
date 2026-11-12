@@ -779,7 +779,11 @@ export default function CompareYachtsPage() {
       <ToolShell
         title="Compare Yachts"
         description="Add listing links. Compare the details. Keep your favorites."
-      />
+      >
+        <Link href="/catalog" className="mt-6 inline-block text-sm text-gold underline underline-offset-4">
+          Manage in Yacht Catalog
+        </Link>
+      </ToolShell>
     );
   }
 
