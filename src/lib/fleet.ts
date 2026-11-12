@@ -67,13 +67,15 @@ export const vessels: Vessel[] = [
     badge: "NEW LISTING",
   },
   {
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10202717), $95,000 — was $110,000.
     name: "S/Y Playa Linda",
     slug: "playa-linda",
     year: 1994,
     make: "Hunter Passage",
     length: "42'",
     location: "Seattle, WA",
-    price: "$110,000",
+    price: "$95,000",
     image: "/listings/playa-linda/hero.jpg",
     href: "/listings/playa-linda.pdf",
     gallery: [
@@ -121,13 +123,15 @@ export const vessels: Vessel[] = [
     badge: "NEW LISTING",
   },
   {
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10242450), $65,000 — was $100,000.
     name: "Yamaha 252SE",
     slug: "yamaha-252se",
     year: 2022,
     make: "Yamaha 252SE",
     length: "25'",
     location: "Renton, WA",
-    price: "$100,000",
+    price: "$65,000",
     href: "/listings/yamaha-252se.pdf",
     image: "/listings/yamaha-252se/hero.jpg",
     gallery: [
@@ -235,13 +239,15 @@ export const vessels: Vessel[] = [
     // JBY central listing (owner Brian White), Connor listing broker.
     // Specs from the signed listing agreement; beam is the published
     // Back Cove 30 figure. Photos are Connor's own edited set.
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10282368), $299,000 — was $325,000.
     name: "M/V Miss Maggie II",
     slug: "miss-maggie-ii",
     year: 2016,
     make: "Back Cove 30",
     length: "30'5\"",
     location: "Edmonds, WA",
-    price: "$325,000",
+    price: "$299,000",
     image: "/listings/miss-maggie-ii/hero.jpg",
     href: "/listings/miss-maggie-ii.pdf",
     gallery: [
@@ -265,13 +271,15 @@ export const vessels: Vessel[] = [
     // Commercial aluminum shellfish workboat, NOT a pleasure yacht.
     // ⚠️ Outboard make/hp, capacity and tonnage are NOT in the listing
     // agreement and are deliberately not claimed — confirm with Connor.
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10265476), $900,000 — was $1,100,000.
     name: "M/V Jimmie",
     slug: "jimmie",
     year: 1997,
     make: "Rozema 50' Aluminum",
     length: "50'0\"",
     location: "Seabeck, WA",
-    price: "$1,100,000",
+    price: "$900,000",
     image: "/listings/jimmie/hero.jpg",
     href: "/listings/jimmie.pdf",
     gallery: [
@@ -294,6 +302,8 @@ export const vessels: Vessel[] = [
     // JBY central listing (owner Charlie Brown), signed Jun 30 2026.
     // Price reduced to $380,000 on Oct 17 2026 (Connor). It was $400,000 per the
     // JBY agreement; the older Hampton Yacht Group sheet said $409,995.
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10246337), $379,999.
     // Equipment detail comes from the seller's own walkthrough write-up.
     name: "M/Y Sau Ping",
     slug: "sau-ping",
@@ -301,7 +311,7 @@ export const vessels: Vessel[] = [
     make: "Sea Ray Sundancer 350",
     length: "35'0\"",
     location: "Des Moines, WA",
-    price: "$380,000",
+    price: "$379,999",
     image: "/listings/sau-ping/hero.jpg",
     href: "/listings/sau-ping.pdf",
     gallery: [
@@ -362,7 +372,9 @@ export const vessels: Vessel[] = [
     length: "35'4\"",
     location: "Madrona Marina, WA",
     // Reduced from $89,000 to $84,000 on Oct 17 2026 (Connor).
-    price: "$84,000",
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask (10246059), $85,000 — an increase.
+    price: "$85,000",
     image: "/listings/cobalt-343/hero.jpg",
     href: "/listings/cobalt-343.pdf",
     gallery: [
@@ -380,6 +392,8 @@ export const vessels: Vessel[] = [
     // Owner Spark Carlander. ⚠️ NO listing agreement exists in the folder —
     // there is no signed price, length or location on file.
     //   price:    $575,000 — supplied directly by Connor 2026-08-05.
+    //             2026-11-12: Connor approved matching the public price to
+    //             the live YachtWorld ask (10270830), $450,000.
     //   length:   "54'" is still INFERRED from the 548 model designation.
     //   location: Anacortes, WA — confirmed by Connor 2026-09-02
     //             (was a "Puget Sound, WA" placeholder).
@@ -391,7 +405,7 @@ export const vessels: Vessel[] = [
     make: "Ocean Alexander 548",
     length: "54'",
     location: "Anacortes, WA",
-    price: "$575,000",
+    price: "$450,000",
     image: "/listings/ocean-alexander-548/hero.jpg",
     href: "/listings/ocean-alexander-548.pdf",
     gallery: [
@@ -422,13 +436,17 @@ export const vessels: Vessel[] = [
     // The $150,000 ask reflects an owner refit of $400,000+ (rebuilt and
     // upgraded throughout) — per Connor 2026-09-02. Supporting receipts /
     // upgrade schedule should be attached to the survey packet.
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld listed ask (10317092), $139,999. Note the YW description
+    // body still mentions $150,000, but the YW page-header listed price is
+    // $139,999 — use $139,999.
     name: "M/Y Blue Pearl",
     slug: "blue-pearl",
     year: 1987,
     make: "Trojan 10.8 Meter International",
     length: "35'5\"",
     location: "Anacortes, WA",
-    price: "$150,000",
+    price: "$139,999",
     image: "/listings/blue-pearl/hero.jpg",
     href: "/listings/blue-pearl.pdf",
     gallery: [
@@ -451,16 +469,19 @@ export const vessels: Vessel[] = [
   },
   {
     // JBY listing (owner Will Orlando), Connor listing broker; live on
-    // YachtWorld 10374232 at $550,000, Seattle. Specs from the owner's
-    // Vessel Specification Sheet. CONFLICT: that sheet says 2021, YachtWorld
+    // YachtWorld 10374232, Seattle. Specs from the owner's Vessel
+    // Specification Sheet. CONFLICT: that sheet says 2021, YachtWorld
     // and the listing folder say 2022 — 2022 used here; confirm with Connor.
+    // 2026-11-12: Connor approved matching the public price to the live
+    // YachtWorld ask, $495,000. The prior note here said YachtWorld was
+    // $550,000 — that was stale; live YW re-checked 2026-11-12 is $495,000.
     name: "M/V Kudu",
     slug: "kudu",
     year: 2022,
     make: "KingFisher 3425 GFX Offshore",
     length: "35'1\"",
     location: "Seattle, WA",
-    price: "$550,000",
+    price: "$495,000",
     image: "/listings/kudu/hero.jpg",
     href: "/listings/kudu.pdf",
     gallery: [
@@ -480,7 +501,10 @@ export const vessels: Vessel[] = [
   },
   {
     // JBY central listing (owner John Colvin), signed Oct 7 2026, 180 days,
-    // $299,999; Connor listing broker; live on YachtWorld 10364502.
+    // $299,999 listing agreement; Connor listing broker; live on YachtWorld
+    // 10364502. The listing agreement figure is unchanged at $299,999 —
+    // 2026-11-12: Connor approved lowering only the public advertised price
+    // to match the live YachtWorld ask, $275,000.
     // Engines are the 2023 Volvo Penta D4-300 repower, 300hp each, on Volvo
     // duoprop outdrives, 853 hours each. The 2016 Marine Consultants survey
     // (P301216H) predates the repower; its D4-260 reading and hours are not used.
@@ -490,7 +514,7 @@ export const vessels: Vessel[] = [
     make: "SeaSport Voyager 3000",
     length: "31'",
     location: "Anacortes, WA",
-    price: "$299,999",
+    price: "$275,000",
     image: "/listings/journey/hero.jpg",
     href: "/listings/journey.pdf",
     gallery: [

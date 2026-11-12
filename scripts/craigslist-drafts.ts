@@ -4,16 +4,16 @@ import { writeFileSync } from "node:fs";
 import { vessels } from "../src/lib/fleet";
 import { getBrochure } from "../src/lib/brochures";
 
-// Connor's live YachtWorld listings (2026-10-27) → fleet slug, YachtWorld price.
+// Connor's live YachtWorld listings (re-checked 2026-11-12) → fleet slug, YachtWorld price.
 const yw: Record<string, { id: string; price: string }> = {
   "miss-maggie-ii": { id: "10282368", price: "$299,000" },
   poulsbo: { id: "10296777", price: "$249,000" },
-  journey: { id: "10364502", price: "$299,999" },
-  "ocean-alexander-548": { id: "10270830", price: "$500,000" },
-  kudu: { id: "10374232", price: "$550,000" },
+  journey: { id: "10364502", price: "$275,000" },
+  "ocean-alexander-548": { id: "10270830", price: "$450,000" },
+  kudu: { id: "10374232", price: "$495,000" },
   "blue-pearl": { id: "10317092", price: "$139,999" },
   "playa-linda": { id: "10202717", price: "$95,000" },
-  "yamaha-252se": { id: "10242450", price: "$79,999" },
+  "yamaha-252se": { id: "10242450", price: "$65,000" },
   "cobalt-343": { id: "10246059", price: "$85,000" },
   "sau-ping": { id: "10246337", price: "$379,999" },
   jimmie: { id: "10265476", price: "$900,000" },

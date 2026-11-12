@@ -1,13 +1,13 @@
 ================================================================
 FACEBOOK MARKETPLACE LISTING — M/Y SAU PING
-2021 Sea Ray Sundancer 350 · Des Moines, WA · $380,000
+2021 Sea Ray Sundancer 350 · Des Moines, WA · $379,999
 ================================================================
 
 --- TITLE (78 chars) ---
 2021 Sea Ray Sundancer 350 — Single Owner, Joystick Docking, 600 Hours
 
 --- FIELDS ---
-Price:     $380,000
+Price:     $379,999
 Year:      2021
 Make:      Sea Ray
 Model:     Sundancer 350
@@ -82,7 +82,7 @@ ELECTRONICS & COMFORT
 - Starboard transom gate, swim ladder, electric swim seat
 - Wired for a Scotty high-performance downrigger
 
-Lying Des Moines Marina. $380,000. Documentation, service history
+Lying Des Moines Marina. $379,999. Documentation, service history
 and sea trial available to qualified buyers. Serious inquries
 welcome — message me to set up a private showing.
 
@@ -92,7 +92,7 @@ Listed by Gray Yachts and Jeff Brown Yachts.
 --- SHORT VERSION (if you want it tighter) ---
 ================================================================
 
-2021 SEA RAY SUNDANCER 350 — "SAU PING" — $380,000
+2021 SEA RAY SUNDANCER 350 — "SAU PING" — $379,999
 
 Single-owner Seattle Boat Show special, 600 hours, lying Des
 Moines Marina.
@@ -130,9 +130,12 @@ NO DOC NUMBER The JBY listing agreement's Reg/Doc field is BLANK.
               way the Back Cove listing does. Hull ID SERY1506D121
               is confirmed.
 
-PRICE         $380,000 (reduced Oct 17 2026 from $400,000 per the JBY agreement, 180-day term). The
-              older Hampton Yacht Group sheet shows $409,995 and
-              calls it a "2022" boat — both are stale. Ignore.
+PRICE         Reduced Oct 17 2026 to $380,000 from $400,000 per the JBY
+              agreement, 180-day term. 2026-11-12: Connor approved
+              matching the public price to the live YachtWorld ask,
+              $379,999. The older Hampton Yacht Group sheet shows
+              $409,995 and calls it a "2022" boat — both are stale.
+              Ignore.
 
 TENDER        The seller's list includes what reads as an "8 foot
               wooden ten[der]". Left out on purpose — confirm

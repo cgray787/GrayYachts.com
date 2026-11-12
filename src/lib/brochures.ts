@@ -355,7 +355,7 @@ export const brochures: Record<string, BrochureContent> = {
       "Miss Maggie II is a 2016 Back Cove 30 — the boat that defined the modern Down East cruiser. Built in Rockland, Maine, the 30 pairs a single diesel inboard with a soft-riding semi-displacement hull, giving you the look of a classic lobster yacht and the running costs of one engine. She is USCG documented and lies in covered moorage at Edmonds.",
       "Back Cove's reputation rests on how much boat they fit into thirty feet without making it feel crowded. A deep windshield and wraparound glass keep the pilothouse bright and the visibility honest. The helm sits to starboard with a companion settee opposite and a salon that converts for guests. Forward there is a private cabin with a proper V-berth, a separate head with shower, and a galley with refrigeration, stovetop and microwave — everything a couple needs for a week in the San Juans.",
       "The cockpit is deep, self-draining and uncluttered, with easy side-deck access forward. Below the sole a single diesel sits in a clean, well-lit engine space with genuine room to work — the kind of installation that tells you how a boat has been kept. A generator, bow thruster and Espar diesel cabin heat make her a true three-season Northwest boat.",
-      "Offered at $325,000. Full documentation, service records and sea trial available on request.",
+      "Offered at $299,000. Full documentation, service records and sea trial available on request.",
     ],
     highlights: [
       "2016 Back Cove 30 — built in Rockland, Maine",
@@ -392,7 +392,7 @@ export const brochures: Record<string, BrochureContent> = {
       "Jimmie is a 1997 Rozema 50 — a custom welded-aluminum workboat built for the shellfish industry and still doing the job she was designed for. Rozema Boat Works of Mount Vernon has built aluminum commercial hulls for Pacific Northwest operators for decades, and this is one of their custom oyster boats: a long, flat, unobstructed working deck, shallow draft, and the kind of structure that shrugs off a working life on the tideflats.",
       "The layout is all business. A raised pilothouse sits well aft, leaving the entire foredeck clear for gear, totes and bulk product, with a deck davit for handling loads over the side. Welded aluminum means no core to rot and a hull that tolerates beach work and grid time that would end a fiberglass boat.",
       "Power is twin outboards on the transom — simple to service, straightforward to repower, and friendly to the shallow water this kind of work demands. The pilothouse is functional and uncluttered, with clear sightlines fore and aft for close-quarters deck handling, and the battery bank and systems sit in dry, accessible compartments.",
-      "Offered at $1,100,000. USCG documented. Survey, service history and sea trial available on request — serious inquries welcome.",
+      "Offered at $900,000. USCG documented. Survey, service history and sea trial available on request — serious inquries welcome.",
     ],
     highlights: [
       "1997 Rozema 50' — custom aluminum build",
@@ -429,7 +429,7 @@ export const brochures: Record<string, BrochureContent> = {
       "Sau Ping is a 2021 Sea Ray Sundancer 350 — a single-owner boat ordered as a Seattle Boat Show special with essentially every box ticked. Twin MerCruiser 8.2L V-drive inboards produce 375 horsepower each with just 600 hours logged, and Mercury joystick control with Skyhook alongside a Vetus bow thruster make a 35-foot express cruiser genuinely easy to handle single-handed.",
       "The cockpit is built for entertaining: a large U-shaped settee with filler cushions that convert it into a transom sun pad, a chaise lounge to port of the helm, double swivel helm chairs with flip-up bolsters, and a beverage centre with Kenyon electric grill, Dometic refrigerator and sink. Upgraded SeaDek runs through the cockpit and out onto the extended swim platform. Overhead sits a hardtop sunroof with blue accent lighting and a retractable six-foot SureShade awning, and the full canvas enclosure with upgraded isinglass — a $26,000 factory upgrade — pushes the season well past Labor Day.",
       "Below there are three separate sleeping areas: a forward queen with privacy curtain, a salon settee that converts to a midship berth, and an aft queen that splits into two twins. The galley carries refrigerator, microwave, stovetop and sink, and the head has a Vacuflush toilet, vessel sink and a fully separate shower stall — genuinely hard to find at thirty-five feet.",
-      "Navigation is a Simrad 14-inch touchscreen with charts, radar, GPS and sonar alongside SmartCraft engine control. A Westerbeke generator, Fusion stereo with ten Kicker Coastal speakers, three Samsung televisions and an Intervac central vacuum round out the package. Offered at $380,000, lying Des Moines Marina.",
+      "Navigation is a Simrad 14-inch touchscreen with charts, radar, GPS and sonar alongside SmartCraft engine control. A Westerbeke generator, Fusion stereo with ten Kicker Coastal speakers, three Samsung televisions and an Intervac central vacuum round out the package. Offered at $379,999, lying Des Moines Marina.",
     ],
     highlights: [
       "2021 Sea Ray Sundancer 350 — single owner",
@@ -499,7 +499,7 @@ export const brochures: Record<string, BrochureContent> = {
       "This 2005 Cobalt 343 Performance Cruiser shows just 181 hours on the meter. Cobalt built the 343 as the flagship of its cruiser line, and the company's reputation for build quality is the reason a twenty-year-old boat still presents the way this one does. She retains her original window sticker, owner's manuals and keys, and was delivered new through Seattle Boat Company.",
       "Twin MerCruiser power sits beneath a power-assisted engine hatch in a clean, well-lit bay with diamond-plate step surfaces and genuine access all round — the kind of engine room that makes a surveyor's job easy. The cockpit is pure Cobalt: deep wraparound seating, faux-teak decking through the sole and out onto the swim platform, and a broad transom sun pad. Forward, the foredeck opens up as a second lounging area with its own cushioning.",
       "A deep-vee hull of this size is what Cobalt does best — a dry, confident ride through the short chop Puget Sound serves up on a summer afternoon, with enough beam to carry a crowd without anyone feeling crowded. She lies at Madrona Marina, Washington registered.",
-      "Offered at $84,000. Original documentation, service history and sea trial available on request.",
+      "Offered at $85,000. Original documentation, service history and sea trial available on request.",
     ],
     highlights: [
       "2005 Cobalt 343 Performance Cruiser",
@@ -535,7 +535,7 @@ export const brochures: Record<string, BrochureContent> = {
       "This 1996 Ocean Alexander 548 is the kind of boat the Pacific Northwest was made for. Ocean Alexander built their reputation on heavily-built, teak-joined pilothouse motoryachts that could run the Inside Passage in comfort, and the 548 sits right in the sweet spot of that lineage — big enough to live aboard for a season, small enough for a couple to run.",
       "The saloon is finished in warm teak with a large L-shaped settee, opposing armchairs and windows on three sides. Forward and up, a true pilothouse gives you a raised helm with a settee behind it — the place you will actually spend your time when the weather turns. The galley sits down and forward, laid out for real cooking rather than reheating.",
       "Accommodation is two staterooms and two heads: a full-beam master with a walkaround berth and en-suite, and a guest cabin with twin berths and its own head with separate shower stall. Below, a walk-in engine room houses twin diesels with standing access down the centreline and clean, labelled electrical distribution — the sort of engine space that says a boat has been maintained rather than merely used.",
-      "Topside, the flybridge carries Furuno radar, a second helm and generous seating, with a broad foredeck forward. A serious cruising platform, offered at $575,000. Survey, service history and sea trial available on request.",
+      "Topside, the flybridge carries Furuno radar, a second helm and generous seating, with a broad foredeck forward. A serious cruising platform, offered at $450,000. Survey, service history and sea trial available on request.",
     ],
     highlights: [
       "1996 Ocean Alexander 548",

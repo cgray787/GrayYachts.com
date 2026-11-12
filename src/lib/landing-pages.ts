@@ -189,7 +189,7 @@ export const landingPages: LandingPage[] = [
         'Buyers searching for boats for sale in Seattle can see what is currently listed below, and work with Connor on boats listed elsewhere. Plan your search around where you will moor the boat and how you will use it, from Lake Washington day trips to cruising the San Juan Islands.' ] },
       { heading: 'Lake boats and Sound boats', paragraphs: [
         'Seattle is unusual in having fresh water and salt water moorage minutes apart, and that shapes both pricing and buyer questions. Boats kept on Lake Washington or Lake Union see fresh water, while boats kept on the Sound live in salt water, so buyers ask where a boat has been moored and how its systems have been maintained. A good listing answers that up front.',
-        'Current Gray Yachts listings around Seattle range from day boats and runabouts to a 42 foot Hunter Passage sailboat and a Back Cove 30, priced from about $30,000 to $325,000, moored from Renton and Madrona on Lake Washington to Edmonds on the Sound.' ] },
+        'Current Gray Yachts listings around Seattle range from day boats and runabouts to a 42 foot Hunter Passage sailboat and a Back Cove 30, priced from about $30,000 to $299,000, moored from Renton and Madrona on Lake Washington to Edmonds on the Sound.' ] },
     ],
     faq: [
       { question: 'Do you only work with boats in Seattle?', answer: 'No. Seattle is home base, and Gray Yachts works with owners and buyers across Puget Sound and the wider Pacific Northwest.' },
