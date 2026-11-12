@@ -12,7 +12,7 @@ async function main() {
     // Real screenshots, live extraction, no mocked routes or image sources.
     await page.goto(base + '/fleet/poulsbo', { waitUntil: 'networkidle' });
     await page.screenshot({ path: 'artifacts/catalog/poulsbo-listing-top.png' });
-    await page.getByText('$300,000', { exact: true }).first().scrollIntoViewIfNeeded();
+    await page.getByText('$249,000', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.screenshot({ path: 'artifacts/catalog/poulsbo-listing-price.png' });
     await page.getByRole('heading', { name: 'Specifications', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: 'artifacts/catalog/poulsbo-listing-specs.png' });
@@ -29,7 +29,7 @@ async function main() {
     await page.locator('img[src^="/api/yacht-image?id="]').first().scrollIntoViewIfNeeded();
     await page.waitForFunction(() => (document.querySelector('img[src^="/api/yacht-image?id="]') as HTMLImageElement)?.naturalWidth > 100);
     const yacht = await page.evaluate(() => JSON.parse(localStorage.getItem('gy-compare-catalog-v6')!)[0]);
-    assert.equal(yacht.year, 2023); assert.equal(yacht.priceNum, 300000); assert.equal(yacht.maxSpeedNum, 0);
+    assert.equal(yacht.year, 2023); assert.equal(yacht.priceNum, 249000); assert.equal(yacht.maxSpeedNum, 0);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: 'artifacts/catalog/live-screenshot-import-desktop.png', fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
