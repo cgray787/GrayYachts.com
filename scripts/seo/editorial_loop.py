@@ -207,6 +207,37 @@ def _trim_snapshots(snapshots, limit):
             item['text']=_trim_text_to(text,limit);item['trimmedForPrompt']=True;changed=True
     return changed
 
+def _trim_snapshots_to_fit(snapshots, floor, render, budget):
+    """Binary-search the largest per-snapshot char limit that still fits the budget, so a step
+    never throws away more evidence than it needs to. Falls back to the floor (next step picks up
+    the slack) when even the floor does not fit."""
+    items=[item for item in (snapshots or []) if isinstance(item.get('text'),str)]
+    if not items:return False
+    originals={id(item):item['text'] for item in items}
+    longest=max(len(text) for text in originals.values())
+    if longest<=floor:return False
+    def apply(limit):
+        for item in items:
+            original=originals[id(item)]
+            item['text']=_trim_text_to(original,limit) if len(original)>limit else original
+    def fits(limit):
+        apply(limit)
+        return len(render().encode('utf-8'))<=budget
+    if fits(floor):
+        lo,hi=floor,longest
+        while lo<hi:
+            mid=(lo+hi+1)//2
+            if fits(mid):lo=mid
+            else:hi=mid-1
+        limit=lo;apply(limit)
+    else:
+        limit=floor  # already applied by the fits(floor) probe above
+    changed=False
+    for item in items:
+        if len(originals[id(item)])>limit:
+            item['trimmedForPrompt']=True;changed=True
+    return changed
+
 def _keep_latest(ctx, key, n):
     values=ctx.get(key)
     if isinstance(values,list) and len(values)>n:ctx[key]=values[-n:];return True
@@ -224,13 +255,13 @@ def build_prompt(template, context, schema=None):
     budget=MAX_PROMPT_BYTES-reserved
     def render():return template+'\n\nCurrent context:\n'+json.dumps(ctx,ensure_ascii=False)
     prompt=render();trimmed=False
-    steps=[lambda:_trim_snapshots(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR),
-           lambda:_trim_snapshots(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR),
+    steps=[lambda:_trim_snapshots_to_fit(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR,render,budget),
+           lambda:_trim_snapshots_to_fit(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR,render,budget),
            lambda:_keep_latest(ctx,'recentResearch',1),
            lambda:_keep_first(ctx,'keywordTargets',40),
            lambda:_keep_latest(ctx,'alreadyWritten',150),
-           lambda:_trim_snapshots(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL),
-           lambda:_trim_snapshots(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL)]
+           lambda:_trim_snapshots_to_fit(ctx.get('reputableSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL,render,budget),
+           lambda:_trim_snapshots_to_fit(ctx.get('officialSourceSnapshots'),SNAPSHOT_TRIM_FLOOR_FINAL,render,budget)]
     for step in steps:
         if len(prompt.encode('utf-8'))<=budget:break
         if step():trimmed=True

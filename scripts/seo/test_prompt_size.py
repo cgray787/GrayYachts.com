@@ -41,6 +41,21 @@ class BuildPromptOversizedTests(unittest.TestCase):
    self.assertEqual(len(ctx[key]),13)
    for item in ctx[key]:
     self.assertTrue(item['url']);self.assertEqual(item['status'],'retrieved');self.assertTrue(item['requestedUrl'])
+ def test_moderately_oversized_snapshots_are_not_over_trimmed(self):
+  # 13 snapshots x 6,000 chars per tier overshoots the byte budget by roughly 40%. A per-step
+  # binary search should trim only as much as needed to fit, not collapse straight to the floor
+  # the way a fixed-limit trim would (the real-world regression this guards against: a 139.7 KB
+  # prompt got cut all the way to 86.6 KB when ~96.6 KB would have fit).
+  context={'today':'2026-11-12','topics':[{'id':'t1','sourceUrl':'https://example.com/t1'}],'alreadyWritten':[],'recentResearch':[],'lessons':[],'keywordTargets':[],'officialSourceSnapshots':snapshot_pack(13,6_000,'official','off'),'reputableSourceSnapshots':snapshot_pack(13,6_000,'reputable','rep')}
+  schema=loop.article_schema()
+  reserved=len((loop.SCHEMA_SUFFIX+json.dumps(schema,separators=(',',':'))).encode('utf-8'))
+  budget=loop.MAX_PROMPT_BYTES-reserved
+  before=len(('Template body.'+'\n\nCurrent context:\n'+json.dumps(context,ensure_ascii=False)).encode('utf-8'))
+  self.assertGreater(before,budget*1.3)
+  prompt=loop.build_prompt('Template body.',context,schema)
+  size=len(prompt.encode('utf-8'))
+  self.assertLessEqual(size,budget)
+  self.assertGreaterEqual(size,budget*0.9)
 
 class InvokeAgentStdinTests(unittest.TestCase):
  def setUp(self):
