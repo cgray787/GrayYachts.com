@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Bell,
@@ -38,6 +39,7 @@ interface DashboardClientProps {
   yachts: DashboardYacht[];
   activities: DashboardActivity[];
   stats: DashboardStats;
+  dataUnavailable?: boolean;
 }
 
 /* ───── Component ───── */
@@ -47,7 +49,16 @@ export default function DashboardClient({
   yachts,
   activities,
   stats: dashboardStats,
+  dataUnavailable = false,
 }: DashboardClientProps) {
+  const router = useRouter();
+  if (dataUnavailable) return (
+    <div role="alert" className="mx-auto max-w-7xl">
+      <h1 className="text-2xl font-semibold text-text-primary">Dashboard temporarily unavailable</h1>
+      <p className="mt-3 text-text-secondary">We couldn’t load your dashboard data. Please try again.</p>
+      <button onClick={() => router.refresh()} className="mt-5 rounded-lg bg-gold px-4 py-2 text-bg-primary">Try again</button>
+    </div>
+  );
   const stats = [
     {
       icon: Ship,
@@ -85,7 +96,7 @@ export default function DashboardClient({
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-text-primary">
-            Welcome back, {firstName}
+            Welcome back{firstName ? `, ${firstName}` : ""}
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
             Here&apos;s an overview of your fleet and services
