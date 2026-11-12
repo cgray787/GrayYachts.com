@@ -103,3 +103,38 @@ If anything misbehaves after step 4, 5 or 6:
    ```
 3. Re-run `check-auth` and `run --dry-run` after any rollback to confirm the
    restored state is healthy before leaving it for the next scheduled timer.
+
+## E2BIG fix (2026-11-12)
+
+`reputable_sources` mode fetched 13 snapshots (79,673 bytes of JSON) and the
+resulting Hermes prompt was ~139,659 bytes. `invoke_agent()` passed that whole
+prompt as a single argv string, over Linux's `MAX_ARG_STRLEN` (131072 bytes),
+so `execve` failed with `[Errno 7] Argument list too long`. Fixed by sending
+the prompt over stdin to the Hermes venv's own interpreter, and by bounding
+the prompt itself (`build_prompt()`, `MAX_PROMPT_BYTES`) so it never gets that
+large to begin with.
+
+Only these files are deployed for this fix — not the full file list in step 2
+above:
+
+```
+scp scripts/seo/editorial_loop.py        vps:/opt/grayyachts-seo/scripts/seo/editorial_loop.py
+scp scripts/seo/test_prompt_size.py      vps:/opt/grayyachts-seo/scripts/seo/test_prompt_size.py
+scp scripts/seo/test_no_draft_fixes.py   vps:/opt/grayyachts-seo/scripts/seo/test_no_draft_fixes.py
+```
+
+(`test_no_draft_fixes.py` only changed because one of its tests leaked a
+mocked `subprocess.run` across the test session; no behavior it covers
+changed.)
+
+Run the test suite on the VPS exactly as in step 3 before trusting this.
+
+**Rollback:** restore `scripts/seo/editorial_loop.py` from the step 1 backup
+tarball rather than editing it live:
+
+```
+ssh vps 'tar -xzf /root/grayyachts-seo-backup-<timestamp>.tar.gz -C / opt/grayyachts-seo/scripts/seo/editorial_loop.py'
+```
+
+The test files are safe to leave in place either way; they do not run in
+production.
